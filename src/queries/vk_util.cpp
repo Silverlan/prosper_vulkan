@@ -13,6 +13,7 @@
 #include <misc/descriptor_set_create_info.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_string.h>
+#include <sharedutils/util_path.hpp>
 #include <fsys/filesystem.h>
 #include <util_image_buffer.hpp>
 #include <wrappers/device.h>
@@ -143,7 +144,9 @@ bool prosper::glsl_to_spv(IPrContext &context,prosper::ShaderStage stage,const s
 	}
 	std::vector<prosper::glsl::IncludeLine> includeLines;
 	unsigned int lineOffset = 0;
-	auto shaderCode = load_glsl(context,stage,fName,infoLog,debugInfoLog,includeLines,lineOffset);
+	::util::Path fPath {fName};
+	fPath.PopFront();
+	auto shaderCode = load_glsl(context,stage,fPath.GetString(),infoLog,debugInfoLog,includeLines,lineOffset);
 	if(shaderCode.has_value() == false)
 		return false;
 	auto r = ::glsl_to_spv(context,stage,*shaderCode,spirv,infoLog,debugInfoLog,fName,includeLines,lineOffset,(ext == "hls") ? true : false);

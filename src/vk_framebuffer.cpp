@@ -38,6 +38,7 @@ VlkFramebuffer::VlkFramebuffer(
 	//prosper::debug::register_debug_object(m_framebuffer->get_framebuffer(),this,prosper::debug::ObjectType::Framebuffer);
 }
 VlkFramebuffer::~VlkFramebuffer() {}
+const void *VlkFramebuffer::GetInternalHandle() const {return nullptr;} // TODO
 Anvil::Framebuffer &VlkFramebuffer::GetAnvilFramebuffer() const {return *m_framebuffer;}
 Anvil::Framebuffer &VlkFramebuffer::operator*() {return *m_framebuffer;}
 const Anvil::Framebuffer &VlkFramebuffer::operator*() const {return const_cast<VlkFramebuffer*>(this)->operator*();}

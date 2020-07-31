@@ -170,6 +170,52 @@ bool prosper::VlkCommandBuffer::ResetQuery(const Query &query) const
 	return success;
 }
 
+bool prosper::VlkCommandBuffer::RecordPresentImage(IImage &img,uint32_t swapchainImgIndex)
+{
+	auto &context = GetContext();
+	// Change swapchain image layout to TransferDst
+	prosper::util::ImageSubresourceRange subresourceRange {0,1,0,1};
+	auto queueFamilyIndex = context.GetUniversalQueueFamilyIndex();
+
+	{
+
+		prosper::util::ImageBarrierInfo imgBarrierInfo {};
+		imgBarrierInfo.srcAccessMask = prosper::AccessFlags{};
+		imgBarrierInfo.dstAccessMask = prosper::AccessFlags::TransferWriteBit;
+		imgBarrierInfo.oldLayout = prosper::ImageLayout::Undefined;
+		imgBarrierInfo.newLayout = prosper::ImageLayout::TransferDstOptimal;
+		imgBarrierInfo.subresourceRange = subresourceRange;
+		imgBarrierInfo.srcQueueFamilyIndex = imgBarrierInfo.dstQueueFamilyIndex = queueFamilyIndex;
+
+		prosper::util::PipelineBarrierInfo barrierInfo {};
+		barrierInfo.srcStageMask = prosper::PipelineStageFlags::TopOfPipeBit;
+		barrierInfo.dstStageMask = prosper::PipelineStageFlags::TransferBit;
+		barrierInfo.imageBarriers.push_back(prosper::util::create_image_barrier(*context.GetSwapchainImage(swapchainImgIndex),imgBarrierInfo));
+		RecordPipelineBarrier(barrierInfo);
+	}
+
+	RecordBlitImage({},img,*context.GetSwapchainImage(swapchainImgIndex));
+
+	/* Change the swap-chain image's layout to presentable */
+	{
+		prosper::util::ImageBarrierInfo imgBarrierInfo {};
+		imgBarrierInfo.srcAccessMask = prosper::AccessFlags::TransferWriteBit;
+		imgBarrierInfo.dstAccessMask = prosper::AccessFlags::MemoryReadBit;
+		imgBarrierInfo.oldLayout = prosper::ImageLayout::TransferDstOptimal;
+		imgBarrierInfo.newLayout = prosper::ImageLayout::PresentSrcKHR;
+		imgBarrierInfo.subresourceRange = subresourceRange;
+		imgBarrierInfo.srcQueueFamilyIndex = imgBarrierInfo.dstQueueFamilyIndex = queueFamilyIndex;
+
+		prosper::util::PipelineBarrierInfo barrierInfo {};
+		barrierInfo.srcStageMask = prosper::PipelineStageFlags::TransferBit;
+		barrierInfo.dstStageMask = prosper::PipelineStageFlags::AllCommands;
+		barrierInfo.imageBarriers.push_back(prosper::util::create_image_barrier(*context.GetSwapchainImage(swapchainImgIndex),imgBarrierInfo));
+		RecordPipelineBarrier(barrierInfo);
+	}
+	///
+	return true;
+}
+
 bool prosper::VlkCommandBuffer::RecordBeginPipelineStatisticsQuery(const PipelineStatisticsQuery &query) const
 {
 	auto *pQueryPool = static_cast<VlkQueryPool*>(query.GetPool());

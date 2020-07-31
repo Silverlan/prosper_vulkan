@@ -73,6 +73,8 @@ namespace prosper
 		virtual bool RecordEndOcclusionQuery(const OcclusionQuery &query) const override;
 		virtual bool WriteTimestampQuery(const TimestampQuery &query) const override;
 		virtual bool ResetQuery(const Query &query) const override;
+
+		virtual bool RecordPresentImage(IImage &img,uint32_t swapchainImgIndex) override;
 	protected:
 		VlkCommandBuffer(IPrContext &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,prosper::QueueFamilyType queueFamilyType);
 		virtual bool DoRecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId,PipelineID pipelineId) override;

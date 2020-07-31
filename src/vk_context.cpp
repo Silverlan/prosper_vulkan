@@ -109,6 +109,8 @@ VlkContext::VlkContext(const std::string &appName,bool bEnableValidation)
 	: IPrContext{appName,bEnableValidation}
 {}
 
+void VlkContext::Flush() {}
+
 prosper::Result VlkContext::WaitForFence(const IFence &fence,uint64_t timeout) const
 {
 	auto vkFence = static_cast<const VlkFence&>(fence).GetAnvilFence().get_fence();
@@ -843,7 +845,6 @@ void VlkContext::GetGLSLDefinitions(glsl::Definitions &outDef) const
 	outDef.layoutPushConstants = "push_constant";
 	outDef.vertexIndex = "gl_VertexIndex";
 	outDef.instanceIndex = "gl_InstanceIndex";
-	outDef.apiCoordTransform = "T"; // No coordinate transformation is required; We'll just use the matrix as is
 }
 
 void VlkContext::DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)

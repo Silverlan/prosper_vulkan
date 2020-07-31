@@ -21,6 +21,7 @@ namespace prosper
 			std::unique_ptr<Anvil::Framebuffer,std::function<void(Anvil::Framebuffer*)>> fb,const std::function<void(IFramebuffer&)> &onDestroyedCallback=nullptr
 		);
 		virtual ~VlkFramebuffer() override;
+		virtual const void *GetInternalHandle() const override;
 		Anvil::Framebuffer &GetAnvilFramebuffer() const;
 		Anvil::Framebuffer &operator*();
 		const Anvil::Framebuffer &operator*() const;

@@ -92,6 +92,18 @@ std::optional<prosper::util::SubresourceLayout> VlkImage::GetSubresourceLayout(u
 	return reinterpret_cast<prosper::util::SubresourceLayout&>(subresourceLayout);
 }
 
+bool VlkImage::WriteImageData(uint32_t w,uint32_t h,uint32_t layerIndex,uint32_t mipLevel,uint64_t size,const uint8_t *data)
+{
+	auto layout = GetSubresourceLayout(layerIndex,mipLevel);
+	if(layout.has_value() == false)
+		return false;
+	void *ptr;
+	if(Map(layout->offset,layout->size,&ptr) == false)
+		return false;
+	memcpy(ptr,data,size);
+	return Unmap();
+}
+
 bool VlkImage::DoSetMemoryBuffer(prosper::IBuffer &buffer)
 {
 	return m_image->set_memory(dynamic_cast<VlkBuffer&>(buffer).GetAnvilBuffer().get_memory_block(0));
