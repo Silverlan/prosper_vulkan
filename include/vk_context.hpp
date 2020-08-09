@@ -55,6 +55,7 @@ namespace prosper
 		static std::shared_ptr<VlkContext> Create(const std::string &appName,bool bEnableValidation);
 		static IPrContext &GetContext(Anvil::BaseDevice &dev);
 		virtual std::string GetAPIIdentifier() const override {return "Vulkan";}
+		virtual std::string GetAPIAbbreviation() const override {return "VK";}
 
 		Anvil::SGPUDevice &GetDevice();
 		const Anvil::SGPUDevice &GetDevice() const;

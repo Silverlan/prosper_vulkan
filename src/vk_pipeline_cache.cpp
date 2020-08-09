@@ -37,7 +37,7 @@ Anvil::PipelineCacheUniquePtr PipelineCache::Load(Anvil::BaseDevice &dev,const s
 	data.resize(szData);
 	f->Read(data.data(),data.size() *sizeof(data.front()));
 
-	static_assert(umath::to_integral(vk::PipelineCacheHeaderVersion::eOne) == VkPipelineCacheHeaderVersion::VK_PIPELINE_CACHE_HEADER_VERSION_END_RANGE,"Unsupported pipeline cache header version, please update header information! (See https://vulkan.lunarg.com/doc/view/1.0.26.0/linux/vkspec.chunked/ch09s06.html , table 9.1)");
+	// static_assert(umath::to_integral(vk::PipelineCacheHeaderVersion::eOne) == VkPipelineCacheHeaderVersion::VK_PIPELINE_CACHE_HEADER_VERSION_END_RANGE,"Unsupported pipeline cache header version, please update header information! (See https://vulkan.lunarg.com/doc/view/1.0.26.0/linux/vkspec.chunked/ch09s06.html , table 9.1)");
 	if(header.version != vk::PipelineCacheHeaderVersion::eOne)
 	{
 		outErr = LoadError::UnsupportedCacheVersion;
@@ -57,10 +57,19 @@ Anvil::PipelineCacheUniquePtr PipelineCache::Load(Anvil::BaseDevice &dev,const s
 		return nullptr;
 	}
 
-	if(sizeof(header.uuid) != sizeof(properties.core_vk1_0_properties_ptr->pipeline_cache_uuid) || std::equal(header.uuid,header.uuid +sizeof(header.uuid) /sizeof(header.uuid[0]),properties.core_vk1_0_properties_ptr->pipeline_cache_uuid) == false)
+	if(sizeof(header.uuid) != sizeof(properties.core_vk1_0_properties_ptr->pipeline_cache_uuid))
 	{
 		outErr = LoadError::IncompatiblePipelineCacheId;
 		return nullptr;
+	}
+
+	for(auto i=decltype(header.uuid.size()){0u};i<header.uuid.size();++i)
+	{
+		if(header.uuid.at(i) != properties.core_vk1_0_properties_ptr->pipeline_cache_uuid[i])
+		{
+			outErr = LoadError::IncompatiblePipelineCacheId;
+			return nullptr;
+		}
 	}
 
 	auto cache = Anvil::PipelineCache::create(&dev,false,data.size(),data.data());
