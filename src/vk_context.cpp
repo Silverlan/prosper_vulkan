@@ -9,6 +9,7 @@
 #include "vk_command_buffer.hpp"
 #include "vk_render_pass.hpp"
 #include "buffers/vk_buffer.hpp"
+#include "buffers/vk_render_buffer.hpp"
 #include "vk_descriptor_set_group.hpp"
 #include "vk_pipeline_cache.hpp"
 #include "vk_event.hpp"
@@ -1910,6 +1911,13 @@ std::shared_ptr<prosper::IFramebuffer> prosper::VlkContext::CreateFramebuffer(ui
 	return prosper::VlkFramebuffer::Create(*this,attachments,width,height,depth,layers,Anvil::Framebuffer::create(
 		std::move(createInfo)
 	));
+}
+std::shared_ptr<prosper::IRenderBuffer> prosper::VlkContext::CreateRenderBuffer(
+	const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,const std::vector<prosper::IBuffer*> &buffers,
+	const std::vector<prosper::DeviceSize> &offsets,const std::optional<IndexBufferInfo> &indexBufferInfo
+)
+{
+	return VlkRenderBuffer::Create(*this,pipelineCreateInfo,buffers,offsets,indexBufferInfo);
 }
 uint32_t prosper::VlkContext::GetLastAcquiredSwapchainImageIndex() const {return const_cast<VlkContext*>(this)->GetSwapchain()->get_last_acquired_image_index();}
 #pragma optimize("",on)

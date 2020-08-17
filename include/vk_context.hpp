@@ -115,6 +115,10 @@ namespace prosper
 		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const ImageData &imgData={}) override;
 		virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo) override;
 		virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments) override;
+		virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(
+			const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,const std::vector<prosper::IBuffer*> &buffers,
+			const std::vector<prosper::DeviceSize> &offsets={},const std::optional<IndexBufferInfo> &indexBufferInfo={}
+		) override;
 		virtual std::unique_ptr<ShaderModule> CreateShaderModuleFromStageData(
 			const std::shared_ptr<ShaderStageProgram> &shaderStageProgram,
 			prosper::ShaderStage stage,

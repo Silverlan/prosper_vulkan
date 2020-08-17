@@ -7,6 +7,7 @@
 #include "debug/vk_debug_lookup_map.hpp"
 #include "shader/prosper_shader.hpp"
 #include "buffers/vk_buffer.hpp"
+#include "buffers/vk_render_buffer.hpp"
 #include "image/vk_image.hpp"
 #include "image/vk_image_view.hpp"
 #include "queries/prosper_occlusion_query.hpp"
@@ -69,6 +70,13 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(
 	const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<DeviceSize> &offsets
 )
 {
+	return RecordBindVertexBuffers(buffers,startBinding,offsets);
+}
+bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(
+	const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<DeviceSize> &offsets
+)
+{
+	// Note: Same implementation as below
 	std::vector<Anvil::Buffer*> anvBuffers {};
 	anvBuffers.reserve(buffers.size());
 	for(auto *buf : buffers)
@@ -81,6 +89,28 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(
 	for(auto i=decltype(buffers.size()){0u};i<buffers.size();++i)
 		anvOffsets.at(i) += buffers.at(i)->GetStartOffset();
 	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_vertex_buffers(startBinding,anvBuffers.size(),anvBuffers.data(),anvOffsets.data());
+}
+bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(const std::vector<std::shared_ptr<IBuffer>> &buffers,uint32_t startBinding,const std::vector<DeviceSize> &offsets)
+{
+	// Note: Same implementation as above
+	std::vector<Anvil::Buffer*> anvBuffers {};
+	anvBuffers.reserve(buffers.size());
+	for(auto &buf : buffers)
+		anvBuffers.push_back(&dynamic_cast<VlkBuffer*>(buf.get())->GetAnvilBuffer());
+	std::vector<DeviceSize> anvOffsets;
+	if(offsets.empty())
+		anvOffsets.resize(buffers.size(),0);
+	else
+		anvOffsets = offsets;
+	for(auto i=decltype(buffers.size()){0u};i<buffers.size();++i)
+		anvOffsets.at(i) += buffers.at(i)->GetStartOffset();
+	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_vertex_buffers(startBinding,anvBuffers.size(),anvBuffers.data(),anvOffsets.data());
+}
+bool prosper::VlkCommandBuffer::RecordBindRenderBuffer(const IRenderBuffer &renderBuffer)
+{
+	auto &vkBuf = static_cast<const VlkRenderBuffer&>(renderBuffer);
+	auto *indexBufferInfo = vkBuf.GetIndexBufferInfo();
+	return RecordBindVertexBuffers(vkBuf.GetBuffers(),0u,vkBuf.GetOffsets()) && (indexBufferInfo == nullptr || RecordBindIndexBuffer(*indexBufferInfo->buffer,indexBufferInfo->indexType,indexBufferInfo->offset));
 }
 bool prosper::VlkCommandBuffer::RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size)
 {

@@ -52,6 +52,7 @@ namespace prosper
 		virtual bool RecordBindVertexBuffers(
 			const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={}
 		) override;
+		virtual bool RecordBindRenderBuffer(const IRenderBuffer &renderBuffer) override;
 		virtual bool RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size) override;
 		virtual bool RecordDispatch(uint32_t x,uint32_t y,uint32_t z) override;
 		virtual bool RecordDraw(uint32_t vertCount,uint32_t instanceCount=1,uint32_t firstVertex=0,uint32_t firstInstance=0) override;
@@ -84,6 +85,8 @@ namespace prosper
 		virtual bool DoRecordCopyImageToBuffer(const util::BufferImageCopyInfo &copyInfo,IImage &imgSrc,ImageLayout srcImageLayout,IBuffer &bufferDst,uint32_t w,uint32_t h) override;
 		virtual bool DoRecordBlitImage(const util::BlitInfo &blitInfo,IImage &imgSrc,IImage &imgDst,const std::array<Offset3D,2> &srcOffsets,const std::array<Offset3D,2> &dstOffsets) override;
 		virtual bool DoRecordResolveImage(IImage &imgSrc,IImage &imgDst,const util::ImageResolve &resolve) override;
+		bool RecordBindVertexBuffers(const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={});
+		bool RecordBindVertexBuffers(const std::vector<std::shared_ptr<IBuffer>> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={});
 
 		std::shared_ptr<Anvil::CommandBufferBase> m_cmdBuffer = nullptr;
 	};
