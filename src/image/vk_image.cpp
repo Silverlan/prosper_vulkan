@@ -92,15 +92,25 @@ std::optional<prosper::util::SubresourceLayout> VlkImage::GetSubresourceLayout(u
 	return reinterpret_cast<prosper::util::SubresourceLayout&>(subresourceLayout);
 }
 
-bool VlkImage::WriteImageData(uint32_t w,uint32_t h,uint32_t layerIndex,uint32_t mipLevel,uint64_t size,const uint8_t *data)
+bool VlkImage::WriteImageData(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint32_t layerIndex,uint32_t mipLevel,uint64_t size,const uint8_t *data)
 {
 	auto layout = GetSubresourceLayout(layerIndex,mipLevel);
 	if(layout.has_value() == false)
 		return false;
 	void *ptr;
+	auto offset = layout->offset +y *layout->row_pitch +x;
 	if(Map(layout->offset,layout->size,&ptr) == false)
 		return false;
-	memcpy(ptr,data,size);
+	uint64_t srcOffset = 0;
+	uint64_t dstOffset = 0;
+	auto srcSizePerRow = size /h;
+	for(auto yc=y;yc<(y +h);++yc)
+	{
+		memcpy(static_cast<uint8_t*>(ptr) +dstOffset,data +srcOffset,srcSizePerRow);
+		
+		srcOffset += srcSizePerRow;
+		dstOffset += layout->row_pitch;
+	}
 	return Unmap();
 }
 
