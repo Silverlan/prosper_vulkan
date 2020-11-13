@@ -168,6 +168,8 @@ namespace prosper
 };
 void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 {
+	// TODO: FIXME
+#if 0
 	if(s_lookupHandler == nullptr)
 		return;
 	const std::string hexDigits = "0123456789abcdefABCDEF";
@@ -279,4 +281,5 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 		msgValidation += ((dbgName.empty() == false) ? dbgName : "Unknown") +": ";
 		fPrintBoundPipeline(*boundPipeline.first);
 	}
+#endif
 }

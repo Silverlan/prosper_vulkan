@@ -976,6 +976,13 @@ std::shared_ptr<prosper::IBuffer> VlkContext::CreateBuffer(const prosper::util::
 std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const prosper::util::ImageCreateInfo &pCreateInfo,const std::vector<Anvil::MipmapRawData> *data)
 {
 	auto createInfo = pCreateInfo;
+
+	constexpr auto flags = MemoryFeatureFlags::HostCached | MemoryFeatureFlags::DeviceLocal;
+	if((createInfo.memoryFeatures &flags) == flags)
+	{
+		context.ValidationCallback(DebugMessageSeverityFlags::ErrorBit,"Attempted to create image with both HostCached and DeviceLocal flags, which is poorly supported. Removing DeviceLocal flag...");
+		umath::remove_flag(createInfo.memoryFeatures,MemoryFeatureFlags::DeviceLocal);
+	}
 	auto &layers = createInfo.layers;
 	auto imageCreateFlags = Anvil::ImageCreateFlags{};
 	if((createInfo.flags &prosper::util::ImageCreateInfo::Flags::Cubemap) != prosper::util::ImageCreateInfo::Flags::None)
