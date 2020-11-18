@@ -427,11 +427,11 @@ void VlkContext::ReloadSwapchain()
 	if(m_shaderManager != nullptr)
 	{
 		auto &shaderManager = *m_shaderManager;
-		for(auto &pair : shaderManager.GetShaders())
+		for(auto &pshader : shaderManager.GetShaders())
 		{
-			if(pair.second->IsGraphicsShader() == false)
+			if(pshader->IsGraphicsShader() == false)
 				continue;
-			auto &shader = static_cast<prosper::ShaderGraphics&>(*pair.second);
+			auto &shader = static_cast<prosper::ShaderGraphics&>(*pshader);
 			auto numPipelines = shader.GetPipelineCount();
 			auto bHasStaticViewportOrScissor = false;
 			for(auto i=decltype(numPipelines){0};i<numPipelines;++i)
