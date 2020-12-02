@@ -97,19 +97,19 @@ bool VlkDescriptorSet::DoSetBindingArrayTexture(prosper::Texture &texture,uint32
 bool VlkDescriptorSet::DoSetBindingUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
 {
 	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::UniformBufferBindingElement{
-		&dynamic_cast<VlkBuffer&>(buffer).GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
+		&buffer.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
 	});
 }
 bool VlkDescriptorSet::DoSetBindingDynamicUniformBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
 {
 	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::DynamicUniformBufferBindingElement{
-		&dynamic_cast<VlkBuffer&>(buffer).GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
+		&buffer.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
 	});
 }
 bool VlkDescriptorSet::DoSetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
 {
 	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::StorageBufferBindingElement{
-		&dynamic_cast<VlkBuffer&>(buffer).GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
+		&buffer.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
 	});
 }
 

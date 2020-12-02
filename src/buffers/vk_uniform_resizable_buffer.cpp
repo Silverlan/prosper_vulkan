@@ -23,10 +23,10 @@ prosper::VkUniformResizableBuffer::VkUniformResizableBuffer(
 	IBuffer{buffer.GetContext(),buffer.GetCreateInfo(),buffer.GetStartOffset(),buffer.GetSize()},
 	VlkBuffer{buffer.GetContext(),buffer.GetCreateInfo(),buffer.GetStartOffset(),buffer.GetSize(),nullptr}
 {
-	VlkBuffer::m_buffer = std::move(dynamic_cast<VlkBuffer&>(buffer).m_buffer);
+	VlkBuffer::m_buffer = std::move(buffer.GetAPITypeRef<VlkBuffer>().m_buffer);
 }
 
 void prosper::VkUniformResizableBuffer::MoveInternalBuffer(IBuffer &other)
 {
-	SetBuffer(std::move(dynamic_cast<VlkBuffer&>(other).m_buffer));
+	SetBuffer(std::move(other.GetAPITypeRef<VlkBuffer>().m_buffer));
 }

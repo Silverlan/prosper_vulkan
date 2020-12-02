@@ -172,7 +172,7 @@ namespace prosper
 		) override;
 		virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource) override;
 		virtual void DoWaitIdle() override;
-		virtual void DoFlushSetupCommandBuffer() override;
+		virtual void DoFlushCommandBuffer(ICommandBuffer &cmd) override;
 		virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(
 			const util::BufferCreateInfo &createInfo,uint64_t bufferInstanceSize,
 			uint64_t maxTotalSize,const void *data,

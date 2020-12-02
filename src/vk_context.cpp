@@ -229,7 +229,7 @@ bool VlkContext::Submit(ICommandBuffer &cmdBuf,bool shouldBlock,IFence *optFence
 {
 	auto &dev = GetDevice();
 	return dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
-		&dynamic_cast<VlkCommandBuffer&>(cmdBuf).GetAnvilCommandBuffer(),0u,nullptr,
+		&cmdBuf.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(),0u,nullptr,
 		0u,nullptr,nullptr,shouldBlock,optFence ? &dynamic_cast<VlkFence*>(optFence)->GetAnvilFence() : nullptr
 	));
 }
@@ -309,12 +309,15 @@ void VlkContext::DoWaitIdle()
 	dev.wait_idle();
 }
 
-void VlkContext::DoFlushSetupCommandBuffer()
+void VlkContext::DoFlushCommandBuffer(ICommandBuffer &cmd)
 {
-	auto bSuccess = static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_setupCmdBuffer).GetAnvilCommandBuffer()).stop_recording();
+	if(cmd.IsPrimary() == false)
+		return;
+	auto &pcmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(cmd.GetAPITypeRef<prosper::VlkCommandBuffer>());
+	auto bSuccess = static_cast<Anvil::PrimaryCommandBuffer&>(pcmd.GetAnvilCommandBuffer()).stop_recording();
 	auto &dev = GetDevice();
 	dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
-		&static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_setupCmdBuffer).GetAnvilCommandBuffer(),0u,nullptr,
+		&pcmd.GetAnvilCommandBuffer(),0u,nullptr,
 		0u,nullptr,nullptr,true
 	));
 }
@@ -1141,12 +1144,12 @@ void VlkContext::SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::Queue
 	{
 	case prosper::QueueFamilyType::Universal:
 		m_devicePtr->get_universal_queue(0u)->submit(Anvil::SubmitInfo::create(
-			&dynamic_cast<VlkCommandBuffer&>(cmd).GetAnvilCommandBuffer(),0u,nullptr,0u,nullptr,nullptr,shouldBlock,fence ? &static_cast<VlkFence*>(fence)->GetAnvilFence() : nullptr
+			&cmd.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(),0u,nullptr,0u,nullptr,nullptr,shouldBlock,fence ? &static_cast<VlkFence*>(fence)->GetAnvilFence() : nullptr
 		));
 		break;
 	case prosper::QueueFamilyType::Compute:
 		m_devicePtr->get_compute_queue(0u)->submit(Anvil::SubmitInfo::create(
-			&dynamic_cast<VlkCommandBuffer&>(cmd).GetAnvilCommandBuffer(),0u,nullptr,0u,nullptr,nullptr,shouldBlock,fence ? &static_cast<VlkFence*>(fence)->GetAnvilFence() : nullptr
+			&cmd.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(),0u,nullptr,0u,nullptr,nullptr,shouldBlock,fence ? &static_cast<VlkFence*>(fence)->GetAnvilFence() : nullptr
 		));
 		break;
 	default:
@@ -1679,7 +1682,7 @@ static void init_default_dsg_bindings(Anvil::BaseDevice &dev,Anvil::DescriptorSe
 			case Anvil::DescriptorType::UNIFORM_BUFFER:
 			{
 				std::vector<Anvil::DescriptorSet::UniformBufferBindingElement> bindingElements(arraySize,Anvil::DescriptorSet::UniformBufferBindingElement{
-					&dynamic_cast<prosper::VlkBuffer&>(*dummyBuf).GetAnvilBuffer(),0ull,dummyBuf->GetSize()
+					&dummyBuf->GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),0ull,dummyBuf->GetSize()
 					});
 				descSet->set_binding_array_items(bindingIndex,{0u,arraySize},bindingElements.data());
 				break;
@@ -1687,7 +1690,7 @@ static void init_default_dsg_bindings(Anvil::BaseDevice &dev,Anvil::DescriptorSe
 			case Anvil::DescriptorType::UNIFORM_BUFFER_DYNAMIC:
 			{
 				std::vector<Anvil::DescriptorSet::DynamicUniformBufferBindingElement> bindingElements(arraySize,Anvil::DescriptorSet::DynamicUniformBufferBindingElement{
-					&dynamic_cast<prosper::VlkBuffer&>(*dummyBuf).GetAnvilBuffer(),0ull,dummyBuf->GetSize()
+					&dummyBuf->GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),0ull,dummyBuf->GetSize()
 					});
 				descSet->set_binding_array_items(bindingIndex,{0u,arraySize},bindingElements.data());
 				break;
@@ -1695,7 +1698,7 @@ static void init_default_dsg_bindings(Anvil::BaseDevice &dev,Anvil::DescriptorSe
 			case Anvil::DescriptorType::STORAGE_BUFFER:
 			{
 				std::vector<Anvil::DescriptorSet::StorageBufferBindingElement> bindingElements(arraySize,Anvil::DescriptorSet::StorageBufferBindingElement{
-					&dynamic_cast<prosper::VlkBuffer&>(*dummyBuf).GetAnvilBuffer(),0ull,dummyBuf->GetSize()
+					&dummyBuf->GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),0ull,dummyBuf->GetSize()
 					});
 				descSet->set_binding_array_items(bindingIndex,{0u,arraySize},bindingElements.data());
 				break;
@@ -1703,7 +1706,7 @@ static void init_default_dsg_bindings(Anvil::BaseDevice &dev,Anvil::DescriptorSe
 			case Anvil::DescriptorType::STORAGE_BUFFER_DYNAMIC:
 			{
 				std::vector<Anvil::DescriptorSet::DynamicStorageBufferBindingElement> bindingElements(arraySize,Anvil::DescriptorSet::DynamicStorageBufferBindingElement{
-					&dynamic_cast<prosper::VlkBuffer&>(*dummyBuf).GetAnvilBuffer(),0ull,dummyBuf->GetSize()
+					&dummyBuf->GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),0ull,dummyBuf->GetSize()
 					});
 				descSet->set_binding_array_items(bindingIndex,{0u,arraySize},bindingElements.data());
 				break;

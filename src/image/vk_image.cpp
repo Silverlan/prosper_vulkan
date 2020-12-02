@@ -116,7 +116,7 @@ bool VlkImage::WriteImageData(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint32
 
 bool VlkImage::DoSetMemoryBuffer(prosper::IBuffer &buffer)
 {
-	return m_image->set_memory(dynamic_cast<VlkBuffer&>(buffer).GetAnvilBuffer().get_memory_block(0));
+	return m_image->set_memory(buffer.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer().get_memory_block(0));
 }
 
 Anvil::Image &VlkImage::GetAnvilImage() const {return *m_image;}

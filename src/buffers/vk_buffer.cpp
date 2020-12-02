@@ -15,6 +15,7 @@ prosper::VlkBuffer::VlkBuffer(IPrContext &context,const util::BufferCreateInfo &
 {
 	if(m_buffer != nullptr)
 		prosper::debug::register_debug_object(m_buffer->get_buffer(),this,prosper::debug::ObjectType::Buffer);
+	m_apiTypePtr = this;
 }
 prosper::VlkBuffer::~VlkBuffer()
 {
@@ -68,13 +69,13 @@ bool prosper::VlkBuffer::DoUnmap() const {return m_buffer->get_memory_block(0u)-
 
 void prosper::VlkBuffer::RecreateInternalSubBuffer(IBuffer &newParentBuffer)
 {
-	SetBuffer(Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&dynamic_cast<VlkBuffer&>(newParentBuffer).GetAnvilBuffer(),GetStartOffset(),GetSize())));
+	SetBuffer(Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&newParentBuffer.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),GetStartOffset(),GetSize())));
 }
 
 void prosper::VlkBuffer::SetBuffer(Anvil::BufferUniquePtr buf)
 {
-	auto bPermanentlyMapped = m_bPermanentlyMapped;
-	SetPermanentlyMapped(false);
+	auto bPermanentlyMapped = m_permanentlyMapped;
+	SetPermanentlyMapped(false,prosper::IBuffer::MapFlags::None);
 
 	if(m_buffer != nullptr)
 		prosper::debug::deregister_debug_object(m_buffer->get_buffer());
@@ -82,6 +83,6 @@ void prosper::VlkBuffer::SetBuffer(Anvil::BufferUniquePtr buf)
 	if(m_buffer != nullptr)
 		prosper::debug::register_debug_object(m_buffer->get_buffer(),this,prosper::debug::ObjectType::Buffer);
 
-	if(bPermanentlyMapped == true)
-		SetPermanentlyMapped(true);
+	if(m_permanentlyMapped.has_value())
+		SetPermanentlyMapped(true,*m_permanentlyMapped);
 }

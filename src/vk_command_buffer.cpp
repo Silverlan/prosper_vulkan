@@ -64,7 +64,7 @@ bool prosper::VlkCommandBuffer::RecordSetLineWidth(float lineWidth)
 }
 bool prosper::VlkCommandBuffer::RecordBindIndexBuffer(IBuffer &buf,IndexType indexType,DeviceSize offset)
 {
-	return (*this)->record_bind_index_buffer(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),buf.GetStartOffset() +offset,static_cast<Anvil::IndexType>(indexType));
+	return (*this)->record_bind_index_buffer(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),buf.GetStartOffset() +offset,static_cast<Anvil::IndexType>(indexType));
 }
 bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(
 	const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<DeviceSize> &offsets
@@ -80,7 +80,7 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(
 	std::vector<Anvil::Buffer*> anvBuffers {};
 	anvBuffers.reserve(buffers.size());
 	for(auto *buf : buffers)
-		anvBuffers.push_back(&dynamic_cast<VlkBuffer*>(buf)->GetAnvilBuffer());
+		anvBuffers.push_back(&buf->GetAPITypeRef<VlkBuffer>().GetAnvilBuffer());
 	std::vector<DeviceSize> anvOffsets;
 	if(offsets.empty())
 		anvOffsets.resize(buffers.size(),0);
@@ -88,7 +88,7 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(
 		anvOffsets = offsets;
 	for(auto i=decltype(buffers.size()){0u};i<buffers.size();++i)
 		anvOffsets.at(i) += buffers.at(i)->GetStartOffset();
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_vertex_buffers(startBinding,anvBuffers.size(),anvBuffers.data(),anvOffsets.data());
+	return (*this)->record_bind_vertex_buffers(startBinding,anvBuffers.size(),anvBuffers.data(),anvOffsets.data());
 }
 bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(const std::vector<std::shared_ptr<IBuffer>> &buffers,uint32_t startBinding,const std::vector<DeviceSize> &offsets)
 {
@@ -96,7 +96,7 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(const std::vector<std::s
 	std::vector<Anvil::Buffer*> anvBuffers {};
 	anvBuffers.reserve(buffers.size());
 	for(auto &buf : buffers)
-		anvBuffers.push_back(&dynamic_cast<VlkBuffer*>(buf.get())->GetAnvilBuffer());
+		anvBuffers.push_back(&buf->GetAPITypeRef<VlkBuffer>().GetAnvilBuffer());
 	std::vector<DeviceSize> anvOffsets;
 	if(offsets.empty())
 		anvOffsets.resize(buffers.size(),0);
@@ -104,7 +104,7 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(const std::vector<std::s
 		anvOffsets = offsets;
 	for(auto i=decltype(buffers.size()){0u};i<buffers.size();++i)
 		anvOffsets.at(i) += buffers.at(i)->GetStartOffset();
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_bind_vertex_buffers(startBinding,anvBuffers.size(),anvBuffers.data(),anvOffsets.data());
+	return (*this)->record_bind_vertex_buffers(startBinding,anvBuffers.size(),anvBuffers.data(),anvOffsets.data());
 }
 bool prosper::VlkCommandBuffer::RecordBindRenderBuffer(const IRenderBuffer &renderBuffer)
 {
@@ -114,51 +114,51 @@ bool prosper::VlkCommandBuffer::RecordBindRenderBuffer(const IRenderBuffer &rend
 }
 bool prosper::VlkCommandBuffer::RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_dispatch_indirect(&dynamic_cast<VlkBuffer&>(buffer).GetAnvilBuffer(),size);
+	return (*this)->record_dispatch_indirect(&buffer.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),size);
 }
 bool prosper::VlkCommandBuffer::RecordDispatch(uint32_t x,uint32_t y,uint32_t z)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_dispatch(x,y,z);
+	return (*this)->record_dispatch(x,y,z);
 }
 bool prosper::VlkCommandBuffer::RecordDraw(uint32_t vertCount,uint32_t instanceCount,uint32_t firstVertex,uint32_t firstInstance)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw(vertCount,instanceCount,firstVertex,firstInstance);
+	return (*this)->record_draw(vertCount,instanceCount,firstVertex,firstInstance);
 }
 bool prosper::VlkCommandBuffer::RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount,uint32_t firstIndex,uint32_t firstInstance)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw_indexed(indexCount,instanceCount,firstIndex,0 /* vertexOffset */,firstInstance);
+	return (*this)->record_draw_indexed(indexCount,instanceCount,firstIndex,0 /* vertexOffset */,firstInstance);
 }
 bool prosper::VlkCommandBuffer::RecordDrawIndexedIndirect(IBuffer &buf,DeviceSize offset,uint32_t drawCount,uint32_t stride)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw_indexed_indirect(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),offset,drawCount,stride);
+	return (*this)->record_draw_indexed_indirect(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),offset,drawCount,stride);
 }
 bool prosper::VlkCommandBuffer::RecordDrawIndirect(IBuffer &buf,DeviceSize offset,uint32_t count,uint32_t stride)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_draw_indirect(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),offset,count,stride);
+	return (*this)->record_draw_indirect(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),offset,count,stride);
 }
 bool prosper::VlkCommandBuffer::RecordFillBuffer(IBuffer &buf,DeviceSize offset,DeviceSize size,uint32_t data)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_fill_buffer(&dynamic_cast<VlkBuffer&>(buf).GetAnvilBuffer(),offset,size,data);
+	return (*this)->record_fill_buffer(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),offset,size,data);
 }
 bool prosper::VlkCommandBuffer::RecordSetBlendConstants(const std::array<float,4> &blendConstants)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_blend_constants(blendConstants.data());
+	return (*this)->record_set_blend_constants(blendConstants.data());
 }
 bool prosper::VlkCommandBuffer::RecordSetDepthBounds(float minDepthBounds,float maxDepthBounds)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_depth_bounds(minDepthBounds,maxDepthBounds);
+	return (*this)->record_set_depth_bounds(minDepthBounds,maxDepthBounds);
 }
 bool prosper::VlkCommandBuffer::RecordSetStencilCompareMask(StencilFaceFlags faceMask,uint32_t stencilCompareMask)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_stencil_compare_mask(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilCompareMask);
+	return (*this)->record_set_stencil_compare_mask(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilCompareMask);
 }
 bool prosper::VlkCommandBuffer::RecordSetStencilReference(StencilFaceFlags faceMask,uint32_t stencilReference)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_stencil_reference(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilReference);
+	return (*this)->record_set_stencil_reference(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilReference);
 }
 bool prosper::VlkCommandBuffer::RecordSetStencilWriteMask(StencilFaceFlags faceMask,uint32_t stencilWriteMask)
 {
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_set_stencil_write_mask(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilWriteMask);
+	return (*this)->record_set_stencil_write_mask(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilWriteMask);
 }
 bool prosper::VlkCommandBuffer::RecordBeginOcclusionQuery(const prosper::OcclusionQuery &query) const
 {
@@ -351,7 +351,7 @@ bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrie
 		anvBufBarriers.push_back(Anvil::BufferBarrier{
 			static_cast<Anvil::AccessFlagBits>(barrier.srcAccessMask),static_cast<Anvil::AccessFlagBits>(barrier.dstAccessMask),
 			barrier.srcQueueFamilyIndex,barrier.dstQueueFamilyIndex,
-			&dynamic_cast<VlkBuffer*>(barrier.buffer)->GetAnvilBuffer(),barrier.offset,barrier.size
+			&barrier.buffer->GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),barrier.offset,barrier.size
 			});
 	}
 	std::vector<Anvil::ImageBarrier> anvImgBarriers {};
@@ -365,7 +365,7 @@ bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrie
 			&static_cast<VlkImage*>(barrier.image)->GetAnvilImage(),to_anvil_subresource_range(barrier.subresourceRange,*barrier.image)
 			});
 	}
-	return dynamic_cast<VlkCommandBuffer&>(*this)->record_pipeline_barrier(
+	return (*this)->record_pipeline_barrier(
 		static_cast<Anvil::PipelineStageFlagBits>(barrierInfo.srcStageMask),static_cast<Anvil::PipelineStageFlagBits>(barrierInfo.dstStageMask),
 		Anvil::DependencyFlagBits::NONE,0u,nullptr,
 		anvBufBarriers.size(),anvBufBarriers.data(),
@@ -390,6 +390,7 @@ prosper::VlkPrimaryCommandBuffer::VlkPrimaryCommandBuffer(IPrContext &context,An
 	ICommandBuffer{context,queueFamilyType}
 {
 	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),this,prosper::debug::ObjectType::CommandBuffer);
+	m_apiTypePtr = static_cast<VlkCommandBuffer*>(this);
 }
 bool prosper::VlkPrimaryCommandBuffer::StartRecording(bool oneTimeSubmit,bool simultaneousUseAllowed) const
 {
@@ -530,6 +531,7 @@ prosper::VlkSecondaryCommandBuffer::VlkSecondaryCommandBuffer(IPrContext &contex
 	ICommandBuffer{context,queueFamilyType},ISecondaryCommandBuffer{context,queueFamilyType}
 {
 	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),this,prosper::debug::ObjectType::CommandBuffer);
+	m_apiTypePtr = static_cast<VlkCommandBuffer*>(this);
 }
 bool prosper::VlkSecondaryCommandBuffer::StartRecording(
 	bool oneTimeSubmit,bool simultaneousUseAllowed,bool renderPassUsageOnly,
@@ -620,7 +622,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBuffer(const util::BufferCopy &copyI
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
 	static_assert(sizeof(util::BufferCopy) == sizeof(Anvil::BufferCopy));
-	return m_cmdBuffer->record_copy_buffer(&dynamic_cast<VlkBuffer&>(bufferSrc).GetBaseAnvilBuffer(),&dynamic_cast<VlkBuffer&>(bufferDst).GetBaseAnvilBuffer(),1u,reinterpret_cast<const Anvil::BufferCopy*>(&copyInfo));
+	return m_cmdBuffer->record_copy_buffer(&bufferSrc.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),&bufferDst.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),1u,reinterpret_cast<const Anvil::BufferCopy*>(&copyInfo));
 }
 bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst,uint32_t w,uint32_t h)
 {
@@ -634,7 +636,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImag
 		static_cast<Anvil::ImageAspectFlagBits>(copyInfo.aspectMask),copyInfo.mipLevel,copyInfo.baseArrayLayer,copyInfo.layerCount
 	};
 	return m_cmdBuffer->record_copy_buffer_to_image(
-		&dynamic_cast<VlkBuffer&>(bufferSrc).GetBaseAnvilBuffer(),&*static_cast<VlkImage&>(imgDst),
+		&bufferSrc.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),&*static_cast<VlkImage&>(imgDst),
 		static_cast<Anvil::ImageLayout>(copyInfo.dstImageLayout),1u,&bufferImageCopy
 	);
 }
@@ -665,7 +667,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImageToBuffer(const util::BufferImag
 		static_cast<Anvil::ImageAspectFlagBits>(copyInfo.aspectMask),copyInfo.mipLevel,copyInfo.baseArrayLayer,copyInfo.layerCount
 	};
 	return m_cmdBuffer->record_copy_image_to_buffer(
-		&*static_cast<VlkImage&>(imgSrc),static_cast<Anvil::ImageLayout>(srcImageLayout),&dynamic_cast<VlkBuffer&>(bufferDst).GetAnvilBuffer(),1u,&bufferImageCopy
+		&*static_cast<VlkImage&>(imgSrc),static_cast<Anvil::ImageLayout>(srcImageLayout),&bufferDst.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),1u,&bufferImageCopy
 	);
 }
 bool prosper::VlkCommandBuffer::DoRecordBlitImage(const util::BlitInfo &blitInfo,IImage &imgSrc,IImage &imgDst,const std::array<Offset3D,2> &srcOffsets,const std::array<Offset3D,2> &dstOffsets)
@@ -701,7 +703,7 @@ bool prosper::VlkCommandBuffer::RecordUpdateBuffer(IBuffer &buffer,uint64_t offs
 {
 	if(buffer.GetContext().IsValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
 		throw std::logic_error("Attempted to update buffer while render pass is active!");
-	return m_cmdBuffer->record_update_buffer(&dynamic_cast<VlkBuffer&>(buffer).GetBaseAnvilBuffer(),buffer.GetStartOffset() +offset,size,reinterpret_cast<const uint32_t*>(data));
+	return m_cmdBuffer->record_update_buffer(&buffer.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),buffer.GetStartOffset() +offset,size,reinterpret_cast<const uint32_t*>(data));
 }
 
 ///////////////
