@@ -62,9 +62,24 @@ const Anvil::Buffer &prosper::VlkBuffer::operator*() const {return const_cast<Vl
 Anvil::Buffer *prosper::VlkBuffer::operator->() {return m_buffer.get();}
 const Anvil::Buffer *prosper::VlkBuffer::operator->() const {return const_cast<VlkBuffer*>(this)->operator->();}
 
-bool prosper::VlkBuffer::DoWrite(Offset offset,Size size,const void *data) const {return m_buffer->get_memory_block(0u)->write(offset,size,data);}
-bool prosper::VlkBuffer::DoRead(Offset offset,Size size,void *data) const {return m_buffer->get_memory_block(0u)->read(offset,size,data);}
-bool prosper::VlkBuffer::DoMap(Offset offset,Size size,MapFlags mapFlags,void **optOutMappedPtr) const {return m_buffer->get_memory_block(0u)->map(offset,size,optOutMappedPtr);}
+bool prosper::VlkBuffer::DoWrite(Offset offset,Size size,const void *data) const
+{
+	if(size == 0)
+		return true;
+	return m_buffer->get_memory_block(0u)->write(offset,size,data);
+}
+bool prosper::VlkBuffer::DoRead(Offset offset,Size size,void *data) const
+{
+	if(size == 0)
+		return true;
+	return m_buffer->get_memory_block(0u)->read(offset,size,data);
+}
+bool prosper::VlkBuffer::DoMap(Offset offset,Size size,MapFlags mapFlags,void **optOutMappedPtr) const
+{
+	if(size == 0)
+		return false;
+	return m_buffer->get_memory_block(0u)->map(offset,size,optOutMappedPtr);
+}
 bool prosper::VlkBuffer::DoUnmap() const {return m_buffer->get_memory_block(0u)->unmap();}
 
 void prosper::VlkBuffer::RecreateInternalSubBuffer(IBuffer &newParentBuffer)
