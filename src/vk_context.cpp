@@ -127,6 +127,25 @@ prosper::Result VlkContext::WaitForFences(const std::vector<IFence*> &fences,boo
 	return static_cast<prosper::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),vkFences.size(),vkFences.data(),waitAll,timeout));
 }
 
+bool VlkContext::WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg)
+{
+	auto waitResult = static_cast<prosper::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,m_cmdFences[m_n_swapchain_image]->get_fence_ptr(),true,std::numeric_limits<uint64_t>::max()));
+	if(waitResult == prosper::Result::Success)
+	{
+		if(m_cmdFences[m_n_swapchain_image]->reset() == false)
+		{
+			outErrMsg = "Unable to reset swapchain fence!";
+			return false;
+		}
+	}
+	else
+	{
+		outErrMsg = "An error has occurred when waiting for swapchain fence: " +prosper::util::to_string(waitResult);
+		return false;
+	}
+	return true;
+}
+
 void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame)
 {
 	Anvil::Semaphore *curr_frame_signal_semaphore_ptr;
@@ -152,16 +171,7 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 	auto success = (errCode == Anvil::SwapchainOperationErrorCode::SUCCESS);
 	std::string errMsg;
 	if(success)
-	{
-		auto waitResult = static_cast<prosper::Result>(vkWaitForFences(m_devicePtr->get_device_vk(),1,m_cmdFences[m_n_swapchain_image]->get_fence_ptr(),true,std::numeric_limits<uint64_t>::max()));
-		if(waitResult == prosper::Result::Success)
-		{
-			if(m_cmdFences[m_n_swapchain_image]->reset() == false)
-				errMsg = "Unable to reset swapchain fence!";
-		}
-		else
-			errMsg = "An error has occurred when waiting for swapchain fence: " +prosper::util::to_string(waitResult);
-	}
+		success = WaitForCurrentSwapchainCommandBuffer(errMsg);
 	else
 		errMsg = "Unable to acquire next swapchain image: " +std::to_string(umath::to_integral(errCode));
 	if(errMsg.empty() == false)

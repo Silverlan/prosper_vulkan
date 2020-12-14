@@ -56,6 +56,7 @@ namespace prosper
 		static IPrContext &GetContext(Anvil::BaseDevice &dev);
 		virtual std::string GetAPIIdentifier() const override {return "Vulkan";}
 		virtual std::string GetAPIAbbreviation() const override {return "VK";}
+		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) override;
 
 		Anvil::SGPUDevice &GetDevice();
 		const Anvil::SGPUDevice &GetDevice() const;
