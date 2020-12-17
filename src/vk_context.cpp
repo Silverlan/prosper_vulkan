@@ -184,7 +184,9 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 
 	auto &cmd_buffer_ptr = m_commandBuffers.at(m_n_swapchain_image);
 	/* Start recording commands */
-	static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr).GetAnvilCommandBuffer()).start_recording(false,true);
+	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr);
+	static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).start_recording(false,true);
+	primCmd.SetRecording(true);
 	umath::set_flag(m_stateFlags,StateFlags::IsRecording);
 	umath::set_flag(m_stateFlags,StateFlags::Idle,false);
 	while(m_scheduledBufferUpdates.empty() == false)
@@ -196,7 +198,8 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 	drawFrame(GetDrawCommandBuffer(),m_n_swapchain_image);
 	/* Close the recording process */
 	umath::set_flag(m_stateFlags,StateFlags::IsRecording,false);
-	static_cast<Anvil::PrimaryCommandBuffer&>(static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr).GetAnvilCommandBuffer()).stop_recording();
+	primCmd.SetRecording(false);
+	static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).stop_recording();
 
 
 	/* Submit work chunk and present */

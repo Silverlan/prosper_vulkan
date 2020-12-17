@@ -394,7 +394,7 @@ prosper::VlkPrimaryCommandBuffer::VlkPrimaryCommandBuffer(IPrContext &context,An
 }
 bool prosper::VlkPrimaryCommandBuffer::StartRecording(bool oneTimeSubmit,bool simultaneousUseAllowed) const
 {
-	return static_cast<Anvil::PrimaryCommandBuffer&>(*m_cmdBuffer).start_recording(oneTimeSubmit,simultaneousUseAllowed);
+	return IPrimaryCommandBuffer::StartRecording() && static_cast<Anvil::PrimaryCommandBuffer&>(*m_cmdBuffer).start_recording(oneTimeSubmit,simultaneousUseAllowed);
 }
 bool prosper::VlkPrimaryCommandBuffer::IsPrimary() const {return true;}
 Anvil::PrimaryCommandBuffer &prosper::VlkPrimaryCommandBuffer::GetAnvilCommandBuffer() const {return static_cast<Anvil::PrimaryCommandBuffer&>(VlkCommandBuffer::GetAnvilCommandBuffer());}

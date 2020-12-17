@@ -93,6 +93,7 @@ namespace prosper
 
 	///////////////////
 
+	class VlkContext;
 	class DLLPROSPER_VK VlkPrimaryCommandBuffer
 		: public VlkCommandBuffer,
 		public IPrimaryCommandBuffer
@@ -100,6 +101,7 @@ namespace prosper
 	public:
 		static std::shared_ptr<VlkPrimaryCommandBuffer> Create(IPrContext &context,std::unique_ptr<Anvil::PrimaryCommandBuffer,std::function<void(Anvil::PrimaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType,const std::function<void(VlkCommandBuffer&)> &onDestroyedCallback=nullptr);
 		virtual bool IsPrimary() const override;
+		virtual bool StopRecording() const override {return IPrimaryCommandBuffer::StopRecording() && VlkCommandBuffer::StopRecording();}
 
 		Anvil::PrimaryCommandBuffer &GetAnvilCommandBuffer() const;
 		Anvil::PrimaryCommandBuffer &operator*();
@@ -110,6 +112,8 @@ namespace prosper
 		virtual bool StartRecording(bool oneTimeSubmit=true,bool simultaneousUseAllowed=false) const override;
 		virtual bool RecordNextSubPass() override;
 	protected:
+		void SetRecording(bool b) {IPrimaryCommandBuffer::m_recording = b;}
+		friend VlkContext;
 		VlkPrimaryCommandBuffer(IPrContext &context,std::unique_ptr<Anvil::PrimaryCommandBuffer,std::function<void(Anvil::PrimaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType);
 		virtual bool DoRecordEndRenderPass() override;
 		virtual bool DoRecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues) override;
