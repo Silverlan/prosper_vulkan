@@ -146,8 +146,18 @@ bool VlkContext::WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg)
 	return true;
 }
 
+#define ENABLE_DEBUG_TIMESTAMPS 0
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+static long double get_debug_delta_time(std::chrono::high_resolution_clock::time_point t) {return ((std::chrono::high_resolution_clock::now() -t).count() /1'000'000.0);}
+static bool g_dbgPrintTs = false;
+#endif
 void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame)
 {
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	if(g_dbgPrintTs)
+		std::cout<<"Timing start..."<<std::endl;
+	auto t0 = std::chrono::high_resolution_clock::now();
+#endif
 	Anvil::Semaphore *curr_frame_signal_semaphore_ptr;
 	Anvil::Semaphore *curr_frame_wait_semaphore_ptr;
 	static uint32_t n_frames_rendered = 0;
@@ -159,7 +169,10 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 
 	curr_frame_signal_semaphore_ptr = m_frameSignalSemaphores[m_lastSemaporeUsed].get();
 	curr_frame_wait_semaphore_ptr = m_frameWaitSemaphores[m_lastSemaporeUsed].get();
-
+	
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	auto tAcquireImage = std::chrono::high_resolution_clock::now();
+#endif
 	/* Determine the semaphore which the swapchain image */
 	auto errCode = m_swapchainPtr->acquire_image(curr_frame_wait_semaphore_ptr,&m_n_swapchain_image);
 	if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE)
@@ -167,7 +180,15 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 		InitSwapchain();
 		return;
 	}
-
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	if(g_dbgPrintTs)
+		std::cout<<"Acquire image time: "<<get_debug_delta_time(tAcquireImage)<<"ms"<<std::endl;
+	//g_dbgPrintTs = false;
+#endif
+	
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	auto tWaitCurrentCmdBuf = std::chrono::high_resolution_clock::now();
+#endif
 	auto success = (errCode == Anvil::SwapchainOperationErrorCode::SUCCESS);
 	std::string errMsg;
 	if(success)
@@ -176,12 +197,28 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 		errMsg = "Unable to acquire next swapchain image: " +std::to_string(umath::to_integral(errCode));
 	if(errMsg.empty() == false)
 		throw std::runtime_error(errMsg);
-
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	if(g_dbgPrintTs)
+		std::cout<<"Wait for current command buffer time: "<<get_debug_delta_time(tWaitCurrentCmdBuf)<<"ms"<<std::endl;
+	//g_dbgPrintTs = false;
+#endif
+	
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	auto tClearResources = std::chrono::high_resolution_clock::now();
+#endif
 	ClearKeepAliveResources();
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	if(g_dbgPrintTs)
+		std::cout<<"Resource clear time: "<<get_debug_delta_time(tClearResources)<<"ms"<<std::endl;
+	//g_dbgPrintTs = false;
+#endif
 
 	//auto &keepAliveResources = m_keepAliveResources.at(m_n_swapchain_image);
 	//auto numKeepAliveResources = keepAliveResources.size(); // We can clear the resources from the previous render pass of this swapchain after we've waited for the semaphore (i.e. after the frame rendering is complete)
-
+	
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	auto tBufUpdate = std::chrono::high_resolution_clock::now();
+#endif
 	auto &cmd_buffer_ptr = m_commandBuffers.at(m_n_swapchain_image);
 	/* Start recording commands */
 	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr);
@@ -195,16 +232,22 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 		f(*cmd_buffer_ptr);
 		m_scheduledBufferUpdates.pop();
 	}
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	if(g_dbgPrintTs)
+		std::cout<<"Buffer update time: "<<get_debug_delta_time(tBufUpdate)<<"ms"<<std::endl;
+#endif
 	drawFrame(GetDrawCommandBuffer(),m_n_swapchain_image);
 	/* Close the recording process */
 	umath::set_flag(m_stateFlags,StateFlags::IsRecording,false);
 	primCmd.SetRecording(false);
 	static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).stop_recording();
 
-
 	/* Submit work chunk and present */
 	auto *signalSemaphore = curr_frame_signal_semaphore_ptr;
 	auto *waitSemaphore = curr_frame_wait_semaphore_ptr;
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	auto tSubmit = std::chrono::high_resolution_clock::now();
+#endif
 	m_devicePtr->get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
 		&static_cast<prosper::VlkPrimaryCommandBuffer&>(*m_commandBuffers[m_n_swapchain_image]).GetAnvilCommandBuffer(),
 		1, /* n_semaphores_to_signal */
@@ -215,9 +258,16 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 		false, /* should_block  */
 		m_cmdFences.at(m_n_swapchain_image).get()
 	)); /* opt_fence_ptr */
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	if(g_dbgPrintTs)
+		std::cout<<"Submit time: "<<get_debug_delta_time(tSubmit)<<"ms"<<std::endl;
+#endif
 
 		//ClearKeepAliveResources(numKeepAliveResources);
-
+	
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	auto tPresent = std::chrono::high_resolution_clock::now();
+#endif
 	auto bPresentSuccess = present_queue_ptr->present(
 		m_swapchainPtr.get(),
 		m_n_swapchain_image,
@@ -225,6 +275,11 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 		&signalSemaphore,
 		&errCode
 	);
+	
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	if(g_dbgPrintTs)
+		std::cout<<"Present time: "<<get_debug_delta_time(tPresent)<<"ms"<<std::endl;
+#endif
 	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS || bPresentSuccess == false)
 	{
 		if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE)
@@ -236,6 +291,11 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 			; // Terminal error?
 	}
 	//m_glfwWindow->SwapBuffers();
+#if ENABLE_DEBUG_TIMESTAMPS == 1
+	if(g_dbgPrintTs)
+		std::cout<<"Frame time: "<<get_debug_delta_time(t0)<<"ms"<<std::endl;
+	//g_dbgPrintTs = false;
+#endif
 }
 
 bool VlkContext::Submit(ICommandBuffer &cmdBuf,bool shouldBlock,IFence *optFence)
