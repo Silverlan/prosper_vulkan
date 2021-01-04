@@ -29,7 +29,7 @@ VlkDescriptorSetGroup::VlkDescriptorSetGroup(IPrContext &context,const Descripto
 {
 	auto numSets = m_descriptorSetGroup->get_n_descriptor_sets();
 	for(auto i=decltype(numSets){0};i<numSets;++i)
-		prosper::debug::register_debug_object(m_descriptorSetGroup->get_descriptor_set(i),this,prosper::debug::ObjectType::DescriptorSet);
+		prosper::debug::register_debug_object(m_descriptorSetGroup->get_descriptor_set(i),*this,prosper::debug::ObjectType::DescriptorSet);
 	m_descriptorSets.resize(numSets);
 
 	for(auto i=decltype(m_descriptorSets.size()){0u};i<m_descriptorSets.size();++i)

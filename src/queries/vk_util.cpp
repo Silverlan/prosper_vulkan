@@ -8,6 +8,7 @@
 #include "shader/prosper_shader.hpp"
 #include "image/vk_image.hpp"
 #include "vk_memory_tracker.hpp"
+#include <util_lunarglass/util_lunarglass.hpp>
 #include <prosper_glsl.hpp>
 #include <prosper_util.hpp>
 #include <misc/descriptor_set_create_info.h>
@@ -25,7 +26,7 @@
 #include <sstream>
 
 using namespace prosper;
-
+#pragma optimize("",off)
 std::unique_ptr<Anvil::DescriptorSetCreateInfo> prosper::ToAnvilDescriptorSetInfo(const DescriptorSetInfo &descSetInfo)
 {
 	auto dsInfo = Anvil::DescriptorSetCreateInfo::create();
@@ -142,13 +143,50 @@ bool prosper::glsl_to_spv(IPrContext &context,prosper::ShaderStage stage,const s
 		f->Read(spirv.data() +origSize,sz);
 		return true;
 	}
+
+	auto applyPreprocessing = true;
+	auto glslFileName = fName;
+	if(ext == "gls")
+	{
+		// Use specialized vulkan shader if one exists
+		auto tmp = glslFileName;
+		ufile::remove_extension_from_filename(tmp);
+		tmp += "_vk.gls";
+		if(FileManager::Exists(tmp))
+		{
+			applyPreprocessing = false;
+			glslFileName = tmp;
+		}
+	}
+	if(applyPreprocessing)
+	{
+		// TODO: Put this in a log somewhere
+		std::cout<<"[VK] WARNING: No optimized version found for shader '"<<fileName<<"'! This may cause poor performance!"<<std::endl;
+	}
+
 	std::vector<prosper::glsl::IncludeLine> includeLines;
 	unsigned int lineOffset = 0;
-	::util::Path fPath {fName};
+	::util::Path fPath {glslFileName};
 	fPath.PopFront();
-	auto shaderCode = load_glsl(context,stage,fPath.GetString(),infoLog,debugInfoLog,includeLines,lineOffset);
+	auto shaderCode = load_glsl(context,stage,fPath.GetString(),infoLog,debugInfoLog,includeLines,lineOffset,applyPreprocessing);
 	if(shaderCode.has_value() == false)
 		return false;
+	/*if(fileName.find("fs_pbr") != std::string::npos)
+	{
+		auto f = FileManager::OpenFile<VFilePtrReal>("shadertest.txt","w");
+		if(f)
+		{
+			f->WriteString(*shaderCode);
+			f = nullptr;
+		}
+	}*/
+	/*if(fileName.find("cs_forwardp_light_culling") != std::string::npos)
+	{
+		auto f = FileManager::OpenSystemFile("E:/projects/LunarGLASS/Standalone/build_winx64/RelWithDebInfo/output2.glsl","r");
+		if(f)
+			shaderCode = f->ReadString();
+		f = nullptr;
+	}*/
 	auto r = ::glsl_to_spv(context,stage,*shaderCode,spirv,infoLog,debugInfoLog,fName,includeLines,lineOffset,(ext == "hls") ? true : false);
 	if(r == false)
 		return r;
@@ -159,6 +197,162 @@ bool prosper::glsl_to_spv(IPrContext &context,prosper::ShaderStage stage,const s
 		return r;
 	fOut->Write(spirv.data(),spirv.size() *sizeof(unsigned int));
 	return r;
+}
+
+static void fix_optimized_shader(std::string &inOutShader,const std::vector<std::optional<prosper::IPrContext::ShaderDescriptorSetInfo>> &descSetInfos)
+{
+	// LunarGLASS has some issues and creates incorrect results in certain cases, we'll try to fix some of the issues here
+
+	auto fReplaceText = [&inOutShader](size_t start,size_t end,const std::string &str) {
+		inOutShader = inOutShader.substr(0,start) +str +inOutShader.substr(end);
+	};
+
+	// Push constant blocks are replaced with 'layout(std430)', we'll correct it here
+	auto *str = "layout(std430) uniform";
+	auto posPushC = inOutShader.find(str);
+	if(posPushC != std::string::npos)
+		fReplaceText(posPushC,posPushC +strlen(str),"layout(push_constant) uniform");
+
+	auto fFindDescriptorSetBinding = [&descSetInfos](const std::string &uniformName,uint32_t &outSetIndex,uint32_t &outBindingIndex) -> bool {
+		for(auto itDs=descSetInfos.begin();itDs!=descSetInfos.end();++itDs)
+		{
+			auto &dsInfo = *itDs;
+			if(dsInfo.has_value() == false)
+				continue;
+			for(auto itBinding=dsInfo->bindingPoints.begin();itBinding!=dsInfo->bindingPoints.end();++itBinding)
+			{
+				auto &binding = *itBinding;
+				auto it = std::find_if(binding.args.begin(),binding.args.end(),[&uniformName](const std::string &arg) {
+					return ustring::compare(arg.c_str(),uniformName.c_str(),true,uniformName.length()) && (uniformName.length() == arg.length() || (arg.length() > uniformName.length() && arg[uniformName.length()] == '['));
+				});
+				if(it == binding.args.end())
+					continue;
+				auto &name = *it;
+				outSetIndex = (itDs -descSetInfos.begin());
+				outBindingIndex = (itBinding -dsInfo->bindingPoints.begin());
+				return true;
+			}
+		}
+		return false;
+	};
+
+	// Set and binding indices are lost through optimization, so we need to restore them
+	auto posLayout = inOutShader.find("layout(");
+	while(posLayout != std::string::npos)
+	{
+		auto end = inOutShader.find(")",posLayout);
+		if(end == std::string::npos)
+			break; // Should be unreachable
+		auto layout = inOutShader.substr(posLayout,end -posLayout +1);
+		auto posBinding = layout.find("binding");
+		if(posBinding != std::string::npos)
+		{
+			auto argEnd = inOutShader.find_first_of("{;[",end);
+			if(argEnd != std::string::npos)
+			{
+				auto strArgs = inOutShader.substr(end +1,argEnd -(end +1));
+				std::vector<std::string> args;
+				ustring::explode_whitespace(strArgs,args);
+				if(args.empty() == false)
+				{
+					auto &arg = args.back();
+					uint32_t setIndex,bindingIndex;
+					if(fFindDescriptorSetBinding(arg,setIndex,bindingIndex) == false)
+						std::cout<<"WARNING: Could not determine set index and binding index for uniform '"<<arg<<"'!"<<std::endl;
+					else
+					{
+						auto bindingEnd = layout.find_first_of(",)",posBinding);
+						if(bindingEnd != std::string::npos)
+							fReplaceText(posLayout +posBinding,posLayout +bindingEnd,"set=" +std::to_string(setIndex) +",binding=" +std::to_string(bindingIndex));
+					}
+				}
+			}
+		}
+		posLayout = inOutShader.find("layout(",posLayout +1);
+	}
+}
+
+std::optional<std::unordered_map<prosper::ShaderStage,std::string>> prosper::optimize_glsl(prosper::IPrContext &context,const std::unordered_map<prosper::ShaderStage,std::string> &shaderStages,std::string &outInfoLog)
+{
+	std::vector<std::optional<prosper::IPrContext::ShaderDescriptorSetInfo>> descSetInfos;
+	std::vector<prosper::IPrContext::ShaderMacroLocation> macroLocations;
+	std::string log;
+	std::unordered_map<lunarglass::ShaderStage,std::string> shaderStageCode;
+	for(auto &pair : shaderStages)
+	{
+		lunarglass::ShaderStage stage;
+		switch(pair.first)
+		{
+		case ShaderStage::Compute:
+			stage = lunarglass::ShaderStage::Compute;
+			break;
+		case ShaderStage::Fragment:
+			stage = lunarglass::ShaderStage::Fragment;
+			break;
+		case ShaderStage::Geometry:
+			stage = lunarglass::ShaderStage::Geometry;
+			break;
+		case ShaderStage::TessellationControl:
+			stage = lunarglass::ShaderStage::TessellationControl;
+			break;
+		case ShaderStage::TessellationEvaluation:
+			stage = lunarglass::ShaderStage::TessellationEvaluation;
+			break;
+		case ShaderStage::Vertex:
+			stage = lunarglass::ShaderStage::Vertex;
+			break;
+		}
+		static_assert(umath::to_integral(ShaderStage::Count) == 6u);
+		
+		auto path = pair.second;
+		std::string infoLog,debugInfoLog;
+		std::vector<prosper::glsl::IncludeLine> includeLines;
+		unsigned int lineOffset = 0;
+		auto shaderCode = glsl::load_glsl(context,pair.first,path,&infoLog,&debugInfoLog,includeLines,lineOffset);
+		if(shaderCode.has_value() == false)
+		{
+			outInfoLog = !infoLog.empty() ? infoLog : debugInfoLog;
+			return {};
+		}
+		shaderStageCode[stage] = *shaderCode;
+
+		std::unordered_map<std::string,int32_t> definitions;
+		prosper::IPrContext::ParseShaderUniforms(*shaderCode,definitions,descSetInfos,macroLocations);
+    }
+	auto optimizedShaders = lunarglass::optimize_glsl(shaderStageCode,log);
+	if(optimizedShaders.has_value() == false)
+		return {};
+
+	std::unordered_map<prosper::ShaderStage,std::string> result {};
+	for(auto &pair : *optimizedShaders)
+	{
+		ShaderStage stage;
+		switch(pair.first)
+		{
+		case lunarglass::ShaderStage::Compute:
+			stage = ShaderStage::Compute;
+			break;
+		case lunarglass::ShaderStage::Fragment:
+			stage = ShaderStage::Fragment;
+			break;
+		case lunarglass::ShaderStage::Geometry:
+			stage = ShaderStage::Geometry;
+			break;
+		case lunarglass::ShaderStage::TessellationControl:
+			stage = ShaderStage::TessellationControl;
+			break;
+		case lunarglass::ShaderStage::TessellationEvaluation:
+			stage = ShaderStage::TessellationEvaluation;
+			break;
+		case lunarglass::ShaderStage::Vertex:
+			stage = ShaderStage::Vertex;
+			break;
+		}
+		static_assert(umath::to_integral(ShaderStage::Count) == 6u);
+		result[stage] = pair.second;
+		fix_optimized_shader(result[stage],descSetInfos);
+	}
+	return result;
 }
 
 void prosper::util::initialize_image(Anvil::BaseDevice &dev,const uimg::ImageBuffer &imgSrc,IImage &img)
@@ -294,3 +488,4 @@ bool prosper::util::get_memory_stats(IPrContext &context,MemoryPropertyFlags mem
 		*optOutMemIndices = deviceLocalTypes;
 	return true;
 }
+#pragma optimize("",on)

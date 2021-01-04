@@ -29,7 +29,6 @@ namespace prosper
 		const Anvil::CommandBufferBase *operator->() const;
 
 		virtual bool Reset(bool shouldReleaseResources) const override;
-		virtual bool StopRecording() const override;
 
 		virtual bool RecordPipelineBarrier(const util::PipelineBarrierInfo &barrierInfo) override;
 		virtual bool RecordSetDepthBias(float depthBiasConstantFactor=0.f,float depthBiasClamp=0.f,float depthBiasSlopeFactor=0.f) override;
@@ -91,6 +90,18 @@ namespace prosper
 		std::shared_ptr<Anvil::CommandBufferBase> m_cmdBuffer = nullptr;
 	};
 
+	class DLLPROSPER_VK VlkCommandPool
+		: public prosper::ICommandBufferPool
+	{
+	public:
+		static std::shared_ptr<VlkCommandPool> Create(prosper::IPrContext &context,prosper::QueueFamilyType queueFamilyType,Anvil::CommandPoolUniquePtr cmdPool);
+		std::shared_ptr<IPrimaryCommandBuffer> AllocatePrimaryCommandBuffer() const;
+		std::shared_ptr<ISecondaryCommandBuffer> AllocateSecondaryCommandBuffer() const;
+	private:
+		VlkCommandPool(prosper::IPrContext &context,prosper::QueueFamilyType queueFamilyType,Anvil::CommandPoolUniquePtr cmdPool);
+		Anvil::CommandPoolUniquePtr m_commandPool = nullptr;
+	};
+
 	///////////////////
 
 	class VlkContext;
@@ -101,7 +112,7 @@ namespace prosper
 	public:
 		static std::shared_ptr<VlkPrimaryCommandBuffer> Create(IPrContext &context,std::unique_ptr<Anvil::PrimaryCommandBuffer,std::function<void(Anvil::PrimaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType,const std::function<void(VlkCommandBuffer&)> &onDestroyedCallback=nullptr);
 		virtual bool IsPrimary() const override;
-		virtual bool StopRecording() const override {return IPrimaryCommandBuffer::StopRecording() && VlkCommandBuffer::StopRecording();}
+		virtual bool StopRecording() const override;
 
 		Anvil::PrimaryCommandBuffer &GetAnvilCommandBuffer() const;
 		Anvil::PrimaryCommandBuffer &operator*();
@@ -111,12 +122,13 @@ namespace prosper
 
 		virtual bool StartRecording(bool oneTimeSubmit=true,bool simultaneousUseAllowed=false) const override;
 		virtual bool RecordNextSubPass() override;
+		virtual bool ExecuteCommands(prosper::ISecondaryCommandBuffer &cmdBuf) override;
 	protected:
 		void SetRecording(bool b) {IPrimaryCommandBuffer::m_recording = b;}
 		friend VlkContext;
 		VlkPrimaryCommandBuffer(IPrContext &context,std::unique_ptr<Anvil::PrimaryCommandBuffer,std::function<void(Anvil::PrimaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType);
 		virtual bool DoRecordEndRenderPass() override;
-		virtual bool DoRecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues) override;
+		virtual bool DoRecordBeginRenderPass(prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues,RenderPassFlags renderPassFlags) override;
 	};
 
 	///////////////////
@@ -134,7 +146,10 @@ namespace prosper
 		const Anvil::SecondaryCommandBuffer &operator*() const;
 		Anvil::SecondaryCommandBuffer *operator->();
 		const Anvil::SecondaryCommandBuffer *operator->() const;
-
+		
+		virtual bool StartRecording(bool oneTimeSubmit=true,bool simultaneousUseAllowed=false) const override;
+		virtual bool StartRecording(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,bool oneTimeSubmit=true,bool simultaneousUseAllowed=false) const override;
+		virtual bool StopRecording() const override;
 		bool StartRecording(
 			bool oneTimeSubmit,bool simultaneousUseAllowed,bool renderPassUsageOnly,
 			const IFramebuffer &framebuffer,const IRenderPass &rp,prosper::SubPassID subPassId,

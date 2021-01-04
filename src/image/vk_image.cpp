@@ -52,7 +52,7 @@ VlkImage::VlkImage(IPrContext &context,std::unique_ptr<Anvil::Image,std::functio
 			s_imageMap = std::make_unique<std::unordered_map<Anvil::Image*,VlkImage*>>();
 		(*s_imageMap)[m_image.get()] = this;
 	}
-	prosper::debug::register_debug_object(m_image->get_image(),this,prosper::debug::ObjectType::Image);
+	prosper::debug::register_debug_object(m_image->get_image(),*this,prosper::debug::ObjectType::Image);
 	MemoryTracker::GetInstance().AddResource(*this);
 }
 VlkImage::~VlkImage()

@@ -10,6 +10,7 @@
 #include <prosper_context_object.hpp>
 #include <buffers/prosper_render_buffer.hpp>
 
+namespace Anvil {class CommandBufferBase; class Buffer;};
 namespace prosper
 {
 	class VlkContext;
@@ -23,11 +24,20 @@ namespace prosper
 			const std::vector<prosper::DeviceSize> &offsets={},const std::optional<IndexBufferInfo> &indexBufferInfo={}
 		);
 		const std::vector<prosper::DeviceSize> &GetOffsets() const;
+
+		bool Record(Anvil::CommandBufferBase &cmdBuf) const;
 	private:
 		VlkRenderBuffer(
 			prosper::IPrContext &context,const std::vector<prosper::IBuffer*> &buffers,const std::vector<prosper::DeviceSize> &offsets,const std::optional<IndexBufferInfo> &indexBufferInfo={}
 		);
+		void Initialize();
 		std::vector<prosper::DeviceSize> m_offsets {};
+
+		std::vector<DeviceSize> m_anvOffsets {};
+		mutable std::vector<Anvil::Buffer*> m_anvBuffers {};
+
+		Anvil::Buffer *m_anvIndexBuffer = nullptr;
+		prosper::DeviceSize m_anvIndexBufferOffset = 0;
 	};
 };
 

@@ -63,6 +63,8 @@
 #include <cmath>
 #include <iglfw/glfw_window.h>
 
+#define ENABLE_ANVIL_THREAD_SAFETY true
+
 #ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
 #else
@@ -95,7 +97,7 @@ using namespace prosper;
 static_assert(sizeof(prosper::util::BufferCopy) == sizeof(Anvil::BufferCopy));
 static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
 
-#pragma optimize("",off)
+
 VlkShaderStageProgram::VlkShaderStageProgram(std::vector<unsigned int> &&spirvBlob)
 	: m_spirvBlob{std::move(spirvBlob)}
 {}
@@ -222,7 +224,7 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 	auto &cmd_buffer_ptr = m_commandBuffers.at(m_n_swapchain_image);
 	/* Start recording commands */
 	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr);
-	static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).start_recording(false,true);
+	static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).start_recording(true,false);
 	primCmd.SetRecording(true);
 	umath::set_flag(m_stateFlags,StateFlags::IsRecording);
 	umath::set_flag(m_stateFlags,StateFlags::Idle,false);
@@ -461,6 +463,16 @@ bool VlkContext::SavePipelineCache()
 	if(pPipelineCache == nullptr)
 		return false;
 	return PipelineCache::Save(*pPipelineCache,PIPELINE_CACHE_PATH);
+}
+
+std::shared_ptr<prosper::ICommandBufferPool> VlkContext::CreateCommandBufferPool(prosper::QueueFamilyType queueFamilyType)
+{
+	uint32_t universalQueueFamilyIndex;
+	if(GetUniversalQueueFamilyIndex(queueFamilyType,universalQueueFamilyIndex) == false)
+		return nullptr;
+	auto &dev = GetDevice();
+	auto pool = Anvil::CommandPool::create(&dev,dev.get_create_info_ptr()->get_helper_command_pool_create_flags(),universalQueueFamilyIndex);
+	return VlkCommandPool::Create(*this,queueFamilyType,std::move(pool));
 }
 
 std::shared_ptr<prosper::IPrimaryCommandBuffer> VlkContext::AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex)
@@ -803,14 +815,21 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 			const char *message
 			) -> VkBool32 {
 				if(m_callbacks.validationCallback)
-					m_callbacks.validationCallback(static_cast<prosper::DebugMessageSeverityFlags>(severityFlags.get_vk()),message);
+				{
+					std::string msg = message;
+					AddDebugObjectInformation(msg);
+					m_callbacks.validationCallback(static_cast<prosper::DebugMessageSeverityFlags>(severityFlags.get_vk()),msg);
+				}
 				return true;
 		} :  Anvil::DebugCallbackFunction(),
-			false
-			)); /* in_mt_safe */
+			ENABLE_ANVIL_THREAD_SAFETY
+		));
 
 	if(umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled) == true)
+	{
 		prosper::debug::set_debug_mode_enabled(true);
+		// m_customValidationEnabled = true;
+	}
 
 	if(createInfo.device.has_value())
 	{
@@ -844,7 +863,7 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 		devExtConfig,
 		std::vector<std::string>(),
 		Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT,
-		false /* in_mt_safe */
+		ENABLE_ANVIL_THREAD_SAFETY
 	);
 	// devCreateInfo->set_pipeline_cache_ptr() // TODO
 	m_devicePtr = Anvil::SGPUDevice::create(
@@ -1399,6 +1418,11 @@ std::shared_ptr<prosper::ShaderStageProgram> prosper::VlkContext::CompileShader(
 	return std::make_shared<VlkShaderStageProgram>(std::move(spirvBlob));
 }
 
+std::optional<std::unordered_map<prosper::ShaderStage,std::string>> prosper::VlkContext::OptimizeShader(const std::unordered_map<prosper::ShaderStage,std::string> &shaderStages,std::string &outInfoLog)
+{
+	return prosper::optimize_glsl(*this,shaderStages,outInfoLog);
+}
+
 std::optional<prosper::PipelineID> VlkContext::AddPipeline(
 	prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::ComputePipelineCreateInfo &createInfo,
 	prosper::ShaderStageData &stage,PipelineID basePipelineId
@@ -1646,6 +1670,8 @@ std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(
 	auto r = gfxPipelineManager->add_pipeline(std::move(gfxPipelineInfo),&pipelineId);
 	if(r == false)
 		return {};
+	if(IsValidationEnabled())
+		gfxPipelineManager->bake();
 	return pipelineId;
 }
 
@@ -2003,4 +2029,3 @@ std::shared_ptr<prosper::IRenderBuffer> prosper::VlkContext::CreateRenderBuffer(
 	return VlkRenderBuffer::Create(*this,pipelineCreateInfo,buffers,offsets,indexBufferInfo);
 }
 uint32_t prosper::VlkContext::GetLastAcquiredSwapchainImageIndex() const {return const_cast<VlkContext*>(this)->GetSwapchain()->get_last_acquired_image_index();}
-#pragma optimize("",on)

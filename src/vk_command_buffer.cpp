@@ -24,6 +24,7 @@
 #include <wrappers/memory_block.h>
 #include <wrappers/command_buffer.h>
 #include <wrappers/framebuffer.h>
+#include <wrappers/command_pool.h>
 #include <misc/render_pass_create_info.h>
 #include <misc/buffer_create_info.h>
 #include <sharedutils/util.h>
@@ -109,8 +110,7 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(const std::vector<std::s
 bool prosper::VlkCommandBuffer::RecordBindRenderBuffer(const IRenderBuffer &renderBuffer)
 {
 	auto &vkBuf = static_cast<const VlkRenderBuffer&>(renderBuffer);
-	auto *indexBufferInfo = vkBuf.GetIndexBufferInfo();
-	return RecordBindVertexBuffers(vkBuf.GetBuffers(),0u,vkBuf.GetOffsets()) && (indexBufferInfo == nullptr || RecordBindIndexBuffer(*indexBufferInfo->buffer,indexBufferInfo->indexType,indexBufferInfo->offset));
+	return vkBuf.Record(**this);
 }
 bool prosper::VlkCommandBuffer::RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size)
 {
@@ -312,7 +312,7 @@ bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img,ImageLayout layout,
 }
 bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrierInfo &barrierInfo)
 {
-	if(GetContext().IsValidationEnabled())
+	if(static_cast<VlkContext&>(GetContext()).IsCustomValidationEnabled())
 	{
 		for(auto &imgBarrier : barrierInfo.imageBarriers)
 		{
@@ -348,6 +348,8 @@ bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrie
 	anvBufBarriers.reserve(barrierInfo.bufferBarriers.size());
 	for(auto &barrier : barrierInfo.bufferBarriers)
 	{
+		if(barrier.size == 0)
+			continue;
 		anvBufBarriers.push_back(Anvil::BufferBarrier{
 			static_cast<Anvil::AccessFlagBits>(barrier.srcAccessMask),static_cast<Anvil::AccessFlagBits>(barrier.dstAccessMask),
 			barrier.srcQueueFamilyIndex,barrier.dstQueueFamilyIndex,
@@ -365,6 +367,8 @@ bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrie
 			&static_cast<VlkImage*>(barrier.image)->GetAnvilImage(),to_anvil_subresource_range(barrier.subresourceRange,*barrier.image)
 			});
 	}
+	if(anvBufBarriers.empty() && anvImgBarriers.empty())
+		return true;
 	return (*this)->record_pipeline_barrier(
 		static_cast<Anvil::PipelineStageFlagBits>(barrierInfo.srcStageMask),static_cast<Anvil::PipelineStageFlagBits>(barrierInfo.dstStageMask),
 		Anvil::DependencyFlagBits::NONE,0u,nullptr,
@@ -375,26 +379,51 @@ bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrie
 
 ///////////////////
 
+std::shared_ptr<prosper::VlkCommandPool> prosper::VlkCommandPool::Create(prosper::IPrContext &context,prosper::QueueFamilyType queueFamilyType,Anvil::CommandPoolUniquePtr cmdPool)
+{
+	return std::shared_ptr<VlkCommandPool>{new VlkCommandPool{context,queueFamilyType,std::move(cmdPool)}};
+}
+
+std::shared_ptr<prosper::IPrimaryCommandBuffer> prosper::VlkCommandPool::AllocatePrimaryCommandBuffer() const
+{
+	return prosper::VlkPrimaryCommandBuffer::Create(GetContext(),m_commandPool->alloc_primary_level_command_buffer(),GetQueueFamilyType());
+}
+std::shared_ptr<prosper::ISecondaryCommandBuffer> prosper::VlkCommandPool::AllocateSecondaryCommandBuffer() const
+{
+	return prosper::VlkSecondaryCommandBuffer::Create(GetContext(),m_commandPool->alloc_secondary_level_command_buffer(),GetQueueFamilyType());
+}
+prosper::VlkCommandPool::VlkCommandPool(prosper::IPrContext &context,prosper::QueueFamilyType queueFamilyType,Anvil::CommandPoolUniquePtr cmdPool)
+	: prosper::ICommandBufferPool{context,queueFamilyType},m_commandPool{std::move(cmdPool)}
+{}
+
+///////////////////
+
 std::shared_ptr<prosper::VlkPrimaryCommandBuffer> prosper::VlkPrimaryCommandBuffer::Create(IPrContext &context,Anvil::PrimaryCommandBufferUniquePtr cmdBuffer,prosper::QueueFamilyType queueFamilyType,const std::function<void(VlkCommandBuffer&)> &onDestroyedCallback)
 {
+	std::shared_ptr<prosper::VlkPrimaryCommandBuffer> cmdBuf;
 	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<VlkPrimaryCommandBuffer>(new VlkPrimaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType));
-	return std::shared_ptr<VlkPrimaryCommandBuffer>(new VlkPrimaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType),[onDestroyedCallback](VlkCommandBuffer *buf) {
-		buf->OnRelease();
-		onDestroyedCallback(*buf);
-		delete buf;
+		cmdBuf = std::shared_ptr<VlkPrimaryCommandBuffer>(new VlkPrimaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType));
+	else
+	{
+		cmdBuf = std::shared_ptr<VlkPrimaryCommandBuffer>(new VlkPrimaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType),[onDestroyedCallback](VlkCommandBuffer *buf) {
+			buf->OnRelease();
+			onDestroyedCallback(*buf);
+			delete buf;
 		});
+	}
+	cmdBuf->Initialize();
+	return cmdBuf;
 }
 prosper::VlkPrimaryCommandBuffer::VlkPrimaryCommandBuffer(IPrContext &context,Anvil::PrimaryCommandBufferUniquePtr cmdBuffer,prosper::QueueFamilyType queueFamilyType)
 	: VlkCommandBuffer(context,prosper::util::unique_ptr_to_shared_ptr(std::move(cmdBuffer)),queueFamilyType),
 	ICommandBuffer{context,queueFamilyType}
 {
-	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),this,prosper::debug::ObjectType::CommandBuffer);
+	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),*this,prosper::debug::ObjectType::CommandBuffer);
 	m_apiTypePtr = static_cast<VlkCommandBuffer*>(this);
 }
 bool prosper::VlkPrimaryCommandBuffer::StartRecording(bool oneTimeSubmit,bool simultaneousUseAllowed) const
 {
-	return IPrimaryCommandBuffer::StartRecording() && static_cast<Anvil::PrimaryCommandBuffer&>(*m_cmdBuffer).start_recording(oneTimeSubmit,simultaneousUseAllowed);
+	return IPrimaryCommandBuffer::StartRecording(oneTimeSubmit,simultaneousUseAllowed) && static_cast<Anvil::PrimaryCommandBuffer&>(*m_cmdBuffer).start_recording(oneTimeSubmit,simultaneousUseAllowed);
 }
 bool prosper::VlkPrimaryCommandBuffer::IsPrimary() const {return true;}
 Anvil::PrimaryCommandBuffer &prosper::VlkPrimaryCommandBuffer::GetAnvilCommandBuffer() const {return static_cast<Anvil::PrimaryCommandBuffer&>(VlkCommandBuffer::GetAnvilCommandBuffer());}
@@ -402,22 +431,26 @@ Anvil::PrimaryCommandBuffer &prosper::VlkPrimaryCommandBuffer::operator*() {retu
 const Anvil::PrimaryCommandBuffer &prosper::VlkPrimaryCommandBuffer::operator*() const {return static_cast<const Anvil::PrimaryCommandBuffer&>(VlkCommandBuffer::operator*());}
 Anvil::PrimaryCommandBuffer *prosper::VlkPrimaryCommandBuffer::operator->() {return static_cast<Anvil::PrimaryCommandBuffer*>(VlkCommandBuffer::operator->());}
 const Anvil::PrimaryCommandBuffer *prosper::VlkPrimaryCommandBuffer::operator->() const {return static_cast<const Anvil::PrimaryCommandBuffer*>(VlkCommandBuffer::operator->());}
+bool prosper::VlkPrimaryCommandBuffer::StopRecording() const
+{
+	return IPrimaryCommandBuffer::StopRecording() && m_cmdBuffer->stop_recording();
+}
 bool prosper::VlkPrimaryCommandBuffer::DoRecordEndRenderPass()
 {
 #ifdef DEBUG_VERBOSE
 	std::cout<<"[PR] Ending render pass..."<<std::endl;
 #endif
-	auto *rtInfo = GetActiveRenderPassTargetInfo();
-	if(rtInfo)
+	if(static_cast<VlkContext&>(GetContext()).IsCustomValidationEnabled())
 	{
-		auto rp = rtInfo->renderPass.lock();
-		auto fb = rtInfo->framebuffer.lock();
-		if(rp && fb)
+		auto *rtInfo = GetActiveRenderPassTargetInfo();
+		if(rtInfo)
 		{
-			auto &context = rp->GetContext();
-			auto rt = rtInfo->renderTarget.lock();
-			if(context.IsValidationEnabled())
+			auto rp = rtInfo->renderPass.lock();
+			auto fb = rtInfo->framebuffer.lock();
+			if(rp && fb)
 			{
+				auto &context = rp->GetContext();
+				auto rt = rtInfo->renderTarget.lock();
 				auto &rpCreateInfo = *static_cast<VlkRenderPass*>(rp.get())->GetAnvilRenderPass().get_render_pass_create_info();
 				auto numAttachments = fb->GetAttachmentCount();
 				for(auto i=decltype(numAttachments){0};i<numAttachments;++i)
@@ -453,7 +486,8 @@ bool prosper::VlkPrimaryCommandBuffer::DoRecordEndRenderPass()
 }
 bool prosper::VlkPrimaryCommandBuffer::DoRecordBeginRenderPass(
 	prosper::IImage &img,prosper::IRenderPass &rp,prosper::IFramebuffer &fb,
-	uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues
+	uint32_t *layerId,const std::vector<prosper::ClearValue> &clearValues,
+	RenderPassFlags renderPassFlags
 )
 {
 #ifdef DEBUG_VERBOSE
@@ -467,7 +501,7 @@ bool prosper::VlkPrimaryCommandBuffer::DoRecordBeginRenderPass(
 	}
 #endif
 	auto &context = GetContext();
-	if(context.IsValidationEnabled())
+	if(static_cast<VlkContext&>(context).IsCustomValidationEnabled())
 	{
 		auto &rpCreateInfo = *static_cast<prosper::VlkRenderPass&>(rp).GetAnvilRenderPass().get_render_pass_create_info();
 		auto numAttachments = fb.GetAttachmentCount();
@@ -510,28 +544,50 @@ bool prosper::VlkPrimaryCommandBuffer::DoRecordBeginRenderPass(
 	auto renderArea = vk::Rect2D(vk::Offset2D(),reinterpret_cast<vk::Extent2D&>(extents));
 	return static_cast<prosper::VlkPrimaryCommandBuffer&>(*this)->record_begin_render_pass(
 		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
-		&static_cast<prosper::VlkFramebuffer&>(fb).GetAnvilFramebuffer(),renderArea,&static_cast<prosper::VlkRenderPass&>(rp).GetAnvilRenderPass(),Anvil::SubpassContents::INLINE
-	);
+		&static_cast<prosper::VlkFramebuffer&>(fb).GetAnvilFramebuffer(),renderArea,&static_cast<prosper::VlkRenderPass&>(rp).GetAnvilRenderPass(),umath::is_flag_set(renderPassFlags,RenderPassFlags::SecondaryCommandBuffers) ? Anvil::SubpassContents::SECONDARY_COMMAND_BUFFERS : Anvil::SubpassContents::INLINE
+	);// && RecordSetViewport(extents.width,extents.height) && RecordSetScissor(extents.width,extents.height);
 }
 
 ///////////////////
 
 std::shared_ptr<prosper::VlkSecondaryCommandBuffer> prosper::VlkSecondaryCommandBuffer::Create(IPrContext &context,std::unique_ptr<Anvil::SecondaryCommandBuffer,std::function<void(Anvil::SecondaryCommandBuffer*)>> cmdBuffer,prosper::QueueFamilyType queueFamilyType,const std::function<void(VlkCommandBuffer&)> &onDestroyedCallback)
 {
+	std::shared_ptr<prosper::VlkSecondaryCommandBuffer> cmdBuf;
 	if(onDestroyedCallback == nullptr)
-		return std::shared_ptr<VlkSecondaryCommandBuffer>(new VlkSecondaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType));
-	return std::shared_ptr<VlkSecondaryCommandBuffer>(new VlkSecondaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType),[onDestroyedCallback](VlkCommandBuffer *buf) {
-		buf->OnRelease();
-		onDestroyedCallback(*buf);
-		delete buf;
+		cmdBuf = std::shared_ptr<VlkSecondaryCommandBuffer>(new VlkSecondaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType));
+	else
+	{
+		cmdBuf = std::shared_ptr<VlkSecondaryCommandBuffer>(new VlkSecondaryCommandBuffer(context,std::move(cmdBuffer),queueFamilyType),[onDestroyedCallback](VlkCommandBuffer *buf) {
+			buf->OnRelease();
+			onDestroyedCallback(*buf);
+			delete buf;
 		});
+	}
+	cmdBuf->Initialize();
+	return cmdBuf;
 }
 prosper::VlkSecondaryCommandBuffer::VlkSecondaryCommandBuffer(IPrContext &context,Anvil::SecondaryCommandBufferUniquePtr cmdBuffer,prosper::QueueFamilyType queueFamilyType)
 	: VlkCommandBuffer(context,prosper::util::unique_ptr_to_shared_ptr(std::move(cmdBuffer)),queueFamilyType),
 	ICommandBuffer{context,queueFamilyType},ISecondaryCommandBuffer{context,queueFamilyType}
 {
-	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),this,prosper::debug::ObjectType::CommandBuffer);
+	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),*this,prosper::debug::ObjectType::CommandBuffer);
 	m_apiTypePtr = static_cast<VlkCommandBuffer*>(this);
+}
+bool prosper::VlkSecondaryCommandBuffer::StartRecording(bool oneTimeSubmit,bool simultaneousUseAllowed) const
+{
+	return ISecondaryCommandBuffer::StartRecording(oneTimeSubmit,simultaneousUseAllowed) && static_cast<Anvil::SecondaryCommandBuffer&>(*m_cmdBuffer).start_recording(
+		oneTimeSubmit,simultaneousUseAllowed,true /* renderPassUsageOnly */,
+		nullptr,nullptr,0 /* subPass */,Anvil::OcclusionQuerySupportScope::NOT_REQUIRED,false,
+		Anvil::QueryPipelineStatisticFlagBits::NONE
+	);
+}
+bool prosper::VlkSecondaryCommandBuffer::StartRecording(prosper::IRenderPass &rp,prosper::IFramebuffer &fb,bool oneTimeSubmit,bool simultaneousUseAllowed) const
+{
+	return ISecondaryCommandBuffer::StartRecording(rp,fb,oneTimeSubmit,simultaneousUseAllowed) && static_cast<Anvil::SecondaryCommandBuffer&>(*m_cmdBuffer).start_recording(
+		oneTimeSubmit,simultaneousUseAllowed,true /* renderPassUsageOnly */,
+		&static_cast<const VlkFramebuffer&>(fb).GetAnvilFramebuffer(),&static_cast<const VlkRenderPass&>(rp).GetAnvilRenderPass(),0 /* subPass */,Anvil::OcclusionQuerySupportScope::NOT_REQUIRED,false,
+		Anvil::QueryPipelineStatisticFlagBits::NONE
+	);
 }
 bool prosper::VlkSecondaryCommandBuffer::StartRecording(
 	bool oneTimeSubmit,bool simultaneousUseAllowed,bool renderPassUsageOnly,
@@ -540,11 +596,15 @@ bool prosper::VlkSecondaryCommandBuffer::StartRecording(
 	Anvil::QueryPipelineStatisticFlags statisticsFlags
 ) const
 {
-	return static_cast<Anvil::SecondaryCommandBuffer&>(*m_cmdBuffer).start_recording(
+	return ISecondaryCommandBuffer::StartRecording(const_cast<IRenderPass&>(rp),const_cast<IFramebuffer&>(framebuffer),oneTimeSubmit,simultaneousUseAllowed) && static_cast<Anvil::SecondaryCommandBuffer&>(*m_cmdBuffer).start_recording(
 		oneTimeSubmit,simultaneousUseAllowed,
 		renderPassUsageOnly,&static_cast<const VlkFramebuffer&>(framebuffer).GetAnvilFramebuffer(),&static_cast<const VlkRenderPass&>(rp).GetAnvilRenderPass(),subPassId,occlusionQuerySupportScope,
 		occlusionQueryUsedByPrimaryCommandBuffer,statisticsFlags
 	);
+}
+bool prosper::VlkSecondaryCommandBuffer::StopRecording() const
+{
+	return ISecondaryCommandBuffer::StopRecording() && m_cmdBuffer->stop_recording();
 }
 bool prosper::VlkSecondaryCommandBuffer::IsSecondary() const {return true;}
 Anvil::SecondaryCommandBuffer &prosper::VlkSecondaryCommandBuffer::GetAnvilCommandBuffer() const {return static_cast<Anvil::SecondaryCommandBuffer&>(VlkCommandBuffer::GetAnvilCommandBuffer());}
@@ -553,14 +613,12 @@ const Anvil::SecondaryCommandBuffer &prosper::VlkSecondaryCommandBuffer::operato
 Anvil::SecondaryCommandBuffer *prosper::VlkSecondaryCommandBuffer::operator->() {return static_cast<Anvil::SecondaryCommandBuffer*>(VlkCommandBuffer::operator->());}
 const Anvil::SecondaryCommandBuffer *prosper::VlkSecondaryCommandBuffer::operator->() const {return static_cast<const Anvil::SecondaryCommandBuffer*>(VlkCommandBuffer::operator->());}
 
-
-
 ///////////////
 
 prosper::VlkCommandBuffer::VlkCommandBuffer(IPrContext &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,prosper::QueueFamilyType queueFamilyType)
 	: ICommandBuffer{context,queueFamilyType},m_cmdBuffer{cmdBuffer}
 {
-	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),this,prosper::debug::ObjectType::CommandBuffer);
+	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),*this,prosper::debug::ObjectType::CommandBuffer);
 }
 prosper::VlkCommandBuffer::~VlkCommandBuffer()
 {
@@ -569,10 +627,6 @@ prosper::VlkCommandBuffer::~VlkCommandBuffer()
 bool prosper::VlkCommandBuffer::Reset(bool shouldReleaseResources) const
 {
 	return m_cmdBuffer->reset(shouldReleaseResources);
-}
-bool prosper::VlkCommandBuffer::StopRecording() const
-{
-	return m_cmdBuffer->stop_recording();
 }
 bool prosper::VlkCommandBuffer::RecordSetDepthBias(float depthBiasConstantFactor,float depthBiasClamp,float depthBiasSlopeFactor)
 {
@@ -618,7 +672,7 @@ bool prosper::VlkCommandBuffer::RecordSetScissor(uint32_t width,uint32_t height,
 }
 bool prosper::VlkCommandBuffer::DoRecordCopyBuffer(const util::BufferCopy &copyInfo,IBuffer &bufferSrc,IBuffer &bufferDst)
 {
-	if(bufferDst.GetContext().IsValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
+	if(static_cast<VlkContext&>(bufferDst.GetContext()).IsCustomValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
 	static_assert(sizeof(util::BufferCopy) == sizeof(Anvil::BufferCopy));
@@ -626,7 +680,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBuffer(const util::BufferCopy &copyI
 }
 bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst,uint32_t w,uint32_t h)
 {
-	if(bufferSrc.GetContext().IsValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
+	if(static_cast<VlkContext&>(bufferSrc.GetContext()).IsCustomValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
 	Anvil::BufferImageCopy bufferImageCopy {};
@@ -657,7 +711,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImage(const util::CopyInfo &copyInfo
 }
 bool prosper::VlkCommandBuffer::DoRecordCopyImageToBuffer(const util::BufferImageCopyInfo &copyInfo,IImage &imgSrc,ImageLayout srcImageLayout,IBuffer &bufferDst,uint32_t w,uint32_t h)
 {
-	if(bufferDst.GetContext().IsValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
+	if(static_cast<VlkContext&>(bufferDst.GetContext()).IsCustomValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
 	Anvil::BufferImageCopy bufferImageCopy {};
@@ -701,7 +755,7 @@ bool prosper::VlkCommandBuffer::DoRecordResolveImage(IImage &imgSrc,IImage &imgD
 }
 bool prosper::VlkCommandBuffer::RecordUpdateBuffer(IBuffer &buffer,uint64_t offset,uint64_t size,const void *data)
 {
-	if(buffer.GetContext().IsValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
+	if(static_cast<VlkContext&>(buffer.GetContext()).IsCustomValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
 		throw std::logic_error("Attempted to update buffer while render pass is active!");
 	return m_cmdBuffer->record_update_buffer(&buffer.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),buffer.GetStartOffset() +offset,size,reinterpret_cast<const uint32_t*>(data));
 }
@@ -711,4 +765,9 @@ bool prosper::VlkCommandBuffer::RecordUpdateBuffer(IBuffer &buffer,uint64_t offs
 bool prosper::VlkPrimaryCommandBuffer::RecordNextSubPass()
 {
 	return (*this)->record_next_subpass(Anvil::SubpassContents::INLINE);
+}
+bool prosper::VlkPrimaryCommandBuffer::ExecuteCommands(prosper::ISecondaryCommandBuffer &cmdBuf)
+{
+	auto *anvCmdBuf = &static_cast<VlkSecondaryCommandBuffer&>(cmdBuf).GetAnvilCommandBuffer();
+	return static_cast<Anvil::PrimaryCommandBuffer&>(**this).record_execute_commands(1,&anvCmdBuf);
 }

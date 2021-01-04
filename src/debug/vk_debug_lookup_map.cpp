@@ -34,22 +34,21 @@
 class DLLPROSPER_VK ObjectLookupHandler
 {
 public:
-	void RegisterObject(void *vkPtr,void *objPtr,prosper::debug::ObjectType type) {m_lookupTable[vkPtr] = {std::make_shared<void*>(objPtr),type};}
-	void RegisterObject(void *vkPtr,const std::shared_ptr<void> &objPtr,prosper::debug::ObjectType type) {m_lookupTable[vkPtr] = {objPtr,type};}
+	void RegisterObject(void *vkPtr,prosper::ContextObject &obj,prosper::debug::ObjectType type) {m_lookupTable[vkPtr] = {&obj,type};}
 	void ClearObject(void *vkPtr)
 	{
 		auto it = m_lookupTable.find(vkPtr);
 		if(it != m_lookupTable.end())
 			m_lookupTable.erase(it);
 	}
-	void *GetObject(void *vkPtr,prosper::debug::ObjectType *outType=nullptr) const
+	prosper::ContextObject *GetObject(void *vkPtr,prosper::debug::ObjectType *outType=nullptr) const
 	{
 		auto it = m_lookupTable.find(vkPtr);
 		if(it == m_lookupTable.end())
 			return nullptr;
 		if(outType != nullptr)
 			*outType = it->second.second;
-		return *std::static_pointer_cast<void*>(it->second.first);
+		return it->second.first;
 	}
 	template<class T>
 	T *GetObject(void *vkPtr) const
@@ -57,7 +56,7 @@ public:
 		return static_cast<T*>(vkPtr);
 	}
 private:
-	std::unordered_map<void*,std::pair<std::shared_ptr<void>,prosper::debug::ObjectType>> m_lookupTable = {};
+	std::unordered_map<void*,std::pair<prosper::ContextObject*,prosper::debug::ObjectType>> m_lookupTable = {};
 };
 
 static std::unique_ptr<ObjectLookupHandler> s_lookupHandler = nullptr;
@@ -72,17 +71,17 @@ void prosper::debug::set_debug_mode_enabled(bool b)
 	s_lookupHandler = std::make_unique<ObjectLookupHandler>();
 }
 bool prosper::debug::is_debug_mode_enabled() {return s_lookupHandler != nullptr;}
-void prosper::debug::register_debug_object(void *vkPtr,void *objPtr,ObjectType type)
+void prosper::debug::register_debug_object(void *vkPtr,prosper::ContextObject &obj,ObjectType type)
 {
 	if(s_lookupHandler == nullptr)
 		return;
-	s_lookupHandler->RegisterObject(vkPtr,objPtr,type);
+	s_lookupHandler->RegisterObject(vkPtr,obj,type);
 }
 void prosper::debug::register_debug_shader_pipeline(void *vkPtr,const ShaderPipelineInfo &pipelineInfo)
 {
 	if(s_lookupHandler == nullptr)
 		return;
-	s_lookupHandler->RegisterObject(vkPtr,std::make_shared<ShaderPipelineInfo>(pipelineInfo),ObjectType::Pipeline);
+	//s_lookupHandler->RegisterObject(vkPtr,std::make_shared<ShaderPipelineInfo>(pipelineInfo),ObjectType::Pipeline);
 }
 void prosper::debug::deregister_debug_object(void *vkPtr)
 {
@@ -168,8 +167,6 @@ namespace prosper
 };
 void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 {
-	// TODO: FIXME
-#if 0
 	if(s_lookupHandler == nullptr)
 		return;
 	const std::string hexDigits = "0123456789abcdefABCDEF";
@@ -192,36 +189,36 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 			switch(type)
 			{
 			case debug::ObjectType::Image:
-				contextObject = static_cast<prosper::VlkImage*>(o);
+				contextObject = dynamic_cast<prosper::VlkImage*>(o);
 				break;
 			case debug::ObjectType::ImageView:
-				contextObject = static_cast<prosper::VlkImageView*>(o);
+				contextObject = dynamic_cast<prosper::VlkImageView*>(o);
 				break;
 			case debug::ObjectType::Sampler:
-				contextObject = static_cast<prosper::VlkSampler*>(o);
+				contextObject = dynamic_cast<prosper::VlkSampler*>(o);
 				break;
 			case debug::ObjectType::Buffer:
-				contextObject = static_cast<prosper::VlkBuffer*>(o);
+				contextObject = dynamic_cast<prosper::VlkBuffer*>(o);
 				break;
 			case debug::ObjectType::CommandBuffer:
 				if(cmdBuffer == nullptr)
-					cmdBuffer = static_cast<prosper::VlkCommandBuffer*>(o);
-				contextObject = static_cast<prosper::VlkCommandBuffer*>(o);
+					cmdBuffer = dynamic_cast<prosper::VlkCommandBuffer*>(o);
+				contextObject = dynamic_cast<prosper::VlkCommandBuffer*>(o);
 				break;
 			case debug::ObjectType::RenderPass:
-				contextObject = static_cast<prosper::VlkRenderPass*>(o);
+				contextObject = dynamic_cast<prosper::VlkRenderPass*>(o);
 				break;
 			case debug::ObjectType::Framebuffer:
-				contextObject = static_cast<prosper::VlkFramebuffer*>(o);
+				contextObject = dynamic_cast<prosper::VlkFramebuffer*>(o);
 				break;
 			case debug::ObjectType::DescriptorSet:
-				contextObject = static_cast<prosper::VlkDescriptorSetGroup*>(o);
+				contextObject = dynamic_cast<prosper::VlkDescriptorSetGroup*>(o);
 				break;
 			case debug::ObjectType::Pipeline:
 			{
-				auto *info = static_cast<debug::ShaderPipelineInfo*>(o);
-				auto *str = static_cast<debug::ShaderPipelineInfo*>(o)->shader->GetDebugName(info->pipelineIdx);
-				debugName = (str != nullptr) ? *str : "shader_unknown";
+				//auto *info = static_cast<debug::ShaderPipelineInfo*>(o);
+				//auto *str = static_cast<debug::ShaderPipelineInfo*>(o)->shader->GetDebugName(info->pipelineIdx);
+				//debugName = (str != nullptr) ? *str : "shader_unknown";
 				break;
 			}
 			default:
@@ -269,7 +266,7 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 		return;
 	}
 	// We don't know which command buffer and/or shader/pipeline the message is referring to; Print info about ALL currently bound pipelines
-	auto &boundPipelines = prosper::Shader::GetBoundPipelines();
+	/*auto &boundPipelines = prosper::Shader::GetBoundPipelines();
 	if(boundPipelines.empty())
 		return;
 	msgValidation += " Currently bound shaders/pipelines:";
@@ -280,6 +277,5 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 		auto &dbgName = cmd.GetDebugName();
 		msgValidation += ((dbgName.empty() == false) ? dbgName : "Unknown") +": ";
 		fPrintBoundPipeline(*boundPipeline.first);
-	}
-#endif
+	}*/
 }

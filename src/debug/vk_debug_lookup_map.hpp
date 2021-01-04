@@ -56,7 +56,7 @@ namespace prosper
 		};
 		DLLPROSPER_VK void set_debug_mode_enabled(bool b);
 		DLLPROSPER_VK bool is_debug_mode_enabled();
-		DLLPROSPER_VK void register_debug_object(void *vkPtr,void *objPtr,ObjectType type);
+		DLLPROSPER_VK void register_debug_object(void *vkPtr,prosper::ContextObject &obj,ObjectType type);
 		DLLPROSPER_VK void register_debug_shader_pipeline(void *vkPtr,const ShaderPipelineInfo &pipelineInfo);
 		DLLPROSPER_VK void deregister_debug_object(void *vkPtr);
 

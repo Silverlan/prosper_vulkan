@@ -157,4 +157,5 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL OFF FORCE)
 add_subdirectory("third_party_libs/anvil")
 set(BUILD_SHARED_LIBS ON CACHE BOOL ON FORCE)
 
-add_dependencies(${PROJ_NAME} Anvil SPIRV SPIRV-Tools OSDependent OGLCompiler SPIRV-Tools-opt SPVRemapper glslang)
+add_subdirectory(external_libs/util_lunarglass)
+add_dependencies(${PROJ_NAME} Anvil SPIRV SPIRV-Tools OSDependent OGLCompiler SPIRV-Tools-opt SPVRemapper glslang util_lunarglass)

@@ -25,7 +25,7 @@ std::shared_ptr<VlkRenderPass> VlkRenderPass::Create(IPrContext &context,const p
 VlkRenderPass::VlkRenderPass(IPrContext &context,const prosper::util::RenderPassCreateInfo &createInfo,Anvil::RenderPassUniquePtr imgView)
 	: IRenderPass{context,createInfo},m_renderPass{std::move(imgView)}
 {
-	prosper::debug::register_debug_object(m_renderPass->get_render_pass(),this,prosper::debug::ObjectType::RenderPass);
+	prosper::debug::register_debug_object(m_renderPass->get_render_pass(),*this,prosper::debug::ObjectType::RenderPass);
 }
 VlkRenderPass::~VlkRenderPass()
 {

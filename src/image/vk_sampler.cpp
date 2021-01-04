@@ -56,7 +56,7 @@ bool VlkSampler::DoUpdate()
 		if(m_sampler != nullptr)
 			prosper::debug::deregister_debug_object(m_sampler->get_sampler());
 		m_sampler = std::move(newSampler);
-		prosper::debug::register_debug_object(m_sampler->get_sampler(),this,prosper::debug::ObjectType::Sampler);
+		prosper::debug::register_debug_object(m_sampler->get_sampler(),*this,prosper::debug::ObjectType::Sampler);
 		return true;
 	}
 	return false;

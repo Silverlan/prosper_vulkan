@@ -84,6 +84,7 @@ namespace prosper
 		using IPrContext::CreateDescriptorSetGroup;
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo,std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
 		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) override;
+		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup() override;
 
 		virtual bool IsImageFormatSupported(
 			prosper::Format format,prosper::ImageUsageFlags usageFlags,prosper::ImageType type=prosper::ImageType::e2D,
@@ -95,6 +96,7 @@ namespace prosper
 
 		virtual std::shared_ptr<prosper::IPrimaryCommandBuffer> AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex) override;
 		virtual std::shared_ptr<prosper::ISecondaryCommandBuffer> AllocateSecondaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex) override;
+		virtual std::shared_ptr<prosper::ICommandBufferPool> CreateCommandBufferPool(prosper::QueueFamilyType queueFamilyType) override;
 		virtual bool SavePipelineCache() override;
 
 		virtual void Flush() override;
@@ -126,6 +128,7 @@ namespace prosper
 			const std::string &entrypointName="main"
 		) override;
 		virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage,const std::string &shaderPath,std::string &outInfoLog,std::string &outDebugInfoLog,bool reload=false) override;
+		virtual std::optional<std::unordered_map<prosper::ShaderStage,std::string>> OptimizeShader(const std::unordered_map<prosper::ShaderStage,std::string> &shaderStages,std::string &outInfoLog) override;
 		virtual std::optional<PipelineID> AddPipeline(
 			prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::ComputePipelineCreateInfo &createInfo,
 			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
@@ -153,7 +156,8 @@ namespace prosper
 		virtual void AddDebugObjectInformation(std::string &msgValidation) override;
 
 		std::pair<const Anvil::MemoryType*,prosper::MemoryFeatureFlags> FindCompatibleMemoryType(MemoryFeatureFlags featureFlags) const;
-
+		
+		bool IsCustomValidationEnabled() const {return m_customValidationEnabled;}
 		Anvil::PipelineLayout *GetPipelineLayout(bool graphicsShader,PipelineID pipelineId);
 		virtual void *GetInternalDevice() const override;
 		virtual void *GetInternalPhysicalDevice() const override;
@@ -200,6 +204,7 @@ namespace prosper
 		std::shared_ptr<Anvil::RenderPass> m_renderPass;
 		SubPassID m_mainSubPass = std::numeric_limits<SubPassID>::max();
 		VkSurfaceKHR_T *m_surface = nullptr;
+		bool m_customValidationEnabled = false;
 
 		std::vector<std::shared_ptr<Anvil::Fence>> m_cmdFences;
 		std::vector<std::shared_ptr<Anvil::Framebuffer>> m_fbos;
