@@ -48,8 +48,10 @@ VlkDescriptorSetGroup::~VlkDescriptorSetGroup()
 }
 
 VlkDescriptorSet::VlkDescriptorSet(VlkDescriptorSetGroup &dsg,Anvil::DescriptorSet &ds)
-	: IDescriptorSet{dsg},m_descSet{ds}
-{}
+	: IDescriptorSet{dsg},m_descSet{ds},m_vkDescSet{ds.get_descriptor_set_vk()}
+{
+	m_apiTypePtr = static_cast<VlkDescriptorSet*>(this);
+}
 
 Anvil::DescriptorSet &VlkDescriptorSet::GetAnvilDescriptorSet() const {return m_descSet;}
 Anvil::DescriptorSet &VlkDescriptorSet::operator*() {return m_descSet;}

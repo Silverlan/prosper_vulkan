@@ -20,6 +20,7 @@ prosper::VkDynamicResizableBuffer::VkDynamicResizableBuffer(
 	VlkBuffer{buffer.GetContext(),buffer.GetCreateInfo(),buffer.GetStartOffset(),buffer.GetSize(),nullptr}
 {
 	VlkBuffer::m_buffer = std::move(buffer.GetAPITypeRef<VlkBuffer>().m_buffer);
+	VlkBuffer::m_vkBuffer = VlkBuffer::m_buffer->get_buffer();
 }
 
 void prosper::VkDynamicResizableBuffer::MoveInternalBuffer(IBuffer &other)

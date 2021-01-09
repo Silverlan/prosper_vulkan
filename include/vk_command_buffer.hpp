@@ -44,13 +44,19 @@ namespace prosper
 			PipelineBindPoint bindPoint,prosper::Shader &shader,PipelineID pipelineId,uint32_t firstSet,
 			const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={}
 		) override;
+		virtual bool RecordBindDescriptorSets(
+			PipelineBindPoint bindPoint,const IShaderPipelineLayout &pipelineLayout,uint32_t firstSet,
+			const prosper::IDescriptorSet &descSet,uint32_t *optDynamicOffset=nullptr
+		) override;
 		virtual bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data) override;
+		virtual bool RecordPushConstants(const IShaderPipelineLayout &pipelineLayout,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data) override;
 
 		virtual bool RecordSetLineWidth(float lineWidth) override;
 		virtual bool RecordBindIndexBuffer(IBuffer &buf,IndexType indexType=IndexType::UInt16,DeviceSize offset=0) override;
 		virtual bool RecordBindVertexBuffers(
 			const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={}
 		) override;
+		virtual bool RecordBindVertexBuffer(const prosper::ShaderGraphics &shader,const IBuffer &buf,uint32_t startBinding=0u,DeviceSize offset=0u) override;
 		virtual bool RecordBindRenderBuffer(const IRenderBuffer &renderBuffer) override;
 		virtual bool RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size) override;
 		virtual bool RecordDispatch(uint32_t x,uint32_t y,uint32_t z) override;
@@ -75,6 +81,8 @@ namespace prosper
 		virtual bool ResetQuery(const Query &query) const override;
 
 		virtual bool RecordPresentImage(IImage &img,uint32_t swapchainImgIndex) override;
+
+		VkCommandBuffer GetVkCommandBuffer() const {return m_vkCommandBuffer;}
 	protected:
 		VlkCommandBuffer(IPrContext &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,prosper::QueueFamilyType queueFamilyType);
 		virtual bool DoRecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId,PipelineID pipelineId) override;
@@ -88,6 +96,7 @@ namespace prosper
 		bool RecordBindVertexBuffers(const std::vector<std::shared_ptr<IBuffer>> &buffers,uint32_t startBinding=0u,const std::vector<DeviceSize> &offsets={});
 
 		std::shared_ptr<Anvil::CommandBufferBase> m_cmdBuffer = nullptr;
+		VkCommandBuffer m_vkCommandBuffer = nullptr;
 	};
 
 	class DLLPROSPER_VK VlkCommandPool

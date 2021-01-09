@@ -30,6 +30,9 @@
 #include <sharedutils/util.h>
 #include <sstream>
 
+// Note: Most command buffer methods use the vulkan functions directly instead of Anvil, because
+// Anvil includes an additional mutex overhead
+
 Anvil::CommandBufferBase &prosper::VlkCommandBuffer::GetAnvilCommandBuffer() const {return *m_cmdBuffer;}
 Anvil::CommandBufferBase &prosper::VlkCommandBuffer::operator*() {return *m_cmdBuffer;}
 const Anvil::CommandBufferBase &prosper::VlkCommandBuffer::operator*() const {return const_cast<VlkCommandBuffer*>(this)->operator*();}
@@ -50,6 +53,23 @@ bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(
 		dynamicOffsets.size(),dynamicOffsets.data()
 	);
 }
+
+bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(
+	PipelineBindPoint bindPoint,const IShaderPipelineLayout &pipelineLayout,uint32_t firstSet,
+	const prosper::IDescriptorSet &descSet,uint32_t *optDynamicOffset
+)
+{
+	auto vkDescSet = descSet.GetAPITypeRef<VlkDescriptorSet>().GetVkDescriptorSet();
+	vkCmdBindDescriptorSets(m_vkCommandBuffer,static_cast<VkPipelineBindPoint>(bindPoint),static_cast<const VlkShaderPipelineLayout&>(pipelineLayout).GetVkPipelineLayout(),firstSet,1u,&vkDescSet,optDynamicOffset ? 1 : 0,optDynamicOffset);
+	return true;
+}
+
+bool prosper::VlkCommandBuffer::RecordPushConstants(const IShaderPipelineLayout &pipelineLayout,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data)
+{
+	vkCmdPushConstants(m_vkCommandBuffer,static_cast<const VlkShaderPipelineLayout&>(pipelineLayout).GetVkPipelineLayout(),static_cast<VkShaderStageFlags>(stageFlags),offset,size,data);
+	return true;
+}
+
 bool prosper::VlkCommandBuffer::RecordPushConstants(prosper::Shader &shader,PipelineID pipelineIdx,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data)
 {
 	prosper::PipelineID pipelineId;
@@ -61,11 +81,21 @@ bool prosper::VlkCommandBuffer::DoRecordBindShaderPipeline(prosper::Shader &shad
 }
 bool prosper::VlkCommandBuffer::RecordSetLineWidth(float lineWidth)
 {
-	return (*this)->record_set_line_width(lineWidth);
+	// return (*this)->record_set_line_width(lineWidth);
+	vkCmdSetLineWidth(m_vkCommandBuffer,lineWidth);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordBindIndexBuffer(IBuffer &buf,IndexType indexType,DeviceSize offset)
 {
-	return (*this)->record_bind_index_buffer(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),buf.GetStartOffset() +offset,static_cast<Anvil::IndexType>(indexType));
+	// return (*this)->record_bind_index_buffer(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),buf.GetStartOffset() +offset,static_cast<Anvil::IndexType>(indexType));
+	vkCmdBindIndexBuffer(m_vkCommandBuffer,buf.GetAPITypeRef<VlkBuffer>().GetVkBuffer(),buf.GetStartOffset() +offset,static_cast<VkIndexType>(indexType));
+	return true;
+}
+bool prosper::VlkCommandBuffer::RecordBindVertexBuffer(const prosper::ShaderGraphics &shader,const IBuffer &buf,uint32_t startBinding,DeviceSize offset)
+{
+	auto vkBuf = buf.GetAPITypeRef<VlkBuffer>().GetVkBuffer();
+	vkCmdBindVertexBuffers(m_vkCommandBuffer,startBinding,1u /* bindingCount */,&vkBuf,&offset);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(
 	const prosper::ShaderGraphics &shader,const std::vector<IBuffer*> &buffers,uint32_t startBinding,const std::vector<DeviceSize> &offsets
@@ -110,55 +140,79 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(const std::vector<std::s
 bool prosper::VlkCommandBuffer::RecordBindRenderBuffer(const IRenderBuffer &renderBuffer)
 {
 	auto &vkBuf = static_cast<const VlkRenderBuffer&>(renderBuffer);
-	return vkBuf.Record(**this);
+	return vkBuf.Record(m_vkCommandBuffer);
 }
 bool prosper::VlkCommandBuffer::RecordDispatchIndirect(prosper::IBuffer &buffer,DeviceSize size)
 {
-	return (*this)->record_dispatch_indirect(&buffer.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),size);
+	// return (*this)->record_dispatch_indirect(&buffer.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),size);
+	vkCmdDispatchIndirect(m_vkCommandBuffer,buffer.GetAPITypeRef<VlkBuffer>().GetVkBuffer(),size);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordDispatch(uint32_t x,uint32_t y,uint32_t z)
 {
-	return (*this)->record_dispatch(x,y,z);
+	// return (*this)->record_dispatch(x,y,z);
+	vkCmdDispatch(m_vkCommandBuffer,x,y,z);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordDraw(uint32_t vertCount,uint32_t instanceCount,uint32_t firstVertex,uint32_t firstInstance)
 {
-	return (*this)->record_draw(vertCount,instanceCount,firstVertex,firstInstance);
+	// return (*this)->record_draw(vertCount,instanceCount,firstVertex,firstInstance);
+	vkCmdDraw(m_vkCommandBuffer,vertCount,instanceCount,firstVertex,firstInstance);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordDrawIndexed(uint32_t indexCount,uint32_t instanceCount,uint32_t firstIndex,uint32_t firstInstance)
 {
-	return (*this)->record_draw_indexed(indexCount,instanceCount,firstIndex,0 /* vertexOffset */,firstInstance);
+	// return (*this)->record_draw_indexed(indexCount,instanceCount,firstIndex,0 /* vertexOffset */,firstInstance);
+	vkCmdDrawIndexed(m_vkCommandBuffer,indexCount,instanceCount,firstIndex,0u /* vertexOffset */,firstInstance);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordDrawIndexedIndirect(IBuffer &buf,DeviceSize offset,uint32_t drawCount,uint32_t stride)
 {
-	return (*this)->record_draw_indexed_indirect(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),offset,drawCount,stride);
+	// return (*this)->record_draw_indexed_indirect(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),offset,drawCount,stride);
+	vkCmdDrawIndexedIndirect(m_vkCommandBuffer,buf.GetAPITypeRef<VlkBuffer>().GetVkBuffer(),offset,drawCount,stride);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordDrawIndirect(IBuffer &buf,DeviceSize offset,uint32_t count,uint32_t stride)
 {
-	return (*this)->record_draw_indirect(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),offset,count,stride);
+	// return (*this)->record_draw_indirect(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),offset,count,stride);
+	vkCmdDrawIndirect(m_vkCommandBuffer,buf.GetAPITypeRef<VlkBuffer>().GetVkBuffer(),offset,count,stride);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordFillBuffer(IBuffer &buf,DeviceSize offset,DeviceSize size,uint32_t data)
 {
-	return (*this)->record_fill_buffer(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),offset,size,data);
+	// return (*this)->record_fill_buffer(&buf.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),offset,size,data);
+	vkCmdFillBuffer(m_vkCommandBuffer,buf.GetAPITypeRef<VlkBuffer>().GetVkBuffer(),offset,size,data);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordSetBlendConstants(const std::array<float,4> &blendConstants)
 {
-	return (*this)->record_set_blend_constants(blendConstants.data());
+	// return (*this)->record_set_blend_constants(blendConstants.data());
+	vkCmdSetBlendConstants(m_vkCommandBuffer,blendConstants.data());
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordSetDepthBounds(float minDepthBounds,float maxDepthBounds)
 {
-	return (*this)->record_set_depth_bounds(minDepthBounds,maxDepthBounds);
+	// return (*this)->record_set_depth_bounds(minDepthBounds,maxDepthBounds);
+	vkCmdSetDepthBounds(m_vkCommandBuffer,minDepthBounds,maxDepthBounds);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordSetStencilCompareMask(StencilFaceFlags faceMask,uint32_t stencilCompareMask)
 {
-	return (*this)->record_set_stencil_compare_mask(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilCompareMask);
+	// return (*this)->record_set_stencil_compare_mask(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilCompareMask);
+	vkCmdSetStencilCompareMask(m_vkCommandBuffer,static_cast<VkStencilFaceFlags>(faceMask),stencilCompareMask);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordSetStencilReference(StencilFaceFlags faceMask,uint32_t stencilReference)
 {
-	return (*this)->record_set_stencil_reference(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilReference);
+	// return (*this)->record_set_stencil_reference(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilReference);
+	vkCmdSetStencilReference(m_vkCommandBuffer,static_cast<VkStencilFaceFlags>(faceMask),stencilReference);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordSetStencilWriteMask(StencilFaceFlags faceMask,uint32_t stencilWriteMask)
 {
-	return (*this)->record_set_stencil_write_mask(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilWriteMask);
+	// return (*this)->record_set_stencil_write_mask(static_cast<Anvil::StencilFaceFlagBits>(faceMask),stencilWriteMask);
+	vkCmdSetStencilWriteMask(m_vkCommandBuffer,static_cast<VkStencilFaceFlags>(faceMask),stencilWriteMask);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordBeginOcclusionQuery(const prosper::OcclusionQuery &query) const
 {
@@ -166,8 +220,11 @@ bool prosper::VlkCommandBuffer::RecordBeginOcclusionQuery(const prosper::Occlusi
 	if(pQueryPool == nullptr)
 		return false;
 	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
-	return const_cast<VlkCommandBuffer&>(*this)->record_reset_query_pool(anvPool,query.GetQueryId(),1u /* queryCount */) &&
-		const_cast<VlkCommandBuffer&>(*this)->record_begin_query(anvPool,query.GetQueryId(),{});
+	// return const_cast<VlkCommandBuffer&>(*this)->record_reset_query_pool(anvPool,query.GetQueryId(),1u /* queryCount */) &&
+	// 	const_cast<VlkCommandBuffer&>(*this)->record_begin_query(anvPool,query.GetQueryId(),{});
+	vkCmdResetQueryPool(m_vkCommandBuffer,anvPool->get_query_pool(),query.GetQueryId(),1u /* queryCount */);
+	vkCmdBeginQuery(m_vkCommandBuffer,anvPool->get_query_pool(),query.GetQueryId(),1u /* queryCount */);
+	return true;
 }
 bool prosper::VlkCommandBuffer::RecordEndOcclusionQuery(const prosper::OcclusionQuery &query) const
 {
@@ -175,7 +232,9 @@ bool prosper::VlkCommandBuffer::RecordEndOcclusionQuery(const prosper::Occlusion
 	if(pQueryPool == nullptr)
 		return false;
 	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
-	return const_cast<VlkCommandBuffer&>(*this)->record_end_query(anvPool,query.GetQueryId());
+	// return const_cast<VlkCommandBuffer&>(*this)->record_end_query(anvPool,query.GetQueryId());
+	vkCmdEndQuery(m_vkCommandBuffer,anvPool->get_query_pool(),query.GetQueryId());
+	return true;
 }
 bool prosper::VlkCommandBuffer::WriteTimestampQuery(const prosper::TimestampQuery &query) const
 {
@@ -185,7 +244,9 @@ bool prosper::VlkCommandBuffer::WriteTimestampQuery(const prosper::TimestampQuer
 	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
 	if(query.IsReset() == false && query.Reset(const_cast<VlkCommandBuffer&>(*this)) == false)
 		return false;
-	return const_cast<prosper::VlkCommandBuffer&>(*this)->record_write_timestamp(static_cast<Anvil::PipelineStageFlagBits>(query.GetPipelineStage()),anvPool,query.GetQueryId());
+	// return const_cast<prosper::VlkCommandBuffer&>(*this)->record_write_timestamp(static_cast<Anvil::PipelineStageFlagBits>(query.GetPipelineStage()),anvPool,query.GetQueryId());
+	vkCmdWriteTimestamp(m_vkCommandBuffer,static_cast<VkPipelineStageFlagBits>(query.GetPipelineStage()),anvPool->get_query_pool(),query.GetQueryId());
+	return true;
 }
 
 bool prosper::VlkCommandBuffer::ResetQuery(const Query &query) const
@@ -194,7 +255,9 @@ bool prosper::VlkCommandBuffer::ResetQuery(const Query &query) const
 	if(pQueryPool == nullptr)
 		return false;
 	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
-	auto success = const_cast<VlkCommandBuffer&>(*this)->record_reset_query_pool(anvPool,query.GetQueryId(),1u /* queryCount */);
+	// auto success = const_cast<VlkCommandBuffer&>(*this)->record_reset_query_pool(anvPool,query.GetQueryId(),1u /* queryCount */);
+	vkCmdResetQueryPool(m_vkCommandBuffer,anvPool->get_query_pool(),query.GetQueryId(),1u /* queryCount */);
+	auto success = true;
 	if(success)
 		const_cast<Query&>(query).OnReset(const_cast<VlkCommandBuffer&>(*this));
 	return success;
@@ -616,7 +679,7 @@ const Anvil::SecondaryCommandBuffer *prosper::VlkSecondaryCommandBuffer::operato
 ///////////////
 
 prosper::VlkCommandBuffer::VlkCommandBuffer(IPrContext &context,const std::shared_ptr<Anvil::CommandBufferBase> &cmdBuffer,prosper::QueueFamilyType queueFamilyType)
-	: ICommandBuffer{context,queueFamilyType},m_cmdBuffer{cmdBuffer}
+	: ICommandBuffer{context,queueFamilyType},m_cmdBuffer{cmdBuffer},m_vkCommandBuffer{cmdBuffer->get_command_buffer()}
 {
 	prosper::debug::register_debug_object(m_cmdBuffer->get_command_buffer(),*this,prosper::debug::ObjectType::CommandBuffer);
 }

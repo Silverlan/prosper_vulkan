@@ -40,6 +40,7 @@ namespace prosper
 		Anvil::DescriptorSet *operator->();
 		const Anvil::DescriptorSet *operator->() const;
 
+		VkDescriptorSet GetVkDescriptorSet() const {return m_vkDescSet;};
 		virtual bool Update() override;
 	protected:
 		virtual bool DoSetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,const std::optional<uint32_t> &layerId) override;
@@ -50,6 +51,7 @@ namespace prosper
 		virtual bool DoSetBindingStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size) override;
 	private:
 		Anvil::DescriptorSet &m_descSet;
+		VkDescriptorSet m_vkDescSet;
 	};
 };
 

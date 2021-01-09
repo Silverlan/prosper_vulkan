@@ -7,6 +7,8 @@
 
 #include "prosper_vulkan_definitions.hpp"
 #include "prosper_context.hpp"
+#include <shader/prosper_shader.hpp>
+#include <vulkan/vulkan.h>
 
 namespace Anvil
 {
@@ -48,6 +50,19 @@ namespace prosper
 		std::vector<unsigned int> m_spirvBlob;
 	};
 
+	class DLLPROSPER_VK VlkShaderPipelineLayout
+		: public IShaderPipelineLayout
+	{
+	public:
+		static std::unique_ptr<VlkShaderPipelineLayout> Create(const Shader &shader,uint32_t pipelineIdx);
+		VkPipelineLayout GetVkPipelineLayout() const {return m_pipelineLayout;}
+		VkPipelineBindPoint GetVkPipelineBindPoint() const {return m_pipelineBindPoint;}
+	private:
+		using IShaderPipelineLayout::IShaderPipelineLayout;
+		VkPipelineLayout m_pipelineLayout;
+		VkPipelineBindPoint m_pipelineBindPoint;
+	};
+
 	class DLLPROSPER_VK VlkContext
 		: public IPrContext
 	{
@@ -84,7 +99,7 @@ namespace prosper
 		using IPrContext::CreateDescriptorSetGroup;
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo,std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
 		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) override;
-		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup() override;
+		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(bool allowMt=true) override;
 
 		virtual bool IsImageFormatSupported(
 			prosper::Format format,prosper::ImageUsageFlags usageFlags,prosper::ImageType type=prosper::ImageType::e2D,
@@ -118,6 +133,7 @@ namespace prosper
 		virtual std::shared_ptr<IImage> CreateImage(const util::ImageCreateInfo &createInfo,const ImageData &imgData={}) override;
 		virtual std::shared_ptr<IRenderPass> CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo) override;
 		virtual std::shared_ptr<IFramebuffer> CreateFramebuffer(uint32_t width,uint32_t height,uint32_t layers,const std::vector<prosper::IImageView*> &attachments) override;
+		virtual std::unique_ptr<IShaderPipelineLayout> GetShaderPipelineLayout(const Shader &shader,uint32_t pipelineIdx=0u) const override;
 		virtual std::shared_ptr<IRenderBuffer> CreateRenderBuffer(
 			const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,const std::vector<prosper::IBuffer*> &buffers,
 			const std::vector<prosper::DeviceSize> &offsets={},const std::optional<IndexBufferInfo> &indexBufferInfo={}
@@ -129,6 +145,7 @@ namespace prosper
 		) override;
 		virtual std::shared_ptr<ShaderStageProgram> CompileShader(prosper::ShaderStage stage,const std::string &shaderPath,std::string &outInfoLog,std::string &outDebugInfoLog,bool reload=false) override;
 		virtual std::optional<std::unordered_map<prosper::ShaderStage,std::string>> OptimizeShader(const std::unordered_map<prosper::ShaderStage,std::string> &shaderStages,std::string &outInfoLog) override;
+		virtual bool GetParsedShaderSourceCode(prosper::Shader &shader,std::vector<std::string> &outGlslCodePerStage,std::vector<prosper::ShaderStage> &outGlslCodeStages,std::string &outInfoLog,std::string &outDebugInfoLog,prosper::ShaderStage &outErrStage) const override;
 		virtual std::optional<PipelineID> AddPipeline(
 			prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::ComputePipelineCreateInfo &createInfo,
 			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()

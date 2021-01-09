@@ -43,7 +43,8 @@ namespace prosper
 		const Anvil::Buffer &operator*() const;
 		Anvil::Buffer *operator->();
 		const Anvil::Buffer *operator->() const;
-
+		
+		VkBuffer GetVkBuffer() const {return m_vkBuffer;};
 		virtual void Initialize() override;
 	protected:
 		friend IDynamicResizableBuffer;
@@ -58,6 +59,7 @@ namespace prosper
 		virtual bool DoUnmap() const override;
 
 		std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> m_buffer = nullptr;
+		VkBuffer m_vkBuffer;
 	private:
 		void SetBuffer(std::unique_ptr<Anvil::Buffer,std::function<void(Anvil::Buffer*)>> buf);
 	};

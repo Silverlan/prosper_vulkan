@@ -10,7 +10,6 @@
 
 namespace prosper
 {
-	using VlkSwapCommandBufferGroup = MtSwapCommandBufferGroup;
 };
 
 #endif

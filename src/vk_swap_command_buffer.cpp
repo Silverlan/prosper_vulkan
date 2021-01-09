@@ -8,6 +8,10 @@
 #include <prosper_command_buffer.hpp>
 
 using namespace prosper;
-#pragma optimize("",off)
-std::shared_ptr<prosper::ISwapCommandBufferGroup> prosper::VlkContext::CreateSwapCommandBufferGroup() {return std::make_shared<VlkSwapCommandBufferGroup>(*this);}
-#pragma optimize("",on)
+
+std::shared_ptr<prosper::ISwapCommandBufferGroup> prosper::VlkContext::CreateSwapCommandBufferGroup(bool allowMt)
+{
+	if(allowMt)
+		return std::make_shared<MtSwapCommandBufferGroup>(*this);
+	return std::make_shared<StSwapCommandBufferGroup>(*this);
+}

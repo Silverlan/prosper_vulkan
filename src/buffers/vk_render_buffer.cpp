@@ -26,26 +26,30 @@ std::shared_ptr<VlkRenderBuffer> VlkRenderBuffer::Create(
 	return std::shared_ptr<VlkRenderBuffer>{new VlkRenderBuffer{context,buffers,offsets,indexBufferInfo}};
 }
 const std::vector<prosper::DeviceSize> &VlkRenderBuffer::GetOffsets() const {return m_offsets;}
-bool VlkRenderBuffer::Record(Anvil::CommandBufferBase &cmdBuf) const
+bool VlkRenderBuffer::Record(VkCommandBuffer cmdBuf) const
 {
-	return cmdBuf.record_bind_vertex_buffers(0u,m_anvBuffers.size(),m_anvBuffers.data(),m_anvOffsets.data()) &&
-		(!m_anvIndexBuffer || cmdBuf.record_bind_index_buffer(m_anvIndexBuffer,m_anvIndexBufferOffset,static_cast<Anvil::IndexType>(m_indexBufferInfo->indexType)));
+	// return cmdBuf.record_bind_vertex_buffers(0u,m_anvBuffers.size(),m_anvBuffers.data(),m_anvOffsets.data()) &&
+	// 	(!m_anvIndexBuffer || cmdBuf.record_bind_index_buffer(m_anvIndexBuffer,m_anvIndexBufferOffset,static_cast<Anvil::IndexType>(m_indexBufferInfo->indexType)));
+	vkCmdBindVertexBuffers(cmdBuf,0u /* firstBinding */,m_vkBuffers.size(),m_vkBuffers.data(),m_vkOffsets.data());
+	if(m_vkIndexBuffer)
+		vkCmdBindIndexBuffer(cmdBuf,m_vkIndexBuffer,m_vkIndexBufferOffset,static_cast<VkIndexType>(m_indexBufferInfo->indexType));
+	return true;
 }
 void VlkRenderBuffer::Initialize()
 {
-	m_anvBuffers.reserve(m_buffers.size());
+	m_vkBuffers.reserve(m_buffers.size());
 	for(auto &buf : m_buffers)
-		m_anvBuffers.push_back(&buf->GetAPITypeRef<VlkBuffer>().GetAnvilBuffer());
+		m_vkBuffers.push_back(buf->GetAPITypeRef<VlkBuffer>().GetVkBuffer());
 	if(m_offsets.empty())
-		m_anvOffsets.resize(m_buffers.size(),0);
+		m_vkOffsets.resize(m_buffers.size(),0);
 	else
-		m_anvOffsets = m_offsets;
+		m_vkOffsets = m_offsets;
 	for(auto i=decltype(m_buffers.size()){0u};i<m_buffers.size();++i)
-		m_anvOffsets.at(i) += m_buffers.at(i)->GetStartOffset();
+		m_vkOffsets.at(i) += m_buffers.at(i)->GetStartOffset();
 
 	if(m_indexBufferInfo.has_value())
 	{
-		m_anvIndexBuffer = &m_indexBufferInfo->buffer->GetAPITypeRef<VlkBuffer>().GetAnvilBuffer();
-		m_anvIndexBufferOffset = m_indexBufferInfo->buffer->GetStartOffset() +m_indexBufferInfo->offset;
+		m_vkIndexBuffer = m_indexBufferInfo->buffer->GetAPITypeRef<VlkBuffer>().GetVkBuffer();
+		m_vkIndexBufferOffset = m_indexBufferInfo->buffer->GetStartOffset() +m_indexBufferInfo->offset;
 	}
 }

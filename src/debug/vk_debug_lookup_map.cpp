@@ -108,9 +108,9 @@ prosper::VlkSampler *prosper::debug::get_sampler(const vk::Sampler &vkSampler)
 {
 	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkSampler>(vkSampler) : nullptr;
 }
-prosper::VkBuffer *prosper::debug::get_buffer(const vk::Buffer &vkBuffer)
+prosper::VlkBuffer *prosper::debug::get_buffer(const vk::Buffer &vkBuffer)
 {
-	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VkBuffer>(vkBuffer) : nullptr;
+	return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkBuffer>(vkBuffer) : nullptr;
 }
 prosper::VlkCommandBuffer *prosper::debug::get_command_buffer(const vk::CommandBuffer &vkBuffer)
 {

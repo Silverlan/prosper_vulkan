@@ -51,6 +51,7 @@
 #include <wrappers/command_pool.h>
 #include <wrappers/framebuffer.h>
 #include <wrappers/semaphore.h>
+#include <wrappers/pipeline_layout.h>
 #include <wrappers/descriptor_set_group.h>
 #include <wrappers/graphics_pipeline_manager.h>
 #include <wrappers/compute_pipeline_manager.h>
@@ -103,6 +104,24 @@ VlkShaderStageProgram::VlkShaderStageProgram(std::vector<unsigned int> &&spirvBl
 {}
 
 const std::vector<unsigned int> &VlkShaderStageProgram::GetSPIRVBlob() const {return m_spirvBlob;}
+
+/////////////
+
+std::unique_ptr<VlkShaderPipelineLayout> VlkShaderPipelineLayout::Create(const Shader &shader,uint32_t pipelineIdx)
+{
+	PipelineID pipelineId;
+	if(shader.GetPipelineId(pipelineId,pipelineIdx) == false)
+		return nullptr;
+	auto &vkContext = static_cast<VlkContext&>(shader.GetContext());
+	auto *anvLayout = vkContext.GetPipelineLayout(shader.IsGraphicsShader(),pipelineId);
+	if(anvLayout == nullptr)
+		return nullptr;
+	auto vkLayout = anvLayout->get_pipeline_layout();
+	auto res = std::unique_ptr<VlkShaderPipelineLayout>{new VlkShaderPipelineLayout{}};
+	res->m_pipelineLayout = vkLayout;
+	res->m_pipelineBindPoint = static_cast<VkPipelineBindPoint>(shader.GetPipelineBindPoint());
+	return res;
+}
 
 /////////////
 
@@ -1423,6 +1442,32 @@ std::optional<std::unordered_map<prosper::ShaderStage,std::string>> prosper::Vlk
 	return prosper::optimize_glsl(*this,shaderStages,outInfoLog);
 }
 
+bool prosper::VlkContext::GetParsedShaderSourceCode(
+	prosper::Shader &shader,std::vector<std::string> &outGlslCodePerStage,std::vector<prosper::ShaderStage> &outGlslCodeStages,std::string &outInfoLog,std::string &outDebugInfoLog,prosper::ShaderStage &outErrStage
+) const
+{
+	auto &stages = shader.GetStages();
+	outGlslCodePerStage.reserve(stages.size());
+	outGlslCodeStages.reserve(stages.size());
+	for(auto i=decltype(stages.size()){0};i<stages.size();++i)
+	{
+		auto &stage = stages.at(i);
+		if(stage == nullptr)
+			continue;
+		std::string sourceFilePath;
+		if(shader.GetSourceFilePath(stage->stage,sourceFilePath) == false)
+			return {};
+		std::string infoLog;
+		std::string debugInfoLog;
+		auto shaderCode = prosper::glsl::load_glsl(const_cast<VlkContext&>(*this),stage->stage,sourceFilePath,&infoLog,&debugInfoLog);
+		if(shaderCode.has_value() == false)
+			return false;
+		outGlslCodePerStage.push_back(*shaderCode);
+		outGlslCodeStages.push_back(stage->stage);
+	}
+	return true;
+}
+
 std::optional<prosper::PipelineID> VlkContext::AddPipeline(
 	prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::ComputePipelineCreateInfo &createInfo,
 	prosper::ShaderStageData &stage,PipelineID basePipelineId
@@ -2021,6 +2066,7 @@ std::shared_ptr<prosper::IFramebuffer> prosper::VlkContext::CreateFramebuffer(ui
 		std::move(createInfo)
 	));
 }
+std::unique_ptr<IShaderPipelineLayout> prosper::VlkContext::GetShaderPipelineLayout(const Shader &shader,uint32_t pipelineIdx) const {return VlkShaderPipelineLayout::Create(shader,pipelineIdx);}
 std::shared_ptr<prosper::IRenderBuffer> prosper::VlkContext::CreateRenderBuffer(
 	const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,const std::vector<prosper::IBuffer*> &buffers,
 	const std::vector<prosper::DeviceSize> &offsets,const std::optional<IndexBufferInfo> &indexBufferInfo

@@ -26,7 +26,7 @@
 #include <sstream>
 
 using namespace prosper;
-#pragma optimize("",off)
+
 std::unique_ptr<Anvil::DescriptorSetCreateInfo> prosper::ToAnvilDescriptorSetInfo(const DescriptorSetInfo &descSetInfo)
 {
 	auto dsInfo = Anvil::DescriptorSetCreateInfo::create();
@@ -488,4 +488,3 @@ bool prosper::util::get_memory_stats(IPrContext &context,MemoryPropertyFlags mem
 		*optOutMemIndices = deviceLocalTypes;
 	return true;
 }
-#pragma optimize("",on)

@@ -14,7 +14,10 @@ prosper::VlkBuffer::VlkBuffer(IPrContext &context,const util::BufferCreateInfo &
 	: IBuffer{context,bufCreateInfo,startOffset,size},m_buffer{std::move(buf)}
 {
 	if(m_buffer != nullptr)
+	{
 		prosper::debug::register_debug_object(m_buffer->get_buffer(),*this,prosper::debug::ObjectType::Buffer);
+		m_vkBuffer = m_buffer->get_buffer();
+	}
 	m_apiTypePtr = this;
 }
 prosper::VlkBuffer::~VlkBuffer()
@@ -96,7 +99,10 @@ void prosper::VlkBuffer::SetBuffer(Anvil::BufferUniquePtr buf)
 		prosper::debug::deregister_debug_object(m_buffer->get_buffer());
 	m_buffer = std::move(buf);
 	if(m_buffer != nullptr)
+	{
 		prosper::debug::register_debug_object(m_buffer->get_buffer(),*this,prosper::debug::ObjectType::Buffer);
+		m_vkBuffer = m_buffer->get_buffer();
+	}
 
 	if(m_permanentlyMapped.has_value())
 		SetPermanentlyMapped(true,*m_permanentlyMapped);

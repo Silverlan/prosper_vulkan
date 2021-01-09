@@ -29,11 +29,11 @@ namespace prosper
 	class VlkImage;
 	class VlkImageView;
 	class VlkSampler;
-	class VkBuffer;
 	class VlkCommandBuffer;
 	class VlkRenderPass;
 	class VlkFramebuffer;
 	class VlkDescriptorSetGroup;
+	class VlkBuffer;
 	class Shader;
 	namespace debug
 	{
@@ -64,7 +64,7 @@ namespace prosper
 		DLLPROSPER_VK VlkImage *get_image(const vk::Image &vkImage);
 		DLLPROSPER_VK VlkImageView *get_image_view(const vk::ImageView &vkImageView);
 		DLLPROSPER_VK VlkSampler *get_sampler(const vk::Sampler &vkSampler);
-		DLLPROSPER_VK VkBuffer *get_buffer(const vk::Buffer &vkBuffer);
+		DLLPROSPER_VK VlkBuffer *get_buffer(const vk::Buffer &vkBuffer);
 		DLLPROSPER_VK VlkCommandBuffer *get_command_buffer(const vk::CommandBuffer &vkBuffer);
 		DLLPROSPER_VK VlkRenderPass *get_render_pass(const vk::RenderPass &vkBuffer);
 		DLLPROSPER_VK VlkFramebuffer *get_framebuffer(const vk::Framebuffer &vkBuffer);
