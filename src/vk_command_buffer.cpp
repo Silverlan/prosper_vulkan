@@ -46,7 +46,10 @@ bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(
 	std::vector<Anvil::DescriptorSet*> anvDescSets {};
 	anvDescSets.reserve(descSets.size());
 	for(auto *ds : descSets)
+	{
+		UpdateLastUsageTimes(*ds);
 		anvDescSets.push_back(&static_cast<prosper::VlkDescriptorSet&>(*ds).GetAnvilDescriptorSet());
+	}
 	prosper::PipelineID pipelineId;
 	return shader.GetPipelineId(pipelineId,pipelineIdx) && (*this)->record_bind_descriptor_sets(
 		static_cast<Anvil::PipelineBindPoint>(bindPoint),static_cast<VlkContext&>(GetContext()).GetPipelineLayout(shader.IsGraphicsShader(),pipelineId),firstSet,anvDescSets.size(),anvDescSets.data(),
@@ -59,6 +62,7 @@ bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(
 	const prosper::IDescriptorSet &descSet,uint32_t *optDynamicOffset
 )
 {
+	UpdateLastUsageTimes(const_cast<IDescriptorSet&>(descSet));
 	auto vkDescSet = descSet.GetAPITypeRef<VlkDescriptorSet>().GetVkDescriptorSet();
 	vkCmdBindDescriptorSets(m_vkCommandBuffer,static_cast<VkPipelineBindPoint>(bindPoint),static_cast<const VlkShaderPipelineLayout&>(pipelineLayout).GetVkPipelineLayout(),firstSet,1u,&vkDescSet,optDynamicOffset ? 1 : 0,optDynamicOffset);
 	return true;

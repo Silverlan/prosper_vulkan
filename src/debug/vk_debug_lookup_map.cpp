@@ -236,6 +236,7 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 				else
 					r<<" ("<<object_type_to_string(type)<<")";
 			}
+			r<<" prosper::ContextObject(0x"<<o<<")";
 		}
 
 		prevPos = posEnd;

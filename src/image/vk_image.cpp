@@ -98,8 +98,8 @@ bool VlkImage::WriteImageData(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint32
 	if(layout.has_value() == false)
 		return false;
 	void *ptr;
-	auto offset = layout->offset +y *layout->row_pitch +x;
-	if(Map(layout->offset,layout->size,&ptr) == false)
+	auto offset = layout->offset +y *layout->row_pitch +x *prosper::util::get_byte_size(GetFormat());
+	if(Map(offset,layout->size,&ptr) == false)
 		return false;
 	uint64_t srcOffset = 0;
 	uint64_t dstOffset = 0;
