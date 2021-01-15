@@ -1892,7 +1892,7 @@ bool VlkContext::QueryResult(const TimestampQuery &query,std::chrono::nanosecond
 	uint64_t result;
 	if(QueryResult(query,result) == false)
 		return false;
-	auto ns = result *static_cast<double>(const_cast<VlkContext&>(*this).GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->limits.timestamp_period);
+	auto ns = result *static_cast<long double>(const_cast<VlkContext&>(*this).GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->limits.timestamp_period);
 	outTimestampValue = static_cast<std::chrono::nanoseconds>(static_cast<uint64_t>(ns));
 	return true;
 }
