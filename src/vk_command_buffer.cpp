@@ -81,7 +81,7 @@ bool prosper::VlkCommandBuffer::RecordPushConstants(prosper::Shader &shader,Pipe
 }
 bool prosper::VlkCommandBuffer::DoRecordBindShaderPipeline(prosper::Shader &shader,PipelineID shaderPipelineId,PipelineID pipelineId)
 {
-	return (*this)->record_bind_pipeline(static_cast<Anvil::PipelineBindPoint>(shader.GetPipelineBindPoint()),static_cast<Anvil::PipelineID>(pipelineId));
+	return (*this)->record_bind_pipeline(static_cast<Anvil::PipelineBindPoint>(shader.GetPipelineBindPoint()),static_cast<VlkContext&>(GetContext()).GetAnvilPipelineId(pipelineId));
 }
 bool prosper::VlkCommandBuffer::RecordSetLineWidth(float lineWidth)
 {

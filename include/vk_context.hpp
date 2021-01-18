@@ -30,6 +30,7 @@ namespace Anvil
 	class Framebuffer;
 	class Semaphore;
 	struct MemoryType;
+	typedef uint32_t PipelineID;
 
 	typedef std::unique_ptr<BaseDevice,std::function<void(BaseDevice*)>> BaseDeviceUniquePtr;
 	typedef std::unique_ptr<Instance,std::function<void(Instance*)>> InstanceUniquePtr;
@@ -182,6 +183,8 @@ namespace prosper
 		virtual void *GetInternalUniversalQueue() const override;
 		virtual bool IsDeviceExtensionEnabled(const std::string &ext) const override;
 		virtual bool IsInstanceExtensionEnabled(const std::string &ext) const override;
+
+		Anvil::PipelineID GetAnvilPipelineId(PipelineID pipelineId) const {return m_prosperPipelineToAnvilPipeline[pipelineId];}
 	protected:
 		VlkContext(const std::string &appName,bool bEnableValidation=false);
 		virtual void Release() override;
@@ -222,6 +225,7 @@ namespace prosper
 		SubPassID m_mainSubPass = std::numeric_limits<SubPassID>::max();
 		VkSurfaceKHR_T *m_surface = nullptr;
 		bool m_customValidationEnabled = false;
+		std::vector<Anvil::PipelineID> m_prosperPipelineToAnvilPipeline;
 
 		std::vector<std::shared_ptr<Anvil::Fence>> m_cmdFences;
 		std::vector<std::shared_ptr<Anvil::Framebuffer>> m_fbos;

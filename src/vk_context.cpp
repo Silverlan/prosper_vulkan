@@ -453,8 +453,8 @@ bool VlkContext::ClearPipeline(bool graphicsShader,PipelineID pipelineId)
 {
 	auto &dev = static_cast<VlkContext&>(*this).GetDevice();
 	if(graphicsShader)
-		return dev.get_graphics_pipeline_manager()->delete_pipeline(pipelineId);
-	return dev.get_compute_pipeline_manager()->delete_pipeline(pipelineId);
+		return dev.get_graphics_pipeline_manager()->delete_pipeline(m_prosperPipelineToAnvilPipeline[pipelineId]);
+	return dev.get_compute_pipeline_manager()->delete_pipeline(m_prosperPipelineToAnvilPipeline[pipelineId]);
 }
 
 std::optional<prosper::util::PhysicalDeviceImageFormatProperties> VlkContext::GetPhysicalDeviceImageFormatProperties(const ImageFormatPropertiesQuery &query)
@@ -875,6 +875,7 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	devExtConfig.extension_status["VK_NV_external_memory"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["VK_NV_external_memory_win32"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["VK_NV_win32_keyed_mutex"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["XR_KHR_vulkan_enable2"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 
 	auto devCreateInfo = Anvil::DeviceCreateInfo::create_sgpu(
 		m_physicalDevicePtr,
@@ -1220,8 +1221,8 @@ Anvil::PipelineLayout *VlkContext::GetPipelineLayout(bool graphicsShader,Anvil::
 {
 	auto &dev = GetDevice();
 	if(graphicsShader)
-		return dev.get_graphics_pipeline_manager()->get_pipeline_layout(pipelineId);
-	return dev.get_compute_pipeline_manager()->get_pipeline_layout(pipelineId);
+		return dev.get_graphics_pipeline_manager()->get_pipeline_layout(m_prosperPipelineToAnvilPipeline[pipelineId]);
+	return dev.get_compute_pipeline_manager()->get_pipeline_layout(m_prosperPipelineToAnvilPipeline[pipelineId]);
 }
 
 void *VlkContext::GetInternalDevice() const
@@ -1473,24 +1474,34 @@ std::optional<prosper::PipelineID> VlkContext::AddPipeline(
 	prosper::ShaderStageData &stage,PipelineID basePipelineId
 )
 {
+	PipelineID pipelineId;
+	if(shader.GetPipelineId(pipelineId,shaderPipelineId) == false)
+		return {};
 	Anvil::PipelineCreateFlags createFlags = Anvil::PipelineCreateFlagBits::ALLOW_DERIVATIVES_BIT;
-	auto bIsDerivative = basePipelineId != std::numeric_limits<Anvil::PipelineID>::max();
+	auto bIsDerivative = basePipelineId != std::numeric_limits<PipelineID>::max();
 	if(bIsDerivative)
 		createFlags = createFlags | Anvil::PipelineCreateFlagBits::DERIVATIVE_BIT;
 	auto &dev = static_cast<VlkContext&>(*this).GetDevice();
+	Anvil::PipelineID anvBasePipelineId;
+	if(bIsDerivative)
+		anvBasePipelineId = m_prosperPipelineToAnvilPipeline[basePipelineId];
 	auto computePipelineInfo = Anvil::ComputePipelineCreateInfo::create(
 		createFlags,
 		to_anv_entrypoint(dev,*stage.entryPoint),
-		bIsDerivative ? &basePipelineId : nullptr
+		bIsDerivative ? &anvBasePipelineId : nullptr
 	);
 	if(computePipelineInfo == nullptr)
 		return {};
 	init_base_pipeline_create_info(createInfo,*computePipelineInfo,true);
 	auto *computePipelineManager = dev.get_compute_pipeline_manager();
-	Anvil::PipelineID pipelineId;
-	auto r = computePipelineManager->add_pipeline(std::move(computePipelineInfo),&pipelineId);
+	Anvil::PipelineID anvPipelineId;
+	auto r = computePipelineManager->add_pipeline(std::move(computePipelineInfo),&anvPipelineId);
 	if(r == false)
 		return {};
+	AddShaderPipeline(shader,shaderPipelineId,pipelineId);
+	if(pipelineId >= m_prosperPipelineToAnvilPipeline.size())
+		m_prosperPipelineToAnvilPipeline.resize(pipelineId +1,std::numeric_limits<Anvil::PipelineID>::max());
+	m_prosperPipelineToAnvilPipeline[pipelineId] = anvPipelineId;
 	computePipelineManager->bake();
 	return pipelineId;
 }
@@ -1507,11 +1518,17 @@ std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(
 	PipelineID basePipelineId
 )
 {
+	PipelineID pipelineId;
+	if(shader.GetPipelineId(pipelineId,shaderPipelineId) == false)
+		return {};
 	auto &dev = static_cast<VlkContext&>(*this).GetDevice();
 	Anvil::PipelineCreateFlags createFlags = Anvil::PipelineCreateFlagBits::ALLOW_DERIVATIVES_BIT;
-	auto bIsDerivative = basePipelineId != std::numeric_limits<Anvil::PipelineID>::max();
+	auto bIsDerivative = basePipelineId != std::numeric_limits<PipelineID>::max();
 	if(bIsDerivative)
 		createFlags = createFlags | Anvil::PipelineCreateFlagBits::DERIVATIVE_BIT;
+	Anvil::PipelineID anvBasePipelineId;
+	if(bIsDerivative)
+		anvBasePipelineId = m_prosperPipelineToAnvilPipeline[basePipelineId];
 	auto gfxPipelineInfo = Anvil::GraphicsPipelineCreateInfo::create(
 		createFlags,
 		&static_cast<VlkRenderPass&>(rp).GetAnvilRenderPass(),
@@ -1521,7 +1538,7 @@ std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(
 		shaderStageTc ? to_anv_entrypoint(dev,*shaderStageTc->entryPoint) : Anvil::ShaderModuleStageEntryPoint{},
 		shaderStageTe ? to_anv_entrypoint(dev,*shaderStageTe->entryPoint) : Anvil::ShaderModuleStageEntryPoint{},
 		shaderStageVs ? to_anv_entrypoint(dev,*shaderStageVs->entryPoint) : Anvil::ShaderModuleStageEntryPoint{},
-		nullptr,bIsDerivative ? &basePipelineId : nullptr
+		nullptr,bIsDerivative ? &anvBasePipelineId : nullptr
 	);
 	if(gfxPipelineInfo == nullptr)
 		return {};
@@ -1711,10 +1728,14 @@ std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(
 	init_base_pipeline_create_info(createInfo,*gfxPipelineInfo,false);
 
 	auto *gfxPipelineManager = dev.get_graphics_pipeline_manager();
-	Anvil::PipelineID pipelineId;
-	auto r = gfxPipelineManager->add_pipeline(std::move(gfxPipelineInfo),&pipelineId);
+	Anvil::PipelineID anvPipelineId;
+	auto r = gfxPipelineManager->add_pipeline(std::move(gfxPipelineInfo),&anvPipelineId);
 	if(r == false)
 		return {};
+	AddShaderPipeline(shader,shaderPipelineId,pipelineId);
+	if(pipelineId >= m_prosperPipelineToAnvilPipeline.size())
+		m_prosperPipelineToAnvilPipeline.resize(pipelineId +1,std::numeric_limits<Anvil::PipelineID>::max());
+	m_prosperPipelineToAnvilPipeline[pipelineId] = anvPipelineId;
 	if(IsValidationEnabled())
 		gfxPipelineManager->bake();
 	return pipelineId;
