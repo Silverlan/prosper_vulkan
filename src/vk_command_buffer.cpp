@@ -59,6 +59,25 @@ bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(
 
 bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(
 	PipelineBindPoint bindPoint,const IShaderPipelineLayout &pipelineLayout,uint32_t firstSet,
+	const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets
+)
+{
+	std::vector<VkDescriptorSet> vkDescSets {};
+	vkDescSets.reserve(descSets.size());
+	for(auto *ds : descSets)
+	{
+		UpdateLastUsageTimes(*ds);
+		vkDescSets.push_back(static_cast<prosper::VlkDescriptorSet&>(*ds).GetVkDescriptorSet());
+	}
+	vkCmdBindDescriptorSets(
+		m_vkCommandBuffer,static_cast<VkPipelineBindPoint>(bindPoint),static_cast<const VlkShaderPipelineLayout&>(pipelineLayout).GetVkPipelineLayout(),
+		firstSet,vkDescSets.size(),vkDescSets.data(),dynamicOffsets.size(),dynamicOffsets.data()
+	);
+	return true;
+}
+
+bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(
+	PipelineBindPoint bindPoint,const IShaderPipelineLayout &pipelineLayout,uint32_t firstSet,
 	const prosper::IDescriptorSet &descSet,uint32_t *optDynamicOffset
 )
 {

@@ -48,6 +48,10 @@ namespace prosper
 			PipelineBindPoint bindPoint,const IShaderPipelineLayout &pipelineLayout,uint32_t firstSet,
 			const prosper::IDescriptorSet &descSet,uint32_t *optDynamicOffset=nullptr
 		) override;
+		virtual bool RecordBindDescriptorSets(
+			PipelineBindPoint bindPoint,const IShaderPipelineLayout &pipelineLayout,uint32_t firstSet,
+			const std::vector<prosper::IDescriptorSet*> &descSets,const std::vector<uint32_t> dynamicOffsets={}
+		) override;
 		virtual bool RecordPushConstants(prosper::Shader &shader,PipelineID pipelineId,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data) override;
 		virtual bool RecordPushConstants(const IShaderPipelineLayout &pipelineLayout,ShaderStageFlags stageFlags,uint32_t offset,uint32_t size,const void *data) override;
 
