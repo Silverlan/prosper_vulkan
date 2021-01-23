@@ -64,6 +64,14 @@ namespace prosper
 		VkPipelineBindPoint m_pipelineBindPoint;
 	};
 
+	struct DLLPROSPER_VK VkRaytracingFunctions
+	{
+		PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR = nullptr;
+		PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR = nullptr;
+		void Initialize(VkDevice dev);
+		bool IsValid() const;
+	};
+
 	class DLLPROSPER_VK VlkContext
 		: public IPrContext
 	{
@@ -152,6 +160,10 @@ namespace prosper
 			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
 		) override;
 		virtual std::optional<PipelineID> AddPipeline(
+			prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::RayTracingPipelineCreateInfo &createInfo,
+			prosper::ShaderStageData &stage,PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
+		) override;
+		virtual std::optional<PipelineID> AddPipeline(
 			prosper::Shader &shader,PipelineID shaderPipelineId,
 			const prosper::GraphicsPipelineCreateInfo &createInfo,IRenderPass &rp,
 			prosper::ShaderStageData *shaderStageFs=nullptr,
@@ -183,6 +195,8 @@ namespace prosper
 		virtual void *GetInternalUniversalQueue() const override;
 		virtual bool IsDeviceExtensionEnabled(const std::string &ext) const override;
 		virtual bool IsInstanceExtensionEnabled(const std::string &ext) const override;
+
+		const VkRaytracingFunctions &GetRaytracingFunctions() const {return m_rtFunctions;}
 
 		Anvil::PipelineID GetAnvilPipelineId(PipelineID pipelineId) const {return m_prosperPipelineToAnvilPipeline[pipelineId];}
 	protected:
@@ -226,6 +240,7 @@ namespace prosper
 		VkSurfaceKHR_T *m_surface = nullptr;
 		bool m_customValidationEnabled = false;
 		std::vector<Anvil::PipelineID> m_prosperPipelineToAnvilPipeline;
+		VkRaytracingFunctions m_rtFunctions {};
 
 		std::vector<std::shared_ptr<Anvil::Fence>> m_cmdFences;
 		std::vector<std::shared_ptr<Anvil::Framebuffer>> m_fbos;

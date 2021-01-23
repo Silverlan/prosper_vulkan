@@ -107,6 +107,18 @@ const std::vector<unsigned int> &VlkShaderStageProgram::GetSPIRVBlob() const {re
 
 /////////////
 
+void VkRaytracingFunctions::Initialize(VkDevice dev)
+{
+	vkCreateAccelerationStructureKHR = (PFN_vkCreateAccelerationStructureKHR)vkGetDeviceProcAddr(dev,"vkCreateAccelerationStructureKHR");
+	vkDestroyAccelerationStructureKHR = (PFN_vkDestroyAccelerationStructureKHR)vkGetDeviceProcAddr(dev,"vkDestroyAccelerationStructureKHR");
+}
+bool VkRaytracingFunctions::IsValid() const
+{
+	return vkCreateAccelerationStructureKHR && vkDestroyAccelerationStructureKHR;
+}
+
+/////////////
+
 std::unique_ptr<VlkShaderPipelineLayout> VlkShaderPipelineLayout::Create(const Shader &shader,uint32_t pipelineIdx)
 {
 	PipelineID pipelineId;
@@ -875,7 +887,19 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	devExtConfig.extension_status["VK_NV_external_memory"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["VK_NV_external_memory_win32"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["VK_NV_win32_keyed_mutex"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+
+	// OpenXr
 	devExtConfig.extension_status["XR_KHR_vulkan_enable2"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+
+	// Raytracing
+	devExtConfig.extension_status["VK_KHR_acceleration_structure"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["VK_KHR_ray_tracing_pipeline"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["VK_KHR_ray_query"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["SPV_KHR_ray_tracing"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["SPV_KHR_ray_query"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["GLSL_EXT_ray_tracing"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["GLSL_EXT_ray_query"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["GLSL_EXT_ray_flags_primitive_culling"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 
 	auto devCreateInfo = Anvil::DeviceCreateInfo::create_sgpu(
 		m_physicalDevicePtr,
@@ -901,6 +925,8 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 
 	m_pGpuDevice = static_cast<Anvil::SGPUDevice*>(m_devicePtr.get());
 	s_devToContext[m_devicePtr.get()] = this;
+
+	m_rtFunctions.Initialize(m_devicePtr->get_device_vk());
 }
 
 Vendor VlkContext::GetPhysicalDeviceVendor() const
@@ -1504,6 +1530,15 @@ std::optional<prosper::PipelineID> VlkContext::AddPipeline(
 	m_prosperPipelineToAnvilPipeline[pipelineId] = anvPipelineId;
 	computePipelineManager->bake();
 	return pipelineId;
+}
+
+std::optional<PipelineID> VlkContext::AddPipeline(
+	prosper::Shader &shader,PipelineID shaderPipelineId,const prosper::RayTracingPipelineCreateInfo &createInfo,
+	prosper::ShaderStageData &stage,PipelineID basePipelineId
+)
+{
+	// TODO: This is a stub
+	return {};
 }
 
 std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(

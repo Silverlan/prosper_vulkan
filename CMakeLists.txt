@@ -68,10 +68,13 @@ link_external_library(util_image)
 link_external_library(glfw)
 link_external_library(iglfw)
 link_external_library(glslang)
+link_external_library(lunarglass)
+link_external_library(util_lunarglass)
 
 add_include_dir(glm)
 add_include_dir(gli)
 add_include_dir(anvil_build)
+add_include_dir(lunarglass_core)
 
 add_external_library(SPIRV)
 add_external_library(GLSLang_OS_Dependent)
