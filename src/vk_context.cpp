@@ -1466,7 +1466,11 @@ std::shared_ptr<prosper::ShaderStageProgram> prosper::VlkContext::CompileShader(
 
 std::optional<std::unordered_map<prosper::ShaderStage,std::string>> prosper::VlkContext::OptimizeShader(const std::unordered_map<prosper::ShaderStage,std::string> &shaderStages,std::string &outInfoLog)
 {
+#ifdef PROSPER_VULKAN_ENABLE_LUNAR_GLASS
 	return prosper::optimize_glsl(*this,shaderStages,outInfoLog);
+#else
+	return {};
+#endif
 }
 
 bool prosper::VlkContext::GetParsedShaderSourceCode(

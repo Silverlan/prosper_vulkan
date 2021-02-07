@@ -8,7 +8,9 @@
 #include "shader/prosper_shader.hpp"
 #include "image/vk_image.hpp"
 #include "vk_memory_tracker.hpp"
+#ifdef PROSPER_VULKAN_ENABLE_LUNAR_GLASS
 #include <util_lunarglass/util_lunarglass.hpp>
+#endif
 #include <prosper_glsl.hpp>
 #include <prosper_util.hpp>
 #include <misc/descriptor_set_create_info.h>
@@ -274,6 +276,7 @@ static void fix_optimized_shader(std::string &inOutShader,const std::vector<std:
 
 std::optional<std::unordered_map<prosper::ShaderStage,std::string>> prosper::optimize_glsl(prosper::IPrContext &context,const std::unordered_map<prosper::ShaderStage,std::string> &shaderStages,std::string &outInfoLog)
 {
+#ifdef PROSPER_VULKAN_ENABLE_LUNAR_GLASS
 	std::vector<std::optional<prosper::IPrContext::ShaderDescriptorSetInfo>> descSetInfos;
 	std::vector<prosper::IPrContext::ShaderMacroLocation> macroLocations;
 	std::string log;
@@ -353,6 +356,9 @@ std::optional<std::unordered_map<prosper::ShaderStage,std::string>> prosper::opt
 		fix_optimized_shader(result[stage],descSetInfos);
 	}
 	return result;
+#else
+	return {};
+#endif
 }
 
 void prosper::util::initialize_image(Anvil::BaseDevice &dev,const uimg::ImageBuffer &imgSrc,IImage &img)

@@ -58,6 +58,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(ENABLE_STATIC_LIBRARY_FLAG 0)
 set(PRECOMPILED_HEADER "stdafx_prosper_vulkan")
 
+# PROSPER_VULKAN_ENABLE_LUNAR_GLASS
 link_external_library(prosper)
 link_external_library(sharedutils)
 link_external_library(mathutil)
@@ -68,13 +69,13 @@ link_external_library(util_image)
 link_external_library(glfw)
 link_external_library(iglfw)
 link_external_library(glslang)
-link_external_library(lunarglass)
-link_external_library(util_lunarglass)
+# link_external_library(lunarglass)
+# link_external_library(util_lunarglass)
 
 add_include_dir(glm)
 add_include_dir(gli)
 add_include_dir(anvil_build)
-add_include_dir(lunarglass_core)
+# add_include_dir(lunarglass_core)
 
 add_external_library(SPIRV)
 add_external_library(GLSLang_OS_Dependent)
@@ -160,5 +161,6 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL OFF FORCE)
 add_subdirectory("third_party_libs/anvil")
 set(BUILD_SHARED_LIBS ON CACHE BOOL ON FORCE)
 
-add_subdirectory(external_libs/util_lunarglass)
-add_dependencies(${PROJ_NAME} Anvil SPIRV SPIRV-Tools OSDependent OGLCompiler SPIRV-Tools-opt SPVRemapper glslang util_lunarglass)
+# add_subdirectory(external_libs/util_lunarglass)
+add_dependencies(${PROJ_NAME} Anvil SPIRV SPIRV-Tools OSDependent OGLCompiler SPIRV-Tools-opt SPVRemapper glslang)
+# util_lunarglass
