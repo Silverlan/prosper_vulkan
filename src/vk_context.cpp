@@ -1808,7 +1808,7 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const
 		break;
 	}
 	
-	static_assert(umath::to_integral(uimg::ImageBuffer::Format::Count) == 7);
+	static_assert(umath::to_integral(uimg::ImageBuffer::Format::Count) == 13);
 	if(conversionFormatRequired.has_value())
 	{
 		std::vector<std::shared_ptr<uimg::ImageBuffer>> converted {};
