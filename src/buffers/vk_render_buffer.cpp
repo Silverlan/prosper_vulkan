@@ -35,6 +35,14 @@ bool VlkRenderBuffer::Record(VkCommandBuffer cmdBuf) const
 		vkCmdBindIndexBuffer(cmdBuf,m_vkIndexBuffer,m_vkIndexBufferOffset,static_cast<VkIndexType>(m_indexBufferInfo->indexType));
 	return true;
 }
+void VlkRenderBuffer::Reload()
+{
+	m_vkBuffers.clear();
+	m_vkOffsets.clear();
+	m_vkIndexBuffer = nullptr;
+	m_vkIndexBufferOffset = 0;
+	Initialize();
+}
 void VlkRenderBuffer::Initialize()
 {
 	m_vkBuffers.reserve(m_buffers.size());

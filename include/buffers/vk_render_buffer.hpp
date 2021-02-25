@@ -32,6 +32,7 @@ namespace prosper
 			prosper::IPrContext &context,const std::vector<prosper::IBuffer*> &buffers,const std::vector<prosper::DeviceSize> &offsets,const std::optional<IndexBufferInfo> &indexBufferInfo={}
 		);
 		void Initialize();
+		virtual void Reload() override;
 		std::vector<prosper::DeviceSize> m_offsets {};
 
 		std::vector<DeviceSize> m_vkOffsets {};
