@@ -9,6 +9,7 @@
 #include "prosper_context.hpp"
 #include <shader/prosper_shader.hpp>
 #include <vulkan/vulkan.h>
+#include <misc/types.h>
 
 namespace Anvil
 {
@@ -78,6 +79,7 @@ namespace prosper
 	public:
 		static std::shared_ptr<VlkContext> Create(const std::string &appName,bool bEnableValidation);
 		static IPrContext &GetContext(Anvil::BaseDevice &dev);
+		virtual ~VlkContext() override;
 		virtual std::string GetAPIIdentifier() const override {return "Vulkan";}
 		virtual std::string GetAPIAbbreviation() const override {return "VK";}
 		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) override;
@@ -186,6 +188,11 @@ namespace prosper
 		virtual void AddDebugObjectInformation(std::string &msgValidation) override;
 
 		std::pair<const Anvil::MemoryType*,prosper::MemoryFeatureFlags> FindCompatibleMemoryType(MemoryFeatureFlags featureFlags) const;
+		virtual std::optional<std::string> DumpMemoryBudget() const override;
+		virtual std::optional<std::string> DumpMemoryStats() const override;
+		virtual std::optional<util::VendorDeviceInfo> GetVendorDeviceInfo() const override;
+		virtual std::optional<std::vector<util::VendorDeviceInfo>> GetAvailableVendorDevices() const override;
+		virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicslDeviceMemoryProperties() const override;
 		
 		bool IsCustomValidationEnabled() const {return m_customValidationEnabled;}
 		Anvil::PipelineLayout *GetPipelineLayout(bool graphicsShader,PipelineID pipelineId);
@@ -197,11 +204,13 @@ namespace prosper
 		virtual bool IsInstanceExtensionEnabled(const std::string &ext) const override;
 
 		const VkRaytracingFunctions &GetRaytracingFunctions() const {return m_rtFunctions;}
+		Anvil::MemoryAllocator *GetMemoryAllocator() {return m_memAllocator.get();}
 
 		Anvil::PipelineID GetAnvilPipelineId(PipelineID pipelineId) const {return m_prosperPipelineToAnvilPipeline[pipelineId];}
 	protected:
 		VlkContext(const std::string &appName,bool bEnableValidation=false);
 		virtual void Release() override;
+		virtual void OnClose() override;
 
 		template<class T,typename TBaseType=T>
 			bool QueryResult(const Query &query,T &outResult,QueryResultFlags resultFlags) const;
@@ -227,9 +236,11 @@ namespace prosper
 		virtual void ReloadSwapchain() override;
 		virtual void InitAPI(const CreateInfo &createInfo) override;
 
+		bool m_useAllocator = true;
 		Anvil::BaseDeviceUniquePtr m_devicePtr = nullptr;
 		Anvil::SGPUDevice *m_pGpuDevice = nullptr;
 		Anvil::InstanceUniquePtr m_instancePtr = nullptr;
+		Anvil::MemoryAllocatorUniquePtr m_memAllocator = nullptr;
 		const Anvil::PhysicalDevice *m_physicalDevicePtr = nullptr;
 		Anvil::Queue *m_presentQueuePtr = nullptr;
 		std::shared_ptr<Anvil::RenderingSurface> m_renderingSurfacePtr;

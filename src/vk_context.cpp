@@ -41,6 +41,8 @@
 #include <misc/image_create_info.h>
 #include <misc/window_factory.h>
 #include <misc/window.h>
+#include <misc/memory_allocator.h>
+#include <misc/memalloc_backends/backend_vma.h>
 #include <wrappers/fence.h>
 #include <wrappers/device.h>
 #include <wrappers/queue.h>
@@ -59,6 +61,8 @@
 #include <wrappers/shader_module.h>
 #include <misc/image_view_create_info.h>
 #include <iglfw/glfw_window.h>
+#include <sharedutils/util.h>
+#include <sharedutils/magic_enum.hpp>
 
 #include <string>
 #include <cmath>
@@ -98,7 +102,7 @@ using namespace prosper;
 static_assert(sizeof(prosper::util::BufferCopy) == sizeof(Anvil::BufferCopy));
 static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
 
-
+#pragma optimize("",off)
 VlkShaderStageProgram::VlkShaderStageProgram(std::vector<unsigned int> &&spirvBlob)
 	: m_spirvBlob{std::move(spirvBlob)}
 {}
@@ -142,6 +146,30 @@ decltype(VlkContext::s_devToContext) VlkContext::s_devToContext = {};
 VlkContext::VlkContext(const std::string &appName,bool bEnableValidation)
 	: IPrContext{appName,bEnableValidation}
 {}
+
+void VlkContext::OnClose()
+{
+	m_cmdFences.clear();
+	m_fbos.clear();
+
+	m_dummyTexture = nullptr;
+	m_dummyCubemapTexture = nullptr;
+
+	m_frameSignalSemaphores.clear();
+	m_frameWaitSemaphores.clear();
+	m_swapchainPtr = nullptr;
+	m_memAllocator = nullptr;
+	IPrContext::OnClose();
+}
+
+VlkContext::~VlkContext()
+{
+	m_renderPass = nullptr;
+	m_windowPtr = nullptr;
+	m_renderingSurfacePtr = nullptr;
+	m_devicePtr = nullptr;
+	m_instancePtr = nullptr;
+}
 
 void VlkContext::Flush() {}
 
@@ -913,6 +941,12 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	m_devicePtr = Anvil::SGPUDevice::create(
 		std::move(devCreateInfo)
 	);
+	if(m_useAllocator)
+		m_useReservedDeviceLocalImageBuffer = false; // VMA already handles the allocation of large buffers; We'll just let it do its thing for image allocation
+
+	if(m_useAllocator)
+		m_memAllocator = Anvil::MemoryAllocator::create_vma(m_devicePtr.get());
+
 	/*[](Anvil::BaseDevice &dev) -> Anvil::PipelineCacheUniquePtr {
 	prosper::PipelineCache::LoadError loadErr {};
 	auto pipelineCache = PipelineCache::Load(dev,PIPELINE_CACHE_PATH,loadErr);
@@ -927,7 +961,111 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	s_devToContext[m_devicePtr.get()] = this;
 
 	m_rtFunctions.Initialize(m_devicePtr->get_device_vk());
+
+#if 0
+	auto &memProps = m_physicalDevicePtr->get_memory_properties();
+	auto budget = m_physicalDevicePtr->get_available_memory_budget();
+
+	auto numHeaps = memProps.n_heaps;
+	std::cout<<"Heaps: "<<numHeaps<<std::endl;
+	for(auto i=decltype(numHeaps){0};i<numHeaps;++i)
+	{
+		auto &heap = memProps.heaps[i];
+		std::vector<std::string> flags;
+		if((heap.flags &Anvil::MemoryHeapFlagBits::DEVICE_LOCAL_BIT) != Anvil::MemoryHeapFlagBits::NONE)
+			flags.push_back("DEVICE_LOCAL_BIT");
+		if((heap.flags &Anvil::MemoryHeapFlagBits::MULTI_INSTANCE_BIT_KHR) != Anvil::MemoryHeapFlagBits::NONE)
+			flags.push_back("MULTI_INSTANCE_BIT_KHR");
+		
+		std::cout<<"Heap: "<<heap.index<<std::endl;
+		std::cout<<"Budget: "<<::util::get_pretty_bytes(budget.heap_budget[i])<<" ("<<budget.heap_budget[i]<<")"<<std::endl;
+		std::cout<<"Usage: "<<::util::get_pretty_bytes(budget.heap_usage[i])<<" ("<<budget.heap_usage[i]<<")"<<std::endl;
+		std::cout<<"Flags: ";
+		auto first = true;
+		for(auto &flag : flags)
+		{
+			if(first)
+				first = false;
+			else
+				std::cout<<" | ";
+			std::cout<<flag;
+		}
+		std::cout<<std::endl;
+
+		std::cout<<"Size: "<<::util::get_pretty_bytes(heap.size)<<" ("<<heap.size<<")"<<std::endl;
+
+		auto types = memProps.types;
+		uint32_t typeIdx = 0;
+		for(auto &type : types)
+		{
+			std::cout<<"Type "<<typeIdx<<":"<<std::endl;
+			std::cout<<"Memory properties: "<<magic_enum::flags::enum_name(static_cast<prosper::MemoryPropertyFlags>(type.flags.get_vk()))<<std::endl;
+			std::cout<<"Memory features: "<<magic_enum::flags::enum_name(static_cast<prosper::MemoryFeatureFlags>(type.features.get_vk()))<<std::endl;
+			
+			++typeIdx;
+		}
+		std::cout<<std::endl;
+	}
+
+	if(m_useAllocator)
+	{
+		auto *backend = m_memAllocator->GetAllocatorBackend();
+		auto vmaHandle = static_cast<Anvil::MemoryAllocatorBackends::VMA*>(backend)->GetVmaHandle();
+		VmaBudget budget;
+		vmaGetBudget(vmaHandle,&budget);
+		// static std::unique_ptr<VMA>
+
+		VmaStats stats;
+		vmaCalculateStats(vmaHandle,&stats);
+		char *statsString = nullptr;
+		vmaBuildStatsString(vmaHandle,&statsString,true /* detailedMap */);
+		std::cout<<statsString<<std::endl;
+		vmaFreeStatsString(vmaHandle,statsString);
+	}
+#endif
 }
+
+std::optional<std::string> VlkContext::DumpMemoryBudget() const
+{
+	if(m_memAllocator == nullptr)
+		return {};
+	auto *backend = m_memAllocator->GetAllocatorBackend();
+	if(backend == nullptr)
+		return {};
+	auto vmaHandle = static_cast<Anvil::MemoryAllocatorBackends::VMA*>(backend)->GetVmaHandle();
+	if(!vmaHandle)
+		return {};
+	VmaBudget budget;
+	vmaGetBudget(vmaHandle,&budget);
+
+	std::stringstream str {};
+	str<<"Total block size: "<<::util::get_pretty_bytes(budget.blockBytes)<<" ("<<budget.blockBytes<<")\n";
+	str<<"Total allocation size: "<<::util::get_pretty_bytes(budget.allocationBytes)<<" ("<<budget.allocationBytes<<")\n";
+	str<<"Current memory usage "<<::util::get_pretty_bytes(budget.usage)<<" ("<<budget.usage<<")\n";
+	str<<"Available memory: "<<::util::get_pretty_bytes(budget.budget)<<" ("<<budget.budget<<")\n";
+	return str.str();
+}
+std::optional<std::string> VlkContext::DumpMemoryStats() const
+{
+	if(m_memAllocator == nullptr)
+		return {};
+	auto *backend = m_memAllocator->GetAllocatorBackend();
+	if(backend == nullptr)
+		return {};
+	auto vmaHandle = static_cast<Anvil::MemoryAllocatorBackends::VMA*>(backend)->GetVmaHandle();
+	if(!vmaHandle)
+		return {};
+	char *statsString = nullptr;
+	vmaBuildStatsString(vmaHandle,&statsString,true /* detailedMap */);
+	std::string str = statsString;
+	vmaFreeStatsString(vmaHandle,statsString);
+	return str;
+}
+
+std::optional<prosper::util::VendorDeviceInfo> VlkContext::GetVendorDeviceInfo() const {return util::get_vendor_device_info(*this);}
+
+std::optional<std::vector<prosper::util::VendorDeviceInfo>> VlkContext::GetAvailableVendorDevices() const {return util::get_available_vendor_devices(*this);}
+std::optional<prosper::util::PhysicalDeviceMemoryProperties> VlkContext::GetPhysicslDeviceMemoryProperties() const {return util::get_physical_device_memory_properties(*this);}
 
 Vendor VlkContext::GetPhysicalDeviceVendor() const
 {
@@ -1096,15 +1234,39 @@ std::shared_ptr<prosper::IBuffer> VlkContext::CreateBuffer(const prosper::util::
 	{
 		auto memoryFeatures = createInfo.memoryFeatures;
 		find_compatible_memory_feature_flags(*this,memoryFeatures);
+		if(m_useAllocator)
+		{
+			auto bufferCreateInfo = Anvil::BufferCreateInfo::create_no_alloc(
+				&dev,static_cast<VkDeviceSize>(createInfo.size),queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask),
+				sharingMode,createFlags,static_cast<Anvil::BufferUsageFlagBits>(createInfo.usageFlags)
+			);
+			bufferCreateInfo->set_client_data(data);
+
+			auto buf = Anvil::Buffer::create(std::move(bufferCreateInfo));
+			if(data)
+			{
+				std::unique_ptr<uint8_t[]> dataPtr {new uint8_t[createInfo.size]};
+				memcpy(dataPtr.get(),data,createInfo.size);
+				m_memAllocator->add_buffer_with_uchar8_data_ptr_based_post_fill(
+					buf.get(),std::move(dataPtr),memory_feature_flags_to_anvil_flags(memoryFeatures)
+				);
+			}
+			else
+			{
+				m_memAllocator->add_buffer(
+					buf.get(),memory_feature_flags_to_anvil_flags(memoryFeatures)
+				);
+			}
+			return VlkBuffer::Create(*this,std::move(buf),createInfo,0ull,createInfo.size);
+		}
 		auto bufferCreateInfo = Anvil::BufferCreateInfo::create_alloc(
 			&dev,static_cast<VkDeviceSize>(createInfo.size),queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask),
 			sharingMode,createFlags,static_cast<Anvil::BufferUsageFlagBits>(createInfo.usageFlags),memory_feature_flags_to_anvil_flags(memoryFeatures)
 		);
 		bufferCreateInfo->set_client_data(data);
-		auto r = VlkBuffer::Create(*this,Anvil::Buffer::create(
+		return VlkBuffer::Create(*this,Anvil::Buffer::create(
 			std::move(bufferCreateInfo)
 		),createInfo,0ull,createInfo.size);
-		return r;
 	}
 	return VlkBuffer::Create(*this,Anvil::Buffer::create(
 		Anvil::BufferCreateInfo::create_no_alloc(
@@ -1160,18 +1322,23 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const
 	{
 		if((createInfo.flags &prosper::util::ImageCreateInfo::Flags::SparseAliasedResidency) != prosper::util::ImageCreateInfo::Flags::None)
 			imageCreateFlags |= Anvil::ImageCreateFlagBits::SPARSE_ALIASED_BIT | Anvil::ImageCreateFlagBits::SPARSE_RESIDENCY_BIT;
-		;
-		auto img = prosper::VlkImage::Create(context,Anvil::Image::create(
-			Anvil::ImageCreateInfo::create_no_alloc(
-				&static_cast<prosper::VlkContext&>(context).GetDevice(),static_cast<Anvil::ImageType>(createInfo.type),static_cast<Anvil::Format>(createInfo.format),
-				static_cast<Anvil::ImageTiling>(createInfo.tiling),static_cast<Anvil::ImageUsageFlagBits>(createInfo.usage),
-				createInfo.width,createInfo.height,1u,layers,
-				static_cast<Anvil::SampleCountFlagBits>(createInfo.samples),queueFamilies,
-				sharingMode,bUseFullMipmapChain,imageCreateFlags,
-				static_cast<Anvil::ImageLayout>(postCreateLayout),data
-			)
-		),createInfo,false);
-		if(sparse == false && dontAllocateMemory == false)
+		
+		auto anvImg = Anvil::Image::create(Anvil::ImageCreateInfo::create_no_alloc(
+			&static_cast<prosper::VlkContext&>(context).GetDevice(),static_cast<Anvil::ImageType>(createInfo.type),static_cast<Anvil::Format>(createInfo.format),
+			static_cast<Anvil::ImageTiling>(createInfo.tiling),static_cast<Anvil::ImageUsageFlagBits>(createInfo.usage),
+			createInfo.width,createInfo.height,1u,layers,
+			static_cast<Anvil::SampleCountFlagBits>(createInfo.samples),queueFamilies,
+			sharingMode,bUseFullMipmapChain,imageCreateFlags,
+			static_cast<Anvil::ImageLayout>(postCreateLayout),data
+		));
+		auto *memAllocator = static_cast<prosper::VlkContext&>(context).GetMemoryAllocator();
+		if(memAllocator)
+		{
+			if(sparse == false && dontAllocateMemory == false)
+				memAllocator->add_image_whole(anvImg.get(),memoryFeatureFlags);
+		}
+		auto img = prosper::VlkImage::Create(context,std::move(anvImg),createInfo,false);
+		if(!memAllocator && sparse == false && dontAllocateMemory == false)
 			context.AllocateDeviceImageBuffer(*img);
 		return img;
 	}
@@ -2135,3 +2302,4 @@ std::shared_ptr<prosper::IRenderBuffer> prosper::VlkContext::CreateRenderBuffer(
 	return VlkRenderBuffer::Create(*this,pipelineCreateInfo,buffers,offsets,indexBufferInfo);
 }
 uint32_t prosper::VlkContext::GetLastAcquiredSwapchainImageIndex() const {return const_cast<VlkContext*>(this)->GetSwapchain()->get_last_acquired_image_index();}
+#pragma optimize("",on)
