@@ -255,9 +255,12 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 	if(success)
 		success = WaitForCurrentSwapchainCommandBuffer(errMsg);
 	else
-		errMsg = "Unable to acquire next swapchain image: " +std::to_string(umath::to_integral(errCode));
+		errMsg = "Unable to acquire next swapchain image: " +std::string{magic_enum::enum_name(errCode)};
 	if(errMsg.empty() == false)
+	{
+		std::cerr<<errMsg<<std::endl;
 		throw std::runtime_error(errMsg);
+	}
 #if ENABLE_DEBUG_TIMESTAMPS == 1
 	if(g_dbgPrintTs)
 		std::cout<<"Wait for current command buffer time: "<<get_debug_delta_time(tWaitCurrentCmdBuf)<<"ms"<<std::endl;
@@ -1356,21 +1359,30 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const
 	return result;
 }
 
-std::shared_ptr<prosper::IImage> prosper::VlkContext::CreateImage(const util::ImageCreateInfo &createInfo,const ImageData &imgData)
+std::shared_ptr<IImage> prosper::VlkContext::CreateImage(const util::ImageCreateInfo &createInfo,const std::function<const uint8_t*(uint32_t layer,uint32_t mipmap,uint32_t &dataSize,uint32_t &rowSize)> &getImageData)
 {
-	auto byteSize = util::get_byte_size(createInfo.format);
+	auto byteSize = util::get_pixel_size(createInfo.format);
 	std::vector<Anvil::MipmapRawData> anvMipmapData {};
-	for(auto &layerData : imgData)
+	if(getImageData)
 	{
-		for(auto iMipmap=decltype(layerData.size()){0u};iMipmap<layerData.size();++iMipmap)
+		auto numMipmaps = umath::is_flag_set(createInfo.flags,util::ImageCreateInfo::Flags::FullMipmapChain) ? util::calculate_mipmap_count(createInfo.width,createInfo.height) : 1u;
+		anvMipmapData.reserve(createInfo.layers *numMipmaps);
+		for(auto iLayer=decltype(createInfo.layers){0u};iLayer<createInfo.layers;++iLayer)
 		{
-			auto *mipmapData = layerData.at(iMipmap);
-			auto wMipmap = util::calculate_mipmap_size(createInfo.width,iMipmap);
-			auto hMipmap = util::calculate_mipmap_size(createInfo.height,iMipmap);
-			anvMipmapData.emplace_back(Anvil::MipmapRawData::create_2D_from_uchar_ptr(
-				Anvil::ImageAspectFlagBits::COLOR_BIT,0u,
-				mipmapData,wMipmap *hMipmap *byteSize,wMipmap *byteSize
-			));
+			for(auto iMipmap=decltype(numMipmaps){0u};iMipmap<numMipmaps;++iMipmap)
+			{
+				auto wMipmap = util::calculate_mipmap_size(createInfo.width,iMipmap);
+				auto hMipmap = util::calculate_mipmap_size(createInfo.height,iMipmap);
+				auto dataSize = wMipmap *hMipmap *byteSize;
+				auto rowSize = wMipmap *byteSize;
+				auto *mipmapData = getImageData(iLayer,iMipmap,dataSize,rowSize);
+				if(mipmapData == nullptr)
+					continue;
+				anvMipmapData.emplace_back(Anvil::MipmapRawData::create_2D_from_uchar_ptr(
+					util::is_depth_format(createInfo.format) ? Anvil::ImageAspectFlagBits::DEPTH_BIT : Anvil::ImageAspectFlagBits::COLOR_BIT,iMipmap,
+					mipmapData,dataSize,rowSize
+				));
+			}
 		}
 	}
 	return static_cast<VlkContext*>(this)->CreateImage(createInfo,anvMipmapData);
