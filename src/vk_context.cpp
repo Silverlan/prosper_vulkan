@@ -255,7 +255,7 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 	if(success)
 		success = WaitForCurrentSwapchainCommandBuffer(errMsg);
 	else
-		errMsg = "Unable to acquire next swapchain image: " +std::string{magic_enum::enum_name(errCode)};
+		errMsg = "Unable to acquire next swapchain image: " +std::string{magic_enum::enum_name(errCode)} +"(" +std::to_string(umath::to_integral(errCode)) +")";
 	if(errMsg.empty() == false)
 	{
 		std::cerr<<errMsg<<std::endl;

@@ -75,6 +75,7 @@ link_external_library(glslang)
 add_include_dir(glm)
 add_include_dir(gli)
 add_include_dir(anvil_build)
+add_include_dir(anvil_deps)
 # add_include_dir(lunarglass_core)
 
 add_external_library(SPIRV)
