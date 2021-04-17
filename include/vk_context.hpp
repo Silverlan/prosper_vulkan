@@ -88,7 +88,7 @@ namespace prosper
 		const Anvil::SGPUDevice &GetDevice() const;
 		const std::shared_ptr<Anvil::RenderPass> &GetMainRenderPass() const;
 		SubPassID GetMainSubPassID() const;
-		std::shared_ptr<Anvil::Swapchain> GetSwapchain();
+		Anvil::Swapchain &GetSwapchain();
 
 		const Anvil::Instance &GetAnvilInstance() const;
 		Anvil::Instance &GetAnvilInstance();
@@ -111,6 +111,7 @@ namespace prosper
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo,std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
 		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) override;
 		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(bool allowMt=true) override;
+		virtual std::shared_ptr<Window> CreateWindow(const WindowSettings &windowCreationInfo) override;
 
 		virtual bool IsImageFormatSupported(
 			prosper::Format format,prosper::ImageUsageFlags usageFlags,prosper::ImageType type=prosper::ImageType::e2D,
@@ -211,6 +212,7 @@ namespace prosper
 		VlkContext(const std::string &appName,bool bEnableValidation=false);
 		virtual void Release() override;
 		virtual void OnClose() override;
+		void OnPrimaryWindowSwapchainReloaded();
 
 		template<class T,typename TBaseType=T>
 			bool QueryResult(const Query &query,T &outResult,QueryResultFlags resultFlags) const;
@@ -227,9 +229,6 @@ namespace prosper
 			prosper::DeviceSize bufferBaseSize,uint32_t alignment
 		) override;
 		void InitCommandBuffers();
-		void InitFrameBuffers();
-		void InitSemaphores();
-		void InitSwapchain();
 		void InitWindow();
 		void InitVulkan(const CreateInfo &createInfo);
 		void InitMainRenderPass();
@@ -242,24 +241,12 @@ namespace prosper
 		Anvil::InstanceUniquePtr m_instancePtr = nullptr;
 		Anvil::MemoryAllocatorUniquePtr m_memAllocator = nullptr;
 		const Anvil::PhysicalDevice *m_physicalDevicePtr = nullptr;
-		Anvil::Queue *m_presentQueuePtr = nullptr;
-		std::shared_ptr<Anvil::RenderingSurface> m_renderingSurfacePtr;
-		std::shared_ptr<Anvil::Swapchain> m_swapchainPtr;
-		Anvil::WindowUniquePtr m_windowPtr = nullptr;
 		std::shared_ptr<Anvil::RenderPass> m_renderPass;
 		SubPassID m_mainSubPass = std::numeric_limits<SubPassID>::max();
-		VkSurfaceKHR_T *m_surface = nullptr;
 		bool m_customValidationEnabled = false;
 		std::vector<Anvil::PipelineID> m_prosperPipelineToAnvilPipeline;
 		VkRaytracingFunctions m_rtFunctions {};
-
-		std::vector<std::shared_ptr<Anvil::Fence>> m_cmdFences;
-		std::vector<std::shared_ptr<Anvil::Framebuffer>> m_fbos;
-
-		std::vector<Anvil::SemaphoreUniquePtr> m_frameSignalSemaphores;
-		std::vector<Anvil::SemaphoreUniquePtr> m_frameWaitSemaphores;
 	private:
-		void ReleaseSwapchain();
 		bool GetUniversalQueueFamilyIndex(prosper::QueueFamilyType queueFamilyType,uint32_t &queueFamilyIndex) const;
 		static std::unordered_map<Anvil::BaseDevice*,IPrContext*> s_devToContext;
 	};

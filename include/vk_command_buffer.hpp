@@ -84,7 +84,7 @@ namespace prosper
 		virtual bool WriteTimestampQuery(const TimestampQuery &query) const override;
 		virtual bool ResetQuery(const Query &query) const override;
 
-		virtual bool RecordPresentImage(IImage &img,uint32_t swapchainImgIndex) override;
+		virtual bool RecordPresentImage(IImage &img,IImage &swapchainImg) override;
 
 		VkCommandBuffer GetVkCommandBuffer() const {return m_vkCommandBuffer;}
 	protected:
