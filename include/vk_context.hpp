@@ -178,7 +178,6 @@ namespace prosper
 			PipelineID basePipelineId=std::numeric_limits<PipelineID>::max()
 		) override;
 		virtual bool ClearPipeline(bool graphicsShader,PipelineID pipelineId) override;
-		virtual uint32_t GetLastAcquiredSwapchainImageIndex() const override;
 
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryType queryType,uint32_t maxConcurrentQueries) override;
 		virtual std::shared_ptr<prosper::IQueryPool> CreateQueryPool(QueryPipelineStatisticFlags statsFlags,uint32_t maxConcurrentQueries) override;
@@ -229,7 +228,6 @@ namespace prosper
 			prosper::DeviceSize bufferBaseSize,uint32_t alignment
 		) override;
 		void InitCommandBuffers();
-		void InitWindow();
 		void InitVulkan(const CreateInfo &createInfo);
 		void InitMainRenderPass();
 		virtual void ReloadSwapchain() override;

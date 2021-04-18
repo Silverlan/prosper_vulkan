@@ -287,7 +287,7 @@ bool prosper::VlkCommandBuffer::ResetQuery(const Query &query) const
 	return success;
 }
 
-bool prosper::VlkCommandBuffer::RecordPresentImage(IImage &img,IImage &swapchainImg)
+bool prosper::VlkCommandBuffer::RecordPresentImage(IImage &img,IImage &swapchainImg,IFramebuffer&)
 {
 	auto &context = GetContext();
 	// Change swapchain image layout to TransferDst

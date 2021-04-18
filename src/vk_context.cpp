@@ -529,41 +529,6 @@ std::shared_ptr<Window> VlkContext::CreateWindow(const WindowSettings &windowCre
 	return window;
 }
 
-void VlkContext::InitWindow()
-{
-	auto oldSize = (m_window != nullptr) ? m_window->GetGlfwWindow().GetSize() : Vector2i();
-	auto onWindowReloaded = [this]() {
-		OnWindowInitialized();
-		if(m_window && umath::is_flag_set(m_stateFlags,StateFlags::Initialized) == true)
-		{
-			auto &initWindowSettings = GetInitialWindowSettings();
-			auto newSize = m_window->GetGlfwWindow().GetSize();
-			if(newSize.x != initWindowSettings.width || newSize.y != initWindowSettings.height)
-			{
-				initWindowSettings.width = newSize.x;
-				initWindowSettings.height = newSize.y;
-				OnResolutionChanged(newSize.x,newSize.y);
-			}
-		}
-	};
-	auto newWindow = VlkWindow::Create(m_initialWindowSettings,*this);
-	assert(newWindow != nullptr);
-	newWindow->SetInitCallback(onWindowReloaded);
-	auto it = m_windows.end();
-	if(m_window)
-	{
-		it = std::find_if(m_windows.begin(),m_windows.end(),[this](const std::weak_ptr<prosper::Window> &wpWindow) {
-			return !wpWindow.expired() && wpWindow.lock() == m_window;
-		});
-	}
-	m_window = newWindow;
-	if(it != m_windows.end())
-		*it = m_window;
-	else
-		m_windows.push_back(m_window);
-	onWindowReloaded();
-}
-
 void VlkContext::InitVulkan(const CreateInfo &createInfo)
 {
 	auto &appName = GetAppName();
@@ -2012,5 +1977,4 @@ std::shared_ptr<prosper::IRenderBuffer> prosper::VlkContext::CreateRenderBuffer(
 {
 	return VlkRenderBuffer::Create(*this,pipelineCreateInfo,buffers,offsets,indexBufferInfo);
 }
-uint32_t prosper::VlkContext::GetLastAcquiredSwapchainImageIndex() const {return GetWindow().GetLastAcquiredSwapchainImageIndex();}
 #pragma optimize("",on)

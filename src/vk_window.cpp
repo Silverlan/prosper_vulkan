@@ -9,6 +9,8 @@
 #include "vk_window.hpp"
 #include "vk_command_buffer.hpp"
 #include "image/vk_image.hpp"
+#include "image/vk_image_view.hpp"
+#include "vk_framebuffer.hpp"
 #include <wrappers/instance.h>
 #include <wrappers/swapchain.h>
 #include <wrappers/semaphore.h>
@@ -21,6 +23,7 @@
 #include <misc/rendering_surface_create_info.h>
 #include <misc/window_factory.h>
 #include <misc/window.h>
+#include <misc/image_view_create_info.h>
 #include <iglfw/glfw_window.h>
 
 #ifdef _WIN32
@@ -68,7 +71,6 @@ prosper::VlkWindow::~VlkWindow()
 	m_frameWaitSemaphores.clear();
 
 	m_cmdFences.clear();
-	m_fbos.clear();
 	m_swapchainPtr = nullptr;
 	
 	vkDestroySurfaceKHR(static_cast<VlkContext&>(GetContext()).GetAnvilInstance().get_instance_vk(),m_surface,nullptr);
@@ -87,10 +89,10 @@ void prosper::VlkWindow::ReleaseSwapchain()
 {
 	m_swapchainPtr.reset();
 	m_renderingSurfacePtr.reset();
-	for(auto &fbo : m_fbos)
+	for(auto &fbo : m_swapchainFramebuffers)
 		fbo.reset();
 	
-	m_fbos.clear();
+	m_swapchainFramebuffers.clear();
 	m_cmdFences.clear();
 	m_frameSignalSemaphores.clear();
 	m_frameWaitSemaphores.clear();
@@ -253,17 +255,18 @@ void prosper::VlkWindow::InitFrameBuffers()
 	auto size = m_glfwWindow->GetSize();
 	for(uint32_t n_swapchain_image=0;n_swapchain_image<n;++n_swapchain_image)
 	{
-		auto createinfo = Anvil::FramebufferCreateInfo::create(
-			&context.GetDevice(),
-			size.x,
-			size.y,
-			1
+		auto *anvImgView = m_swapchainPtr->get_image_view(n_swapchain_image);
+		prosper::util::ImageViewCreateInfo imgViewCreateInfo {};
+		imgViewCreateInfo.mipmapLevels = 1;
+		imgViewCreateInfo.levelCount = 1;
+		imgViewCreateInfo.format = static_cast<prosper::Format>(anvImgView->get_create_info_ptr()->get_format());
+		auto imgView = VlkImageView::Create(
+			context,*m_swapchainImages[n_swapchain_image],imgViewCreateInfo,prosper::ImageViewType::e2D,prosper::ImageAspectFlags::ColorBit,
+			Anvil::ImageViewUniquePtr{anvImgView,[](Anvil::ImageView *imgView) {}} /* deletion handled by Anvil */
 		);
-		result = createinfo->add_attachment(m_swapchainPtr->get_image_view(n_swapchain_image),nullptr /* out_opt_attachment_id_ptrs */);
-		anvil_assert(result);
-		m_fbos[n_swapchain_image] = Anvil::Framebuffer::create(std::move(createinfo));
-
-		m_fbos[n_swapchain_image]->set_name_formatted("Framebuffer used to render to swapchain image [%d]",n_swapchain_image);
+		auto framebuffer = context.CreateFramebuffer(size.x,size.y,1u,{imgView.get()});
+		framebuffer->SetDebugName("Swapchain framebuffer " +std::to_string(n_swapchain_image));
+		m_swapchainFramebuffers[n_swapchain_image] = framebuffer;
 	}
 }
 
@@ -313,10 +316,10 @@ void prosper::VlkWindow::InitSwapchain()
 
 	m_swapchainImages.clear();
 	m_cmdFences.clear();
-	m_fbos.clear();
+	m_swapchainFramebuffers.clear();
 
 	m_cmdFences.resize(numSwapchainImages);
-	m_fbos.resize(numSwapchainImages);
+	m_swapchainFramebuffers.resize(numSwapchainImages);
 
 	auto createInfo = Anvil::SwapchainCreateInfo::create(
 		&context.GetDevice(),

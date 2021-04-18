@@ -52,7 +52,6 @@ namespace prosper
 		Anvil::WindowUniquePtr m_windowPtr = nullptr;
 		VkSurfaceKHR_T *m_surface = nullptr;
 
-		std::vector<std::shared_ptr<Anvil::Framebuffer>> m_fbos;
 		Anvil::Queue *m_presentQueuePtr = nullptr;
 		std::shared_ptr<Anvil::Swapchain> m_swapchainPtr;
 		std::vector<std::shared_ptr<Anvil::Fence>> m_cmdFences;
