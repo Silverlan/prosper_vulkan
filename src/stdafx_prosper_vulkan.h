@@ -5,6 +5,8 @@
 #ifdef _WIN32
 #pragma message("Compiling precompiled headers.\n")
 #endif
+#include <misc/types.h>
+#include <vulkan/vulkan.hpp>
 #include <prosper_context.hpp>
 #include <prosper_util.hpp>
 #include <prosper_context_object.hpp>
