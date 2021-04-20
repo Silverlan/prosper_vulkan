@@ -233,6 +233,7 @@ namespace prosper
 		virtual void ReloadSwapchain() override;
 		virtual void InitAPI(const CreateInfo &createInfo) override;
 
+		bool m_loadShadersLazily = true;
 		bool m_useAllocator = true;
 		Anvil::BaseDeviceUniquePtr m_devicePtr = nullptr;
 		Anvil::SGPUDevice *m_pGpuDevice = nullptr;

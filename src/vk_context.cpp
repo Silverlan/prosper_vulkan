@@ -572,6 +572,15 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	if(m_physicalDevicePtr == nullptr)
 		m_physicalDevicePtr = m_instancePtr->get_physical_device(0);
 
+	auto vendor = GetPhysicalDeviceVendor();
+	if(vendor == Vendor::AMD)
+	{
+		// There's a driver bug (?) with some AMD GPUs where baking a shader
+		// during runtime can cause it to completely freeze. To avoid that, we'll
+		// just load all shaders immediately (at the cost of slower loading times).
+		m_loadShadersLazily = false;
+	}
+
 	m_shaderManager = std::make_unique<ShaderManager>(*this);
 
 	/* Create a Vulkan device */
@@ -1618,7 +1627,7 @@ std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(
 	if(pipelineId >= m_prosperPipelineToAnvilPipeline.size())
 		m_prosperPipelineToAnvilPipeline.resize(pipelineId +1,std::numeric_limits<Anvil::PipelineID>::max());
 	m_prosperPipelineToAnvilPipeline[pipelineId] = anvPipelineId;
-	if(IsValidationEnabled())
+	if(IsValidationEnabled() || !m_loadShadersLazily)
 		gfxPipelineManager->bake();
 	return pipelineId;
 }
