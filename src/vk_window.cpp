@@ -318,9 +318,6 @@ void prosper::VlkWindow::InitSwapchain()
 	m_cmdFences.clear();
 	m_swapchainFramebuffers.clear();
 
-	m_cmdFences.resize(numSwapchainImages);
-	m_swapchainFramebuffers.resize(numSwapchainImages);
-
 	auto createInfo = Anvil::SwapchainCreateInfo::create(
 		&context.GetDevice(),
 		m_renderingSurfacePtr.get(),m_windowPtr.get(),
@@ -333,6 +330,11 @@ void prosper::VlkWindow::InitSwapchain()
 	if(recreateSwapchain)
 		createInfo->set_old_swapchain(m_swapchainPtr.get());
 	m_swapchainPtr = Anvil::Swapchain::create(std::move(createInfo));
+
+	// The actual swapchain may have a different number of images
+	numSwapchainImages = m_swapchainPtr->get_n_images();
+	m_cmdFences.resize(numSwapchainImages);
+	m_swapchainFramebuffers.resize(numSwapchainImages);
 
 	auto nSwapchainImages = m_swapchainPtr->get_n_images();
 	m_swapchainImages.resize(nSwapchainImages);
