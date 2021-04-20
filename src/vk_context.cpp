@@ -572,15 +572,6 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	if(m_physicalDevicePtr == nullptr)
 		m_physicalDevicePtr = m_instancePtr->get_physical_device(0);
 
-	auto vendor = GetPhysicalDeviceVendor();
-	if(vendor == Vendor::AMD)
-	{
-		// There's a driver bug (?) with some AMD GPUs where baking a shader
-		// during runtime can cause it to completely freeze. To avoid that, we'll
-		// just load all shaders immediately (at the cost of slower loading times).
-		m_loadShadersLazily = false;
-	}
-
 	m_shaderManager = std::make_unique<ShaderManager>(*this);
 
 	/* Create a Vulkan device */
@@ -637,6 +628,15 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	s_devToContext[m_devicePtr.get()] = this;
 
 	m_rtFunctions.Initialize(m_devicePtr->get_device_vk());
+
+	auto vendor = GetPhysicalDeviceVendor();
+	if(vendor == Vendor::AMD)
+	{
+		// There's a driver bug (?) with some AMD GPUs where baking a shader
+		// during runtime can cause it to completely freeze. To avoid that, we'll
+		// just load all shaders immediately (at the cost of slower loading times).
+		m_loadShadersLazily = false;
+	}
 
 #if 0
 	auto &memProps = m_physicalDevicePtr->get_memory_properties();
