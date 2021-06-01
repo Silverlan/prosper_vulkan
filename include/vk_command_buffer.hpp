@@ -28,6 +28,8 @@ namespace prosper
 		Anvil::CommandBufferBase *operator->();
 		const Anvil::CommandBufferBase *operator->() const;
 
+		virtual const void *GetInternalHandle() const override {return GetAnvilCommandBuffer().get_command_buffer();}
+
 		virtual bool Reset(bool shouldReleaseResources) const override;
 
 		virtual bool RecordPipelineBarrier(const util::PipelineBarrierInfo &barrierInfo) override;

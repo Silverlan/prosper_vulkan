@@ -23,6 +23,7 @@ namespace prosper
 		Anvil::Fence *operator->();
 		const Anvil::Fence *operator->() const;
 
+		virtual const void *GetInternalHandle() const override {return GetAnvilFence().get_fence();}
 		virtual bool IsSet() const override;
 		virtual bool Reset() const override;
 	protected:

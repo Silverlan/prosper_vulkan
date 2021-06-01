@@ -44,6 +44,7 @@ namespace prosper
 		Anvil::Buffer *operator->();
 		const Anvil::Buffer *operator->() const;
 		
+		virtual const void *GetInternalHandle() const override {return GetVkBuffer();}
 		VkBuffer GetVkBuffer() const {return m_vkBuffer;};
 		virtual void Initialize() override;
 	protected:

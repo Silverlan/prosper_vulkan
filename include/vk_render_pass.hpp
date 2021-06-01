@@ -22,6 +22,8 @@ namespace prosper
 		const Anvil::RenderPass &operator*() const;
 		Anvil::RenderPass *operator->();
 		const Anvil::RenderPass *operator->() const;
+
+		virtual const void *GetInternalHandle() const override {return GetAnvilRenderPass().get_render_pass();}
 	protected:
 		VlkRenderPass(IPrContext &context,const util::RenderPassCreateInfo &createInfo,std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> rp);
 		std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> m_renderPass = nullptr;

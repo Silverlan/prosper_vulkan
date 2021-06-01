@@ -23,6 +23,8 @@ namespace prosper
 		const Anvil::Sampler &operator*() const;
 		Anvil::Sampler *operator->();
 		const Anvil::Sampler *operator->() const;
+
+		virtual const void *GetInternalHandle() const override {return GetAnvilSampler().get_sampler();}
 	protected:
 		VlkSampler(IPrContext &context,const util::SamplerCreateInfo &samplerCreateInfo);
 		virtual bool DoUpdate() override;
