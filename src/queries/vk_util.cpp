@@ -416,6 +416,32 @@ void prosper::util::initialize_image(Anvil::BaseDevice &dev,const uimg::ImageBuf
 	memBlock->unmap();
 }
 
+static std::string decode_driver_version(prosper::Vendor vendor,uint32_t versionEncoded)
+{
+	// See https://github.com/SaschaWillems/vulkan.gpuinfo.org/blob/1e6ca6e3c0763daabd6a101b860ab4354a07f5d3/functions.php#L294
+	switch(vendor)
+	{
+	case prosper::Vendor::Nvidia:
+	{
+		auto major = (versionEncoded>>22) &0x3ff;
+		auto minor = (versionEncoded>>14) &0x0ff;
+		auto revision = (versionEncoded>>6) &0x0ff;
+		auto misc = (versionEncoded) &0x003f;
+		return std::to_string(major) +"." +std::to_string(minor) +"." +std::to_string(revision) +"." +std::to_string(misc);
+	}
+	case prosper::Vendor::Intel:
+	{
+		auto major = versionEncoded>>14;
+		auto minor = versionEncoded &0x3fff;
+		return std::to_string(major) +"." +std::to_string(minor);
+	}
+	}
+	auto major = versionEncoded>>22;
+	auto minor = (versionEncoded>>12) &0x3ff;
+	auto revision = versionEncoded &0xfff;
+	return std::to_string(major) +"." +std::to_string(minor) +"." +std::to_string(revision);
+}
+
 prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const IPrContext &context)
 {
 	auto &dev = static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetDevice();
@@ -424,8 +450,8 @@ prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const IPrC
 	deviceInfo.apiVersion = gpuProperties.core_vk1_0_properties_ptr->api_version;
 	deviceInfo.deviceType = static_cast<prosper::PhysicalDeviceType>(gpuProperties.core_vk1_0_properties_ptr->device_type);
 	deviceInfo.deviceName = gpuProperties.core_vk1_0_properties_ptr->device_name;
-	deviceInfo.driverVersion = gpuProperties.core_vk1_0_properties_ptr->driver_version;
 	deviceInfo.vendor = static_cast<Vendor>(gpuProperties.core_vk1_0_properties_ptr->vendor_id);
+	deviceInfo.driverVersion = decode_driver_version(deviceInfo.vendor,gpuProperties.core_vk1_0_properties_ptr->driver_version);
 	deviceInfo.deviceId = gpuProperties.core_vk1_0_properties_ptr->device_id;
 	return deviceInfo;
 }
