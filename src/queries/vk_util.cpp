@@ -446,8 +446,16 @@ prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const IPrC
 {
 	auto &dev = static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetDevice();
 	auto &gpuProperties = dev.get_physical_device_properties();
+	auto apiVersion = gpuProperties.core_vk1_0_properties_ptr->api_version;
 	VendorDeviceInfo deviceInfo {};
-	deviceInfo.apiVersion = gpuProperties.core_vk1_0_properties_ptr->api_version;
+
+	// See https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#extendingvulkan-coreversions-versionnumbers
+	auto variant = apiVersion>>29;
+	auto major = (apiVersion>>22) &0x7FU;
+	auto minor = (apiVersion>>12) &0x3FFU;
+	auto patch = apiVersion &0xFFFU;
+	deviceInfo.apiVersion = std::to_string(major) +"." +std::to_string(minor) +"." +std::to_string(patch);
+
 	deviceInfo.deviceType = static_cast<prosper::PhysicalDeviceType>(gpuProperties.core_vk1_0_properties_ptr->device_type);
 	deviceInfo.deviceName = gpuProperties.core_vk1_0_properties_ptr->device_name;
 	deviceInfo.vendor = static_cast<Vendor>(gpuProperties.core_vk1_0_properties_ptr->vendor_id);
