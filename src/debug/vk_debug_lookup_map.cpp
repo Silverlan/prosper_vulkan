@@ -55,8 +55,15 @@ public:
 	{
 		return static_cast<T*>(vkPtr);
 	}
+
+	const std::string *FindHistoryName(void *vkPtr) const
+	{
+		auto it = m_nameHistory.find(vkPtr);
+		return (it != m_nameHistory.end()) ? &it->second : nullptr;
+	}
 private:
 	std::unordered_map<void*,std::pair<prosper::ContextObject*,prosper::debug::ObjectType>> m_lookupTable = {};
+	std::unordered_map<void*,std::string> m_nameHistory;
 };
 
 static std::unique_ptr<ObjectLookupHandler> s_lookupHandler = nullptr;
@@ -182,10 +189,16 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 		debug::ObjectType type;
 		auto *o = s_lookupHandler->GetObject(reinterpret_cast<void*>(hex),&type);
 		r<<msgValidation.substr(prevPos,posEnd -prevPos);
-		if(o != nullptr)
+		std::optional<std::string> debugName {};
+		prosper::ContextObject *contextObject = nullptr;
+		if(!o)
 		{
-			prosper::ContextObject *contextObject = nullptr;
-			std::string debugName = "";
+			auto *p = s_lookupHandler->FindHistoryName(reinterpret_cast<void*>(hex));
+			if(p)
+				debugName = *p;
+		}
+		else
+		{
 			switch(type)
 			{
 			case debug::ObjectType::Image:
@@ -224,20 +237,21 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 			default:
 				break;
 			}
+		}
+
+		if(debugName.has_value())
+			r<<" ("<<*debugName<<")";
+		else if(contextObject == nullptr)
+			r<<" (Unknown)";
+		else
+		{
+			auto &debugName = contextObject->GetDebugName();
 			if(debugName.empty() == false)
 				r<<" ("<<debugName<<")";
-			else if(contextObject == nullptr)
-				r<<" (Unknown)";
 			else
-			{
-				auto &debugName = contextObject->GetDebugName();
-				if(debugName.empty() == false)
-					r<<" ("<<debugName<<")";
-				else
-					r<<" ("<<object_type_to_string(type)<<")";
-			}
-			r<<" prosper::ContextObject(0x"<<o<<")";
+				r<<" ("<<object_type_to_string(type)<<")";
 		}
+		r<<" prosper::ContextObject(0x"<<o<<")";
 
 		prevPos = posEnd;
 		pos = msgValidation.find("0x",pos +1ull);
