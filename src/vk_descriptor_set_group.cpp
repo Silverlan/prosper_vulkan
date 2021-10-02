@@ -10,7 +10,7 @@
 #include "debug/vk_debug_lookup_map.hpp"
 
 using namespace prosper;
-
+#pragma optimize("",off)
 std::shared_ptr<VlkDescriptorSetGroup> VlkDescriptorSetGroup::Create(IPrContext &context,const DescriptorSetCreateInfo &createInfo,Anvil::DescriptorSetGroupUniquePtr imgView,const std::function<void(IDescriptorSetGroup&)> &onDestroyedCallback)
 {
 	if(imgView == nullptr)
@@ -28,8 +28,11 @@ VlkDescriptorSetGroup::VlkDescriptorSetGroup(IPrContext &context,const Descripto
 	: IDescriptorSetGroup{context,createInfo},m_descriptorSetGroup(std::move(imgView))
 {
 	auto numSets = m_descriptorSetGroup->get_n_descriptor_sets();
-	for(auto i=decltype(numSets){0};i<numSets;++i)
-		prosper::debug::register_debug_object(m_descriptorSetGroup->get_descriptor_set(i),*this,prosper::debug::ObjectType::DescriptorSet);
+	if(prosper::debug::is_debug_mode_enabled())
+	{
+		for(auto i=decltype(numSets){0};i<numSets;++i)
+			prosper::debug::register_debug_object(m_descriptorSetGroup->get_descriptor_set(i),*this,prosper::debug::ObjectType::DescriptorSet);
+	}
 	m_descriptorSets.resize(numSets);
 
 	for(auto i=decltype(m_descriptorSets.size()){0u};i<m_descriptorSets.size();++i)
@@ -42,9 +45,12 @@ VlkDescriptorSetGroup::VlkDescriptorSetGroup(IPrContext &context,const Descripto
 }
 VlkDescriptorSetGroup::~VlkDescriptorSetGroup()
 {
-	auto numSets = m_descriptorSetGroup->get_n_descriptor_sets();
-	for(auto i=decltype(numSets){0};i<numSets;++i)
-		prosper::debug::deregister_debug_object(m_descriptorSetGroup->get_descriptor_set(i));
+	if(prosper::debug::is_debug_mode_enabled())
+	{
+		auto numSets = m_descriptorSetGroup->get_n_descriptor_sets();
+		for(auto i=decltype(numSets){0};i<numSets;++i)
+			prosper::debug::deregister_debug_object(m_descriptorSetGroup->get_descriptor_set(i));
+	}
 }
 
 VlkDescriptorSet::VlkDescriptorSet(VlkDescriptorSetGroup &dsg,Anvil::DescriptorSet &ds)
@@ -61,7 +67,13 @@ const Anvil::DescriptorSet &VlkDescriptorSet::operator*() const {return const_ca
 Anvil::DescriptorSet *VlkDescriptorSet::operator->() {return &m_descSet;}
 const Anvil::DescriptorSet *VlkDescriptorSet::operator->() const {return const_cast<VlkDescriptorSet*>(this)->operator->();}
 
-bool VlkDescriptorSet::Update() {return m_descSet.update();}
+bool VlkDescriptorSet::Update()
+{
+	auto res = m_descSet.update();
+	if(prosper::debug::is_debug_mode_enabled())
+		prosper::debug::register_debug_object(GetAnvilDescriptorSet().get_descriptor_set_vk(),GetDescriptorSetGroup(),prosper::debug::ObjectType::DescriptorSet);
+	return res;
+}
 bool VlkDescriptorSet::DoSetBindingStorageImage(prosper::Texture &texture,uint32_t bindingIdx,const std::optional<uint32_t> &layerId)
 {
 	auto *imgView = layerId.has_value() ? texture.GetImageView(*layerId) : texture.GetImageView();
@@ -122,3 +134,4 @@ Anvil::DescriptorSetGroup &VlkDescriptorSetGroup::operator*() {return *m_descrip
 const Anvil::DescriptorSetGroup &VlkDescriptorSetGroup::operator*() const {return const_cast<VlkDescriptorSetGroup*>(this)->operator*();}
 Anvil::DescriptorSetGroup *VlkDescriptorSetGroup::operator->() {return m_descriptorSetGroup.get();}
 const Anvil::DescriptorSetGroup *VlkDescriptorSetGroup::operator->() const {return const_cast<VlkDescriptorSetGroup*>(this)->operator->();}
+#pragma optimize("",on)

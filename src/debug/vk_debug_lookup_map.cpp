@@ -39,7 +39,10 @@ public:
 	{
 		auto it = m_lookupTable.find(vkPtr);
 		if(it != m_lookupTable.end())
+		{
+			m_nameHistory[vkPtr] = it->second.first->GetDebugName();
 			m_lookupTable.erase(it);
+		}
 	}
 	prosper::ContextObject *GetObject(void *vkPtr,prosper::debug::ObjectType *outType=nullptr) const
 	{

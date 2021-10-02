@@ -351,14 +351,14 @@ bool prosper::VlkCommandBuffer::RecordEndPipelineStatisticsQuery(const PipelineS
 	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
 	return const_cast<VlkCommandBuffer&>(*this)->record_end_query(anvPool,query.GetQueryId());
 }
-static Anvil::ImageSubresourceRange to_anvil_subresource_range(const prosper::util::ImageSubresourceRange &range,prosper::IImage &img)
+static Anvil::ImageSubresourceRange to_anvil_subresource_range(const prosper::util::ImageSubresourceRange &range,prosper::IImage &img,prosper::ImageAspectFlags aspectMask)
 {
 	Anvil::ImageSubresourceRange anvRange {};
 	anvRange.base_array_layer = range.baseArrayLayer;
 	anvRange.base_mip_level = range.baseMipLevel;
 	anvRange.layer_count = range.layerCount;
 	anvRange.level_count = range.levelCount;
-	anvRange.aspect_mask = static_cast<Anvil::ImageAspectFlagBits>(prosper::util::get_aspect_mask(img));
+	anvRange.aspect_mask = static_cast<Anvil::ImageAspectFlagBits>(aspectMask);
 	return anvRange;
 }
 bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img,ImageLayout layout,const std::array<float,4> &clearColor,const util::ClearImageInfo &clearImageInfo)
@@ -372,14 +372,14 @@ bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img,ImageLayout layout,
 	prosper::util::ImageSubresourceRange resourceRange {};
 	apply_image_subresource_range(clearImageInfo.subresourceRange,resourceRange,img);
 
-	auto anvResourceRange = to_anvil_subresource_range(resourceRange,img);
+	auto anvResourceRange = to_anvil_subresource_range(resourceRange,img,prosper::util::get_aspect_mask(img));
 	prosper::ClearColorValue clearColorVal {clearColor};
 	return m_cmdBuffer->record_clear_color_image(
 		&*static_cast<VlkImage&>(img),static_cast<Anvil::ImageLayout>(layout),reinterpret_cast<VkClearColorValue*>(&clearColorVal),
 		1u,&anvResourceRange
 	);
 }
-bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img,ImageLayout layout,float clearDepth,const util::ClearImageInfo &clearImageInfo)
+bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img,ImageLayout layout,std::optional<float> clearDepth,std::optional<uint32_t> clearStencil,const util::ClearImageInfo &clearImageInfo)
 {
 	// TODO
 	//if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) != nullptr)
@@ -389,9 +389,22 @@ bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img,ImageLayout layout,
 
 	prosper::util::ImageSubresourceRange resourceRange {};
 	apply_image_subresource_range(clearImageInfo.subresourceRange,resourceRange,img);
-
-	auto anvResourceRange = to_anvil_subresource_range(resourceRange,img);
-	prosper::ClearDepthStencilValue clearDepthValue {clearDepth};
+	
+	prosper::ImageAspectFlags aspectMask = static_cast<prosper::ImageAspectFlags>(0);
+	float depth = 0.f;
+	uint32_t stencil = 0;
+	if(clearDepth.has_value())
+	{
+		depth = *clearDepth;
+		aspectMask |= prosper::ImageAspectFlags::DepthBit;
+	}
+	if(clearStencil.has_value())
+	{
+		stencil = *clearStencil;
+		aspectMask |= prosper::ImageAspectFlags::StencilBit;
+	}
+	auto anvResourceRange = to_anvil_subresource_range(resourceRange,img,aspectMask);
+	prosper::ClearDepthStencilValue clearDepthValue {depth,stencil};
 	return m_cmdBuffer->record_clear_depth_stencil_image(
 		&*static_cast<VlkImage&>(img),static_cast<Anvil::ImageLayout>(layout),reinterpret_cast<VkClearDepthStencilValue*>(&clearDepthValue),
 		1u,&anvResourceRange
@@ -451,8 +464,8 @@ bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrie
 			static_cast<Anvil::AccessFlagBits>(barrier.srcAccessMask),static_cast<Anvil::AccessFlagBits>(barrier.dstAccessMask),
 			static_cast<Anvil::ImageLayout>(barrier.oldLayout),static_cast<Anvil::ImageLayout>(barrier.newLayout),
 			barrier.srcQueueFamilyIndex,barrier.dstQueueFamilyIndex,
-			&static_cast<VlkImage*>(barrier.image)->GetAnvilImage(),to_anvil_subresource_range(barrier.subresourceRange,*barrier.image)
-			});
+			&static_cast<VlkImage*>(barrier.image)->GetAnvilImage(),to_anvil_subresource_range(barrier.subresourceRange,*barrier.image,barrier.aspectMask.has_value() ? *barrier.aspectMask : prosper::util::get_aspect_mask(*barrier.image))
+		});
 	}
 	if(anvBufBarriers.empty() && anvImgBarriers.empty())
 		return true;
@@ -733,14 +746,27 @@ bool prosper::VlkCommandBuffer::RecordClearAttachment(IImage &img,const std::arr
 	};
 	return m_cmdBuffer->record_clear_attachments(1u,&clearAtt,1u,reinterpret_cast<VkClearRect*>(&clearRect));
 }
-bool prosper::VlkCommandBuffer::RecordClearAttachment(IImage &img,float clearDepth,uint32_t layerId)
+bool prosper::VlkCommandBuffer::RecordClearAttachment(IImage &img,std::optional<float> clearDepth,std::optional<uint32_t> clearStencil,uint32_t layerId)
 {
 	// TODO
 	//if(bufferDst.GetContext().IsValidationEnabled() && cmdBuffer.get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && get_current_render_pass_target(static_cast<Anvil::PrimaryCommandBuffer&>(cmdBuffer)) == nullptr)
 	//	throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
-	vk::ClearValue clearVal {vk::ClearDepthStencilValue{clearDepth}};
-	Anvil::ClearAttachment clearAtt {Anvil::ImageAspectFlagBits::DEPTH_BIT,0u /* color attachment */,clearVal};
+	float depth = 0.f;
+	uint32_t stencil = 0;
+	Anvil::ImageAspectFlags aspectMask = Anvil::ImageAspectFlagBits::NONE;
+	if(clearDepth.has_value())
+	{
+		aspectMask |= Anvil::ImageAspectFlagBits::DEPTH_BIT;
+		depth = *clearDepth;
+	}
+	if(clearStencil.has_value())
+	{
+		aspectMask |= Anvil::ImageAspectFlagBits::STENCIL_BIT;
+		stencil = *clearStencil;
+	}
+	vk::ClearValue clearVal {vk::ClearDepthStencilValue{depth,stencil}};
+	Anvil::ClearAttachment clearAtt {aspectMask,0u /* color attachment */,clearVal};
 	vk::ClearRect clearRect {
 		vk::Rect2D{vk::Offset2D{0,0},static_cast<prosper::VlkImage&>(img)->get_image_extent_2D(0u)},
 		layerId,1 /* layerCount */
@@ -811,7 +837,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImageToBuffer(const util::BufferImag
 		&*static_cast<VlkImage&>(imgSrc),static_cast<Anvil::ImageLayout>(srcImageLayout),&bufferDst.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),1u,&bufferImageCopy
 	);
 }
-bool prosper::VlkCommandBuffer::DoRecordBlitImage(const util::BlitInfo &blitInfo,IImage &imgSrc,IImage &imgDst,const std::array<Offset3D,2> &srcOffsets,const std::array<Offset3D,2> &dstOffsets)
+bool prosper::VlkCommandBuffer::DoRecordBlitImage(const util::BlitInfo &blitInfo,IImage &imgSrc,IImage &imgDst,const std::array<Offset3D,2> &srcOffsets,const std::array<Offset3D,2> &dstOffsets,std::optional<prosper::ImageAspectFlags> aspectFlags)
 {
 	static_assert(sizeof(util::ImageSubresourceLayers) == sizeof(Anvil::ImageSubresourceLayers));
 	static_assert(sizeof(Offset3D) == sizeof(vk::Offset3D));
@@ -823,7 +849,9 @@ bool prosper::VlkCommandBuffer::DoRecordBlitImage(const util::BlitInfo &blitInfo
 	blit.dst_offsets[0] = reinterpret_cast<const vk::Offset3D&>(dstOffsets.at(0));
 	blit.dst_offsets[1] = reinterpret_cast<const vk::Offset3D&>(dstOffsets.at(1));
 	auto bDepth = util::is_depth_format(imgSrc.GetFormat());
-	blit.src_subresource.aspect_mask = blit.dst_subresource.aspect_mask = (bDepth == true) ? Anvil::ImageAspectFlagBits::DEPTH_BIT : Anvil::ImageAspectFlagBits::COLOR_BIT;
+	blit.src_subresource.aspect_mask = aspectFlags.has_value() ?
+		static_cast<Anvil::ImageAspectFlagBits>(*aspectFlags) :
+		(blit.dst_subresource.aspect_mask = bDepth ? Anvil::ImageAspectFlagBits::DEPTH_BIT : Anvil::ImageAspectFlagBits::COLOR_BIT);
 	return m_cmdBuffer->record_blit_image(
 		&*static_cast<VlkImage&>(imgSrc),Anvil::ImageLayout::TRANSFER_SRC_OPTIMAL,
 		&*static_cast<VlkImage&>(imgDst),Anvil::ImageLayout::TRANSFER_DST_OPTIMAL,

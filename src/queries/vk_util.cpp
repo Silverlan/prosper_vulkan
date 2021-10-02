@@ -394,7 +394,7 @@ void prosper::util::initialize_image(Anvil::BaseDevice &dev,const uimg::ImageBuf
 			px[2] = imgData[pos +2];
 			switch(tgaFormat)
 			{
-			case uimg::ImageBuffer::Format::RGBA8:
+			case uimg::Format::RGBA8:
 			{
 				pos += 4;
 				if(srcFormat == Format::R8G8B8A8_UNorm)

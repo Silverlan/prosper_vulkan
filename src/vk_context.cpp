@@ -1606,6 +1606,7 @@ std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(
 		&backStencilWriteMask,
 		&backStencilReference
 	);
+	gfxPipelineInfo->toggle_stencil_test(isStencilTestEnabled);
 	gfxPipelineInfo->set_stencil_test_properties(
 		true,
 		static_cast<Anvil::StencilOp>(frontStencilFailOp),static_cast<Anvil::StencilOp>(frontStencilPassOp),static_cast<Anvil::StencilOp>(frontStencilDepthFailOp),static_cast<Anvil::CompareOp>(frontStencilCompareOp),
@@ -1646,21 +1647,21 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const
 			return nullptr;
 	}
 	auto imgCreateInfo = pImgCreateInfo;
-	std::optional<uimg::ImageBuffer::Format> conversionFormatRequired = {};
+	std::optional<uimg::Format> conversionFormatRequired = {};
 	auto &imgBuf = imgBuffers.front();
 	switch(imgBuf->GetFormat())
 	{
-	case uimg::ImageBuffer::Format::RGB8:
-		conversionFormatRequired = uimg::ImageBuffer::Format::RGBA8;
+	case uimg::Format::RGB8:
+		conversionFormatRequired = uimg::Format::RGBA8;
 		imgCreateInfo.format = prosper::Format::R8G8B8A8_UNorm;
 		break;
-	case uimg::ImageBuffer::Format::RGB16:
-		conversionFormatRequired = uimg::ImageBuffer::Format::RGBA16;
+	case uimg::Format::RGB16:
+		conversionFormatRequired = uimg::Format::RGBA16;
 		imgCreateInfo.format = prosper::Format::R16G16B16A16_SFloat;
 		break;
 	}
 	
-	static_assert(umath::to_integral(uimg::ImageBuffer::Format::Count) == 13);
+	static_assert(umath::to_integral(uimg::Format::Count) == 13);
 	if(conversionFormatRequired.has_value())
 	{
 		std::vector<std::shared_ptr<uimg::ImageBuffer>> converted {};
@@ -1913,7 +1914,7 @@ std::shared_ptr<prosper::IRenderPass> prosper::VlkContext::CreateRenderPass(cons
 			rpInfo->add_depth_stencil_attachment(
 				static_cast<Anvil::Format>(attInfo.format),static_cast<Anvil::SampleCountFlagBits>(attInfo.sampleCount),
 				static_cast<Anvil::AttachmentLoadOp>(attInfo.loadOp),static_cast<Anvil::AttachmentStoreOp>(attInfo.storeOp),
-				Anvil::AttachmentLoadOp::DONT_CARE,Anvil::AttachmentStoreOp::DONT_CARE,
+				static_cast<Anvil::AttachmentLoadOp>(attInfo.stencilLoadOp),static_cast<Anvil::AttachmentStoreOp>(attInfo.stencilStoreOp),
 				static_cast<Anvil::ImageLayout>(attInfo.initialLayout),static_cast<Anvil::ImageLayout>(attInfo.finalLayout),
 				true,&attId
 			);
