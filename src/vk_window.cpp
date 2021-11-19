@@ -382,6 +382,8 @@ Anvil::Fence *prosper::VlkWindow::GetFence(uint32_t idx) {return (idx < m_cmdFen
 bool prosper::VlkWindow::WaitForFence(std::string &outErr)
 {
 	auto idx = GetLastAcquiredSwapchainImageIndex();
+	if(idx == UINT32_MAX)
+		return true; // Nothing to wait for
 	auto &context = static_cast<VlkContext&>(GetContext());
 	auto waitResult = static_cast<prosper::Result>(vkWaitForFences(context.GetDevice().get_device_vk(),1,m_cmdFences[idx]->get_fence_ptr(),true,std::numeric_limits<uint64_t>::max()));
 	if(waitResult == prosper::Result::Success)

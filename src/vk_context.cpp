@@ -168,6 +168,8 @@ bool VlkContext::WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg)
 void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame)
 {
 	auto errCode = Anvil::SwapchainOperationErrorCode::SUCCESS;
+	uint64_t validWindows = 0;
+	std::string errMsg;
 	for(auto it=m_windows.begin();it!=m_windows.end();)
 	{
 		auto window = it->lock();
@@ -176,26 +178,27 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 			it = m_windows.erase(it);
 			continue;
 		}
+		auto idx = it -m_windows.begin();
+		if(idx >= 64)
+		{
+			++it;
+			window->SetState(prosper::Window::State::Inactive);
+			continue;
+		}
 		errCode = static_cast<VlkWindow&>(*window).AcquireImage();
 		if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS)
-			break;
+		{
+			++it;
+			window->SetState(prosper::Window::State::Inactive);
+			continue;
+		}
+
+		auto result = static_cast<VlkWindow&>(*window).WaitForFence(errMsg);
+		window->SetState(result ? prosper::Window::State::Active : prosper::Window::State::Inactive);
+		if(result)
+			validWindows |= (1<<idx);
+
 		++it;
-	}
-	
-	auto success = (errCode == Anvil::SwapchainOperationErrorCode::SUCCESS);
-	std::string errMsg;
-	if(success)
-		success = WaitForCurrentSwapchainCommandBuffer(errMsg);
-	else
-	{
-		if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE)
-			return;
-		errMsg = "Unable to acquire next swapchain image: " +std::string{magic_enum::enum_name(errCode)} +"(" +std::to_string(umath::to_integral(errCode)) +")";
-	}
-	if(errMsg.empty() == false)
-	{
-		std::cerr<<errMsg<<std::endl;
-		throw std::runtime_error(errMsg);
 	}
 	
 	ClearKeepAliveResources();
@@ -204,6 +207,8 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 	//auto numKeepAliveResources = keepAliveResources.size(); // We can clear the resources from the previous render pass of this swapchain after we've waited for the semaphore (i.e. after the frame rendering is complete)
 	
 	auto swapchainImgIdx = GetLastAcquiredSwapchainImageIndex();
+	if(swapchainImgIdx == UINT32_MAX)
+		return;
 	auto &cmd_buffer_ptr = m_commandBuffers.at(swapchainImgIdx);
 	/* Start recording commands */
 	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr);
@@ -231,12 +236,21 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 	auto *mainWaitSemaphore =  static_cast<VlkWindow&>(*m_window).GetCurrentFrameWaitSemaphore();
 	
 	// Now we can update all other windows
-	for(auto &wpWindow : m_windows)
+	for(uint32_t idx=0; auto &wpWindow : m_windows)
 	{
 		auto window = wpWindow.lock();
 		if(!window || window->IsValid() == false)
+		{
+			++idx;
 			continue;
+		}
+		
 		if(window == m_window)
+		{
+			++idx;
+			continue;
+		}
+		if((validWindows &(1<<idx)) == 0)
 			continue;
 		static_cast<VlkWindow&>(*window).Submit(primCmd,mainWaitSemaphore);
 		static_cast<VlkWindow&>(*window).Present(&sigSem);
