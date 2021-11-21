@@ -57,6 +57,7 @@ namespace prosper
 		void RemoveResource(void *resource);
 		MemoryTracker()=default;
 		std::vector<Resource> m_resources = {};
+		mutable std::mutex m_resourceMutex;
 	};
 };
 REGISTER_BASIC_BITWISE_OPERATORS(prosper::MemoryTracker::Resource::TypeFlags)

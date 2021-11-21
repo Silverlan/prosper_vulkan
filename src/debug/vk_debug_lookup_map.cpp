@@ -29,14 +29,20 @@
 #include <sharedutils/util.h>
 #include <sharedutils/util_string.h>
 #include <sstream>
+#include <mutex>
 
 #undef GetObject
 class DLLPROSPER_VK ObjectLookupHandler
 {
 public:
-	void RegisterObject(void *vkPtr,prosper::ContextObject &obj,prosper::debug::ObjectType type) {m_lookupTable[vkPtr] = {&obj,type};}
+	void RegisterObject(void *vkPtr,prosper::ContextObject &obj,prosper::debug::ObjectType type)
+	{
+		std::scoped_lock lock {m_objectMutex};
+		m_lookupTable[vkPtr] = {&obj,type};
+	}
 	void ClearObject(void *vkPtr)
 	{
+		std::scoped_lock lock {m_objectMutex};
 		auto it = m_lookupTable.find(vkPtr);
 		if(it != m_lookupTable.end())
 		{
@@ -46,6 +52,7 @@ public:
 	}
 	prosper::ContextObject *GetObject(void *vkPtr,prosper::debug::ObjectType *outType=nullptr) const
 	{
+		std::scoped_lock lock {m_objectMutex};
 		auto it = m_lookupTable.find(vkPtr);
 		if(it == m_lookupTable.end())
 			return nullptr;
@@ -66,6 +73,7 @@ public:
 	}
 private:
 	std::unordered_map<void*,std::pair<prosper::ContextObject*,prosper::debug::ObjectType>> m_lookupTable = {};
+	mutable std::mutex m_objectMutex;
 	std::unordered_map<void*,std::string> m_nameHistory;
 };
 

@@ -57,6 +57,7 @@ bool MemoryTracker::GetMemoryStats(prosper::IPrContext &context,uint32_t memType
 		return false;
 	totalSize = memProps.types.at(memType).heap_ptr->size;
 	allocatedSize = 0ull;
+	std::scoped_lock lock {m_resourceMutex};
 	for(auto &res : m_resources)
 	{
 		if(res.resource == nullptr || (res.typeFlags &typeFlags) == Resource::TypeFlags::None)
@@ -76,6 +77,7 @@ bool MemoryTracker::GetMemoryStats(prosper::IPrContext &context,uint32_t memType
 const std::vector<MemoryTracker::Resource> &MemoryTracker::GetResources() const {return m_resources;};
 void MemoryTracker::GetResources(uint32_t memType,std::vector<const Resource*> &outResources,Resource::TypeFlags typeFlags) const
 {
+	std::scoped_lock lock {m_resourceMutex};
 	outResources.reserve(m_resources.size());
 	for(auto &res : m_resources)
 	{
@@ -104,14 +106,17 @@ void MemoryTracker::AddResource(IBuffer &buffer)
 		typeFlags |= Resource::TypeFlags::UniformBufferBit;
 	else
 		typeFlags |= Resource::TypeFlags::StandAloneBufferBit;
+	std::scoped_lock lock {m_resourceMutex};
 	m_resources.push_back(Resource{&buffer,typeFlags});
 }
 void MemoryTracker::AddResource(IImage &image)
 {
+	std::scoped_lock lock {m_resourceMutex};
 	m_resources.push_back(Resource{&image,Resource::TypeFlags::ImageBit});
 }
 void MemoryTracker::RemoveResource(void *ptrResource)
 {
+	std::scoped_lock lock {m_resourceMutex};
 	auto it = std::find_if(m_resources.begin(),m_resources.end(),[&ptrResource](const Resource &resource) {
 		return ptrResource == resource.resource;
 		});

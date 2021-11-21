@@ -20,8 +20,10 @@ using namespace prosper;
 static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
 
 static std::unique_ptr<std::unordered_map<Anvil::Image*,VlkImage*>> s_imageMap = nullptr;
+static std::mutex s_imageMapMutex;
 VlkImage *prosper::debug::get_image_from_anvil_image(Anvil::Image &img)
 {
+	std::scoped_lock lock {s_imageMapMutex};
 	if(s_imageMap == nullptr)
 		return nullptr;
 	auto it = s_imageMap->find(&img);
@@ -48,9 +50,11 @@ VlkImage::VlkImage(IPrContext &context,std::unique_ptr<Anvil::Image,std::functio
 		return;
 	if(prosper::debug::is_debug_mode_enabled())
 	{
+		s_imageMapMutex.lock();
 		if(s_imageMap == nullptr)
 			s_imageMap = std::make_unique<std::unordered_map<Anvil::Image*,VlkImage*>>();
 		(*s_imageMap)[m_image.get()] = this;
+		s_imageMapMutex.unlock();
 	}
 	prosper::debug::register_debug_object(m_image->get_image(),*this,prosper::debug::ObjectType::Image);
 	MemoryTracker::GetInstance().AddResource(*this);
@@ -61,9 +65,11 @@ VlkImage::~VlkImage()
 		return;
 	if(s_imageMap != nullptr)
 	{
+		s_imageMapMutex.lock();
 		auto it = s_imageMap->find(m_image.get());
 		if(it != s_imageMap->end())
 			s_imageMap->erase(it);
+		s_imageMapMutex.unlock();
 	}
 	prosper::debug::deregister_debug_object(m_image->get_image());
 	MemoryTracker::GetInstance().RemoveResource(*this);
