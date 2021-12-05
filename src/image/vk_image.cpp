@@ -43,11 +43,17 @@ std::shared_ptr<VlkImage> VlkImage::Create(
 		img->GetContext().ReleaseResource<VlkImage>(img);
 		});
 }
+static std::mutex g_memAllocMutex {};
+std::mutex &get_mem_alloc_mutex() {return g_memAllocMutex;}
 VlkImage::VlkImage(IPrContext &context,std::unique_ptr<Anvil::Image,std::function<void(Anvil::Image*)>> img,const prosper::util::ImageCreateInfo &createInfo,bool isSwapchainImage)
 	: IImage{context,createInfo},m_image{std::move(img)},m_swapchainImage{isSwapchainImage}
 {
 	if(m_swapchainImage)
 		return;
+	g_memAllocMutex.lock();
+		m_image->get_image(); // This will invoke memory allocation and is not thread-safe!
+	g_memAllocMutex.unlock();
+
 	if(prosper::debug::is_debug_mode_enabled())
 	{
 		s_imageMapMutex.lock();

@@ -84,6 +84,8 @@ namespace prosper
 		virtual std::string GetAPIAbbreviation() const override {return "VK";}
 		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) override;
 
+		virtual bool SupportsMultiThreadedResourceAllocation() const override {return true;}
+
 		Anvil::SGPUDevice &GetDevice();
 		const Anvil::SGPUDevice &GetDevice() const;
 		const std::shared_ptr<Anvil::RenderPass> &GetMainRenderPass() const;

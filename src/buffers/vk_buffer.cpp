@@ -9,12 +9,49 @@
 #include <wrappers/buffer.h>
 #include <wrappers/memory_block.h>
 #include <misc/buffer_create_info.h>
+#if 0
+#include "vk_context.hpp"
+#include <wrappers/device.h>
+#include <wrappers/instance.h>
+static void interop_text(prosper::VlkContext &context,uint32_t w,uint32_t h)
+{
+	// https://github.com/jherico/Vulkan/blob/cpp/examples/glinterop/glinterop.cpp#L267
+	prosper::util::ImageCreateInfo imgCreateInfo {};
+	imgCreateInfo.width = w;
+	imgCreateInfo.height = h;
+	imgCreateInfo.usage = prosper::ImageUsageFlags::SampledBit;
+	imgCreateInfo.tiling = prosper::ImageTiling::Linear;
+	imgCreateInfo.flags |= prosper::util::ImageCreateInfo::Flags::DontAllocateMemory;
+	imgCreateInfo.postCreateLayout = prosper::ImageLayout::ColorAttachmentOptimal;
 
+	auto img = context.CreateImage(imgCreateInfo);
+
+	context.GetDevice().get_device_vk();
+    vk::MemoryRequirements memReqs = device.getImageMemoryRequirementxs(texture.image);
+    vk::MemoryAllocateInfo memAllocInfo;
+    vk::ExportMemoryAllocateInfo exportAllocInfo{ vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 };
+    memAllocInfo.pNext = &exportAllocInfo;
+    memAllocInfo.allocationSize = texture.allocSize = memReqs.size;
+    memAllocInfo.memoryTypeIndex = context.getMemoryType(memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    texture.memory = device.allocateMemory(memAllocInfo);
+    device.bindImageMemory(texture.image, texture.memory, 0);
+   // handles.memory = device.getMemoryWin32HandleKHR({ texture.memory, vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 }, dynamicLoader);
+
+	auto tex = context.CreateTexture({},*img,prosper::util::ImageViewCreateInfo{},prosper::util::SamplerCreateInfo{});
+
+}
+#endif
+
+std::mutex &get_mem_alloc_mutex();
 prosper::VlkBuffer::VlkBuffer(IPrContext &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,Anvil::BufferUniquePtr buf)
 	: IBuffer{context,bufCreateInfo,startOffset,size},m_buffer{std::move(buf)}
 {
 	if(m_buffer != nullptr)
 	{
+		auto &memAllocMutex = get_mem_alloc_mutex();
+		memAllocMutex.lock();
+			m_buffer->get_buffer(); // This will invoke memory allocation and is not thread-safe!
+		memAllocMutex.unlock();
 		prosper::debug::register_debug_object(m_buffer->get_buffer(),*this,prosper::debug::ObjectType::Buffer);
 		m_vkBuffer = m_buffer->get_buffer();
 	}
