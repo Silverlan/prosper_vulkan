@@ -122,7 +122,8 @@ namespace prosper
 		virtual uint32_t GetUniversalQueueFamilyIndex() const override;
 		virtual util::Limits GetPhysicalDeviceLimits() const override;
 		virtual std::optional<util::PhysicalDeviceImageFormatProperties> GetPhysicalDeviceImageFormatProperties(const ImageFormatPropertiesQuery &query) override;
-
+		virtual prosper::FeatureSupport AreFormatFeaturesSupported(Format format,FormatFeatureFlags featureFlags,std::optional<ImageTiling> tiling) const override;
+		
 		virtual std::shared_ptr<prosper::IPrimaryCommandBuffer> AllocatePrimaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex) override;
 		virtual std::shared_ptr<prosper::ISecondaryCommandBuffer> AllocateSecondaryLevelCommandBuffer(prosper::QueueFamilyType queueFamilyType,uint32_t &universalQueueFamilyIndex) override;
 		virtual std::shared_ptr<prosper::ICommandBufferPool> CreateCommandBufferPool(prosper::QueueFamilyType queueFamilyType) override;
@@ -247,6 +248,9 @@ namespace prosper
 		bool m_customValidationEnabled = false;
 		std::vector<Anvil::PipelineID> m_prosperPipelineToAnvilPipeline;
 		VkRaytracingFunctions m_rtFunctions {};
+
+		mutable std::unordered_map<Format,Anvil::FormatProperties> m_formatProperties; // Caching
+		mutable std::mutex m_formatPropertiesMutex;
 	private:
 		bool GetUniversalQueueFamilyIndex(prosper::QueueFamilyType queueFamilyType,uint32_t &queueFamilyIndex) const;
 		static std::unordered_map<Anvil::BaseDevice*,IPrContext*> s_devToContext;

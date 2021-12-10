@@ -380,6 +380,40 @@ bool VlkContext::ClearPipeline(bool graphicsShader,PipelineID pipelineId)
 	return dev.get_compute_pipeline_manager()->delete_pipeline(m_prosperPipelineToAnvilPipeline[pipelineId]);
 }
 
+prosper::FeatureSupport VlkContext::AreFormatFeaturesSupported(Format format,FormatFeatureFlags featureFlags,std::optional<ImageTiling> tiling) const
+{
+	std::scoped_lock lock {m_formatPropertiesMutex};
+	auto it = m_formatProperties.find(format);
+	if(it == m_formatProperties.end())
+	{
+		// Cache the format properties, so we don't have to look them up every time
+		auto &dev = GetDevice();
+		auto props = dev.get_physical_device_format_properties(static_cast<Anvil::Format>(format));
+		it = m_formatProperties.insert(std::make_pair(format,props)).first;
+	}
+
+	auto &props = it->second;
+	auto supportedFeatureFlags = !tiling.has_value() ? props.buffer_capabilities : (*tiling == ImageTiling::Optimal ? props.optimal_tiling_capabilities : props.linear_tiling_capabilities);
+	constexpr std::array<Anvil::FormatFeatureFlagBits,8> toAnvFlag {
+		Anvil::FormatFeatureFlagBits::BLIT_DST_BIT,
+		Anvil::FormatFeatureFlagBits::BLIT_SRC_BIT,
+		Anvil::FormatFeatureFlagBits::COLOR_ATTACHMENT_BIT,
+		Anvil::FormatFeatureFlagBits::DEPTH_STENCIL_ATTACHMENT_BIT,
+		Anvil::FormatFeatureFlagBits::SAMPLED_IMAGE_BIT,
+		Anvil::FormatFeatureFlagBits::STORAGE_TEXEL_BUFFER_BIT,
+		Anvil::FormatFeatureFlagBits::UNIFORM_TEXEL_BUFFER_BIT,
+		Anvil::FormatFeatureFlagBits::VERTEX_BUFFER_BIT
+	};
+	Anvil::FormatFeatureFlags anvFeatures;
+	for(auto i=decltype(toAnvFlag.size()){0u};i<toAnvFlag.size();++i)
+	{
+		if(!umath::is_flag_set(featureFlags,static_cast<FormatFeatureFlags>(i)))
+			continue;
+		anvFeatures |= toAnvFlag[i];
+	}
+	return (supportedFeatureFlags &anvFeatures) == anvFeatures ? FeatureSupport::Supported : FeatureSupport::Unsupported;
+}
+
 std::optional<prosper::util::PhysicalDeviceImageFormatProperties> VlkContext::GetPhysicalDeviceImageFormatProperties(const ImageFormatPropertiesQuery &query)
 {
 	auto &dev = GetDevice();
