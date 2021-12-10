@@ -116,7 +116,9 @@ decltype(VlkContext::s_devToContext) VlkContext::s_devToContext = {};
 
 VlkContext::VlkContext(const std::string &appName,bool bEnableValidation)
 	: IPrContext{appName,bEnableValidation}
-{}
+{
+	SetMultiThreadedRenderingEnabled(true);
+}
 
 void VlkContext::OnClose()
 {
@@ -378,6 +380,17 @@ bool VlkContext::ClearPipeline(bool graphicsShader,PipelineID pipelineId)
 	if(graphicsShader)
 		return dev.get_graphics_pipeline_manager()->delete_pipeline(m_prosperPipelineToAnvilPipeline[pipelineId]);
 	return dev.get_compute_pipeline_manager()->delete_pipeline(m_prosperPipelineToAnvilPipeline[pipelineId]);
+}
+
+void VlkContext::BakeShaderPipeline(PipelineID pipelineId,prosper::PipelineBindPoint pipelineType)
+{
+	auto anvPipelineId = GetAnvilPipelineId(pipelineId);
+	auto &dev = GetDevice();
+	// This will force-initiate the baking process
+	if(pipelineType == prosper::PipelineBindPoint::Graphics)
+		dev.get_graphics_pipeline_manager()->get_pipeline(anvPipelineId);
+	else
+		dev.get_compute_pipeline_manager()->get_pipeline(anvPipelineId);
 }
 
 prosper::FeatureSupport VlkContext::AreFormatFeaturesSupported(Format format,FormatFeatureFlags featureFlags,std::optional<ImageTiling> tiling) const
@@ -1405,7 +1418,7 @@ std::optional<prosper::PipelineID> VlkContext::AddPipeline(
 )
 {
 	PipelineID pipelineId;
-	if(shader.GetPipelineId(pipelineId,shaderPipelineId) == false)
+	if(shader.GetPipelineId(pipelineId,shaderPipelineId,false) == false)
 		return {};
 	Anvil::PipelineCreateFlags createFlags = Anvil::PipelineCreateFlagBits::ALLOW_DERIVATIVES_BIT;
 	auto bIsDerivative = basePipelineId != std::numeric_limits<PipelineID>::max();
@@ -1458,7 +1471,7 @@ std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(
 )
 {
 	PipelineID pipelineId;
-	if(shader.GetPipelineId(pipelineId,shaderPipelineId) == false)
+	if(shader.GetPipelineId(pipelineId,shaderPipelineId,false) == false)
 		return {};
 	auto &dev = static_cast<VlkContext&>(*this).GetDevice();
 	Anvil::PipelineCreateFlags createFlags = Anvil::PipelineCreateFlagBits::ALLOW_DERIVATIVES_BIT;
