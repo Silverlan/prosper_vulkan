@@ -34,6 +34,10 @@ VlkSampler::~VlkSampler()
 	if(m_sampler != nullptr)
 		prosper::debug::deregister_debug_object(m_sampler->get_sampler());
 }
+void VlkSampler::Bake()
+{
+	GetAnvilSampler().get_sampler();
+}
 bool VlkSampler::DoUpdate()
 {
 	auto &createInfo = m_createInfo;

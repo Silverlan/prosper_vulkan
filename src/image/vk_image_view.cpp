@@ -36,6 +36,10 @@ VlkImageView::~VlkImageView()
 {
 	prosper::debug::deregister_debug_object(m_imageView->get_image_view());
 }
+void VlkImageView::Bake()
+{
+	GetAnvilImageView().get_image_view();
+}
 Anvil::ImageView &VlkImageView::GetAnvilImageView() const {return *m_imageView;}
 Anvil::ImageView &VlkImageView::operator*() {return *m_imageView;}
 const Anvil::ImageView &VlkImageView::operator*() const {return const_cast<VlkImageView*>(this)->operator*();}

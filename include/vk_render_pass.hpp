@@ -22,6 +22,7 @@ namespace prosper
 		const Anvil::RenderPass &operator*() const;
 		Anvil::RenderPass *operator->();
 		const Anvil::RenderPass *operator->() const;
+		virtual void Bake() override;
 
 		virtual const void *GetInternalHandle() const override {return GetAnvilRenderPass().get_render_pass();}
 	protected:

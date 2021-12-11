@@ -82,6 +82,11 @@ std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::Create(IPrContext &conte
 	return r;
 }
 
+void prosper::VlkBuffer::Bake()
+{
+	GetAnvilBuffer().get_buffer();
+}
+
 std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::GetParent() {return std::dynamic_pointer_cast<VlkBuffer>(IBuffer::GetParent());}
 const std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::GetParent() const {return const_cast<VlkBuffer*>(this)->GetParent();}
 

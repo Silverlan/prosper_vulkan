@@ -23,6 +23,8 @@ namespace prosper
 		Anvil::ImageView *operator->();
 		const Anvil::ImageView *operator->() const;
 
+		virtual void Bake() override;
+
 		virtual const void *GetInternalHandle() const override {return GetAnvilImageView().get_image_view();}
 	protected:
 		VlkImageView(IPrContext &context,IImage &img,const util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView);

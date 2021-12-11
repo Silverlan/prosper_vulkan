@@ -26,6 +26,8 @@ namespace prosper
 		Anvil::Image *operator->();
 		const Anvil::Image *operator->() const;
 
+		virtual void Bake() override;
+
 		virtual bool WriteImageData(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint32_t layerIndex,uint32_t mipLevel,uint64_t size,const uint8_t *data) override;
 		virtual DeviceSize GetAlignment() const override;
 		virtual bool Map(DeviceSize offset,DeviceSize size,void **outPtr=nullptr) override;

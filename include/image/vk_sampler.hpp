@@ -24,6 +24,8 @@ namespace prosper
 		Anvil::Sampler *operator->();
 		const Anvil::Sampler *operator->() const;
 
+		virtual void Bake() override;
+
 		virtual const void *GetInternalHandle() const override {return GetAnvilSampler().get_sampler();}
 	protected:
 		VlkSampler(IPrContext &context,const util::SamplerCreateInfo &samplerCreateInfo);

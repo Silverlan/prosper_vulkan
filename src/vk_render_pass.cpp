@@ -31,6 +31,10 @@ VlkRenderPass::~VlkRenderPass()
 {
 	prosper::debug::deregister_debug_object(m_renderPass->get_render_pass());
 }
+void VlkRenderPass::Bake()
+{
+	GetAnvilRenderPass().get_render_pass();
+}
 
 Anvil::RenderPass &VlkRenderPass::GetAnvilRenderPass() const {return *m_renderPass;}
 Anvil::RenderPass &VlkRenderPass::operator*() {return *m_renderPass;}

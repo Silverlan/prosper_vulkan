@@ -81,6 +81,11 @@ VlkImage::~VlkImage()
 	MemoryTracker::GetInstance().RemoveResource(*this);
 }
 
+void VlkImage::Bake()
+{
+	GetAnvilImage().get_image();
+}
+
 DeviceSize VlkImage::GetAlignment() const {return m_image->get_image_alignment(0);}
 
 bool VlkImage::Map(DeviceSize offset,DeviceSize size,void **outPtr)

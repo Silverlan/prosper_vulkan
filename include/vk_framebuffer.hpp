@@ -22,6 +22,7 @@ namespace prosper
 		);
 		virtual ~VlkFramebuffer() override;
 		virtual const void *GetInternalHandle() const override;
+		virtual void Bake(IRenderPass &rp) override;
 		Anvil::Framebuffer &GetAnvilFramebuffer() const;
 		Anvil::Framebuffer &operator*();
 		const Anvil::Framebuffer &operator*() const;

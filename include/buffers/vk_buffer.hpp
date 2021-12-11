@@ -37,6 +37,8 @@ namespace prosper
 		const std::shared_ptr<VlkBuffer> GetParent() const;
 		virtual std::shared_ptr<IBuffer> CreateSubBuffer(DeviceSize offset,DeviceSize size,const std::function<void(IBuffer&)> &onDestroyedCallback=nullptr) override;
 
+		virtual void Bake() override;
+
 		Anvil::Buffer &GetAnvilBuffer() const;
 		Anvil::Buffer &GetBaseAnvilBuffer() const;
 		Anvil::Buffer &operator*();
