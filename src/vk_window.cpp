@@ -87,10 +87,10 @@ void prosper::VlkWindow::ReleaseWindow()
 
 void prosper::VlkWindow::ReleaseSwapchain()
 {
-	m_swapchainPtr.reset();
-	m_renderingSurfacePtr.reset();
 	for(auto &fbo : m_swapchainFramebuffers)
 		fbo.reset();
+	m_swapchainPtr.reset();
+	m_renderingSurfacePtr.reset();
 	
 	m_swapchainFramebuffers.clear();
 	m_cmdFences.clear();
