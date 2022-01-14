@@ -208,7 +208,7 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 	//auto &keepAliveResources = m_keepAliveResources.at(m_n_swapchain_image);
 	//auto numKeepAliveResources = keepAliveResources.size(); // We can clear the resources from the previous render pass of this swapchain after we've waited for the semaphore (i.e. after the frame rendering is complete)
 	
-	auto swapchainImgIdx = GetLastAcquiredSwapchainImageIndex();
+	auto swapchainImgIdx = GetLastAcquiredPrimaryWindowSwapchainImageIndex();
 	if(swapchainImgIdx == UINT32_MAX)
 		return;
 	auto &cmd_buffer_ptr = m_commandBuffers.at(swapchainImgIdx);
@@ -866,7 +866,7 @@ void VlkContext::GetGLSLDefinitions(glsl::Definitions &outDef) const
 
 void VlkContext::DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
 {
-	auto swapchainImgIdx = GetLastAcquiredSwapchainImageIndex();
+	auto swapchainImgIdx = GetLastAcquiredPrimaryWindowSwapchainImageIndex();
 	auto *fence = static_cast<VlkWindow&>(GetWindow()).GetFence(swapchainImgIdx);
 	if(!fence || fence->is_set())
 		return;

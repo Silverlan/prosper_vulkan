@@ -40,8 +40,8 @@ namespace prosper
 		using Window::Window;
 		virtual void InitWindow() override;
 		virtual void ReleaseWindow() override;
-		virtual void InitSwapchain() override;
-		virtual void ReleaseSwapchain() override;
+		virtual void DoInitSwapchain() override;
+		virtual void DoReleaseSwapchain() override;
 		void InitSemaphores();
 		void InitFrameBuffers();
 

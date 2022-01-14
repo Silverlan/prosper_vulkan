@@ -112,7 +112,7 @@ namespace prosper
 		using IPrContext::CreateDescriptorSetGroup;
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo,std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
 		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) override;
-		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(bool allowMt=true) override;
+		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(Window &window,bool allowMt=true) override;
 		virtual std::shared_ptr<Window> CreateWindow(const WindowSettings &windowCreationInfo) override;
 
 		virtual bool IsImageFormatSupported(

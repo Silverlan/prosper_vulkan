@@ -85,7 +85,7 @@ void prosper::VlkWindow::ReleaseWindow()
 	m_windowPtr = nullptr;
 }
 
-void prosper::VlkWindow::ReleaseSwapchain()
+void prosper::VlkWindow::DoReleaseSwapchain()
 {
 	for(auto &fbo : m_swapchainFramebuffers)
 		fbo.reset();
@@ -288,7 +288,7 @@ void prosper::VlkWindow::InitSemaphores()
 	}
 }
 
-void prosper::VlkWindow::InitSwapchain()
+void prosper::VlkWindow::DoInitSwapchain()
 {
 	auto &context = static_cast<VlkContext&>(GetContext());
 	m_renderingSurfacePtr = Anvil::RenderingSurface::create(Anvil::RenderingSurfaceCreateInfo::create(&context.GetAnvilInstance(),&context.GetDevice(),m_windowPtr.get()));
