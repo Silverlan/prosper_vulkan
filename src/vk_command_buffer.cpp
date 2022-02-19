@@ -791,14 +791,23 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBuffer(const util::BufferCopy &copyI
 	static_assert(sizeof(util::BufferCopy) == sizeof(Anvil::BufferCopy));
 	return m_cmdBuffer->record_copy_buffer(&bufferSrc.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),&bufferDst.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),1u,reinterpret_cast<const Anvil::BufferCopy*>(&copyInfo));
 }
-bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst,uint32_t w,uint32_t h)
+bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo,IBuffer &bufferSrc,IImage &imgDst)
 {
 	if(static_cast<VlkContext&>(bufferSrc.GetContext()).IsCustomValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
+	Vector2i imgExtent {};
+	if(copyInfo.imageExtent.has_value())
+		imgExtent = *copyInfo.imageExtent;
+	else
+		imgExtent = {imgDst.GetWidth(),imgDst.GetHeight()};
+
 	Anvil::BufferImageCopy bufferImageCopy {};
 	bufferImageCopy.buffer_offset = bufferSrc.GetStartOffset() +copyInfo.bufferOffset;
-	bufferImageCopy.image_extent = vk::Extent3D(w,h,1);
+	bufferImageCopy.buffer_row_length = imgExtent.x;
+	bufferImageCopy.buffer_image_height = imgExtent.y;
+	bufferImageCopy.image_extent = vk::Extent3D(imgExtent.x,imgExtent.y,1);
+	bufferImageCopy.image_offset = vk::Offset3D(copyInfo.imageOffset.x,copyInfo.imageOffset.y,0);
 	bufferImageCopy.image_subresource = Anvil::ImageSubresourceLayers{
 		static_cast<Anvil::ImageAspectFlagBits>(copyInfo.aspectMask),copyInfo.mipLevel,copyInfo.baseArrayLayer,copyInfo.layerCount
 	};
@@ -822,14 +831,22 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImage(const util::CopyInfo &copyInfo
 		1,&copyRegion
 	);
 }
-bool prosper::VlkCommandBuffer::DoRecordCopyImageToBuffer(const util::BufferImageCopyInfo &copyInfo,IImage &imgSrc,ImageLayout srcImageLayout,IBuffer &bufferDst,uint32_t w,uint32_t h)
+bool prosper::VlkCommandBuffer::DoRecordCopyImageToBuffer(const util::BufferImageCopyInfo &copyInfo,IImage &imgSrc,ImageLayout srcImageLayout,IBuffer &bufferDst)
 {
 	if(static_cast<VlkContext&>(bufferDst.GetContext()).IsCustomValidationEnabled() && m_cmdBuffer->get_command_buffer_type() == Anvil::CommandBufferType::COMMAND_BUFFER_TYPE_PRIMARY && static_cast<VlkPrimaryCommandBuffer&>(*this).GetActiveRenderPassTargetInfo())
 		throw std::logic_error("Attempted to copy image to buffer while render pass is active!");
 
+	Vector2i imgExtent {};
+	if(copyInfo.imageExtent.has_value())
+		imgExtent = *copyInfo.imageExtent;
+	else
+		imgExtent = {imgSrc.GetWidth(),imgSrc.GetHeight()};
+
 	Anvil::BufferImageCopy bufferImageCopy {};
 	bufferImageCopy.buffer_offset = bufferDst.GetStartOffset() +copyInfo.bufferOffset;
-	bufferImageCopy.image_extent = vk::Extent3D(w,h,1);
+	bufferImageCopy.buffer_row_length = imgExtent.x;
+	bufferImageCopy.buffer_image_height = imgExtent.y;
+	bufferImageCopy.image_extent = vk::Extent3D(imgExtent.x,imgExtent.y,1);
 	bufferImageCopy.image_subresource = Anvil::ImageSubresourceLayers{
 		static_cast<Anvil::ImageAspectFlagBits>(copyInfo.aspectMask),copyInfo.mipLevel,copyInfo.baseArrayLayer,copyInfo.layerCount
 	};

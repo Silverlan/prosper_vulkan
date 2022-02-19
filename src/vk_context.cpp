@@ -442,6 +442,7 @@ std::optional<prosper::util::PhysicalDeviceImageFormatProperties> VlkContext::Ge
 		return {};
 	util::PhysicalDeviceImageFormatProperties imageFormatProperties {};
 	imageFormatProperties.sampleCount = static_cast<SampleCountFlags>(imgFormatProperties.sample_counts.get_vk());
+	imageFormatProperties.maxExtent = {imgFormatProperties.max_extent.width,imgFormatProperties.max_extent.height,imgFormatProperties.max_extent.depth};
 	return imageFormatProperties;
 }
 
