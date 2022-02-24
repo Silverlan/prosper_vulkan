@@ -32,7 +32,7 @@
 
 // Note: Most command buffer methods use the vulkan functions directly instead of Anvil, because
 // Anvil includes an additional mutex overhead
-
+#pragma optimize("",off)
 Anvil::CommandBufferBase &prosper::VlkCommandBuffer::GetAnvilCommandBuffer() const {return *m_cmdBuffer;}
 Anvil::CommandBufferBase &prosper::VlkCommandBuffer::operator*() {return *m_cmdBuffer;}
 const Anvil::CommandBufferBase &prosper::VlkCommandBuffer::operator*() const {return const_cast<VlkCommandBuffer*>(this)->operator*();}
@@ -802,6 +802,17 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImag
 	else
 		imgExtent = {imgDst.GetWidth(),imgDst.GetHeight()};
 
+	if(!util::is_compressed_format(imgDst.GetFormat())) // TODO: Implement validation for compressed formats
+	{
+		auto szBuf = bufferSrc.GetSize() -copyInfo.bufferOffset;
+		auto szReq = imgDst.GetPixelSize() *imgExtent.x *imgExtent.y *copyInfo.layerCount;
+		if(szReq > szBuf)
+			throw std::logic_error{"Image size exceeds available buffer size!"};
+
+		if((copyInfo.imageOffset.x +imgExtent.x > imgDst.GetWidth(copyInfo.mipLevel)) || (copyInfo.imageOffset.y +imgExtent.y > imgDst.GetHeight(copyInfo.mipLevel)))
+			throw std::logic_error{"Copy bounds exceed image bounds!"};
+	}
+
 	Anvil::BufferImageCopy bufferImageCopy {};
 	bufferImageCopy.buffer_offset = bufferSrc.GetStartOffset() +copyInfo.bufferOffset;
 	bufferImageCopy.buffer_row_length = imgExtent.x;
@@ -841,6 +852,17 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImageToBuffer(const util::BufferImag
 		imgExtent = *copyInfo.imageExtent;
 	else
 		imgExtent = {imgSrc.GetWidth(),imgSrc.GetHeight()};
+
+	if(!util::is_compressed_format(imgSrc.GetFormat())) // TODO: Implement validation for compressed formats
+	{
+		auto szBuf = bufferDst.GetSize() -copyInfo.bufferOffset;
+		auto szReq = imgSrc.GetPixelSize() *imgExtent.x *imgExtent.y *copyInfo.layerCount;
+		if(szReq > szBuf)
+			throw std::logic_error{"Image size exceeds available buffer size!"};
+
+		if((copyInfo.imageOffset.x +imgExtent.x > imgSrc.GetWidth(copyInfo.mipLevel)) || (copyInfo.imageOffset.y +imgExtent.y > imgSrc.GetHeight(copyInfo.mipLevel)))
+			throw std::logic_error{"Copy bounds exceed image bounds!"};
+	}
 
 	Anvil::BufferImageCopy bufferImageCopy {};
 	bufferImageCopy.buffer_offset = bufferDst.GetStartOffset() +copyInfo.bufferOffset;
@@ -903,3 +925,4 @@ bool prosper::VlkPrimaryCommandBuffer::ExecuteCommands(prosper::ISecondaryComman
 	auto *anvCmdBuf = &static_cast<VlkSecondaryCommandBuffer&>(cmdBuf).GetAnvilCommandBuffer();
 	return static_cast<Anvil::PrimaryCommandBuffer&>(**this).record_execute_commands(1,&anvCmdBuf);
 }
+#pragma optimize("",on)
