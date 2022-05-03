@@ -128,6 +128,12 @@ bool VlkDescriptorSet::DoSetBindingStorageBuffer(prosper::IBuffer &buffer,uint32
 		&buffer.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
 	});
 }
+bool VlkDescriptorSet::DoSetBindingDynamicStorageBuffer(prosper::IBuffer &buffer,uint32_t bindingIdx,uint64_t startOffset,uint64_t size)
+{
+	return GetAnvilDescriptorSet().set_binding_item(bindingIdx,Anvil::DescriptorSet::DynamicStorageBufferBindingElement{
+		&buffer.GetAPITypeRef<VlkBuffer>().GetBaseAnvilBuffer(),buffer.GetStartOffset() +startOffset,size
+	});
+}
 
 Anvil::DescriptorSetGroup &VlkDescriptorSetGroup::GetAnvilDescriptorSetGroup() const {return *m_descriptorSetGroup;}
 Anvil::DescriptorSetGroup &VlkDescriptorSetGroup::operator*() {return *m_descriptorSetGroup;}

@@ -644,7 +644,7 @@ bool prosper::VlkPrimaryCommandBuffer::DoRecordBeginRenderPass(
 	auto renderArea = vk::Rect2D(vk::Offset2D(),reinterpret_cast<vk::Extent2D&>(extents));
 	return static_cast<prosper::VlkPrimaryCommandBuffer&>(*this)->record_begin_render_pass(
 		clearValues.size(),reinterpret_cast<const VkClearValue*>(clearValues.data()),
-		&static_cast<prosper::VlkFramebuffer&>(fb).GetAnvilFramebuffer(),renderArea,&static_cast<prosper::VlkRenderPass&>(rp).GetAnvilRenderPass(),umath::is_flag_set(renderPassFlags,RenderPassFlags::SecondaryCommandBuffers) ? Anvil::SubpassContents::SECONDARY_COMMAND_BUFFERS : Anvil::SubpassContents::INLINE
+		&static_cast<prosper::VlkFramebuffer&>(fb).GetAnvilFramebuffer(),static_cast<VkRect2D&>(renderArea),&static_cast<prosper::VlkRenderPass&>(rp).GetAnvilRenderPass(),umath::is_flag_set(renderPassFlags,RenderPassFlags::SecondaryCommandBuffers) ? Anvil::SubpassContents::SECONDARY_COMMAND_BUFFERS : Anvil::SubpassContents::INLINE
 	);// && RecordSetViewport(extents.width,extents.height) && RecordSetScissor(extents.width,extents.height);
 }
 
@@ -800,9 +800,10 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImag
 	if(copyInfo.imageExtent.has_value())
 		imgExtent = *copyInfo.imageExtent;
 	else
-		imgExtent = {imgDst.GetWidth(),imgDst.GetHeight()};
+		imgExtent = {imgDst.GetWidth(copyInfo.mipLevel),imgDst.GetHeight(copyInfo.mipLevel)};
 
-	if(!util::is_compressed_format(imgDst.GetFormat())) // TODO: Implement validation for compressed formats
+	auto isCompressedFormat = util::is_compressed_format(imgDst.GetFormat());
+	if(!isCompressedFormat) // TODO: Implement validation for compressed formats
 	{
 		auto szBuf = bufferSrc.GetSize() -copyInfo.bufferOffset;
 		auto szReq = imgDst.GetPixelSize() *imgExtent.x *imgExtent.y *copyInfo.layerCount;
@@ -817,8 +818,14 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImag
 	bufferImageCopy.buffer_offset = bufferSrc.GetStartOffset() +copyInfo.bufferOffset;
 	bufferImageCopy.buffer_row_length = imgExtent.x;
 	bufferImageCopy.buffer_image_height = imgExtent.y;
-	bufferImageCopy.image_extent = vk::Extent3D(imgExtent.x,imgExtent.y,1);
-	bufferImageCopy.image_offset = vk::Offset3D(copyInfo.imageOffset.x,copyInfo.imageOffset.y,0);
+	if(isCompressedFormat)
+	{
+		auto blockSize = prosper::util::get_block_size(imgDst.GetFormat());
+		bufferImageCopy.buffer_row_length = umath::max(bufferImageCopy.buffer_row_length,blockSize);
+		bufferImageCopy.buffer_image_height = umath::max(bufferImageCopy.buffer_image_height,blockSize);
+	}
+	bufferImageCopy.image_extent = static_cast<VkExtent3D>(vk::Extent3D(imgExtent.x,imgExtent.y,1));
+	bufferImageCopy.image_offset = static_cast<VkOffset3D>(vk::Offset3D(copyInfo.imageOffset.x,copyInfo.imageOffset.y,0));
 	bufferImageCopy.image_subresource = Anvil::ImageSubresourceLayers{
 		static_cast<Anvil::ImageAspectFlagBits>(copyInfo.aspectMask),copyInfo.mipLevel,copyInfo.baseArrayLayer,copyInfo.layerCount
 	};
@@ -833,8 +840,9 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImage(const util::CopyInfo &copyInfo
 	static_assert(sizeof(Anvil::ImageSubresourceLayers) == sizeof(util::ImageSubresourceLayers));
 	static_assert(sizeof(vk::Offset3D) == sizeof(Offset3D));
 	Anvil::ImageCopy copyRegion{
-		reinterpret_cast<const Anvil::ImageSubresourceLayers&>(copyInfo.srcSubresource),reinterpret_cast<const vk::Offset3D&>(copyInfo.srcOffset),
-		reinterpret_cast<const Anvil::ImageSubresourceLayers&>(copyInfo.dstSubresource),reinterpret_cast<const vk::Offset3D&>(copyInfo.dstOffset),extent
+		reinterpret_cast<const Anvil::ImageSubresourceLayers&>(copyInfo.srcSubresource),static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(copyInfo.srcOffset)),
+		reinterpret_cast<const Anvil::ImageSubresourceLayers&>(copyInfo.dstSubresource),static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(copyInfo.dstOffset)),
+		static_cast<VkExtent3D>(extent)
 	};
 	return m_cmdBuffer->record_copy_image(
 		&*static_cast<VlkImage&>(imgSrc),static_cast<Anvil::ImageLayout>(copyInfo.srcImageLayout),
@@ -851,7 +859,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImageToBuffer(const util::BufferImag
 	if(copyInfo.imageExtent.has_value())
 		imgExtent = *copyInfo.imageExtent;
 	else
-		imgExtent = {imgSrc.GetWidth(),imgSrc.GetHeight()};
+		imgExtent = {imgSrc.GetWidth(copyInfo.mipLevel),imgSrc.GetHeight(copyInfo.mipLevel)};
 
 	if(!util::is_compressed_format(imgSrc.GetFormat())) // TODO: Implement validation for compressed formats
 	{
@@ -868,7 +876,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImageToBuffer(const util::BufferImag
 	bufferImageCopy.buffer_offset = bufferDst.GetStartOffset() +copyInfo.bufferOffset;
 	bufferImageCopy.buffer_row_length = imgExtent.x;
 	bufferImageCopy.buffer_image_height = imgExtent.y;
-	bufferImageCopy.image_extent = vk::Extent3D(imgExtent.x,imgExtent.y,1);
+	bufferImageCopy.image_extent = static_cast<VkExtent3D>(vk::Extent3D(imgExtent.x,imgExtent.y,1));
 	bufferImageCopy.image_subresource = Anvil::ImageSubresourceLayers{
 		static_cast<Anvil::ImageAspectFlagBits>(copyInfo.aspectMask),copyInfo.mipLevel,copyInfo.baseArrayLayer,copyInfo.layerCount
 	};
@@ -882,11 +890,11 @@ bool prosper::VlkCommandBuffer::DoRecordBlitImage(const util::BlitInfo &blitInfo
 	static_assert(sizeof(Offset3D) == sizeof(vk::Offset3D));
 	Anvil::ImageBlit blit {};
 	blit.src_subresource = reinterpret_cast<const Anvil::ImageSubresourceLayers&>(blitInfo.srcSubresourceLayer);
-	blit.src_offsets[0] = reinterpret_cast<const vk::Offset3D&>(srcOffsets.at(0));
-	blit.src_offsets[1] = reinterpret_cast<const vk::Offset3D&>(srcOffsets.at(1));
+	blit.src_offsets[0] = static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(srcOffsets.at(0)));
+	blit.src_offsets[1] = static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(srcOffsets.at(1)));
 	blit.dst_subresource = reinterpret_cast<const Anvil::ImageSubresourceLayers&>(blitInfo.dstSubresourceLayer);
-	blit.dst_offsets[0] = reinterpret_cast<const vk::Offset3D&>(dstOffsets.at(0));
-	blit.dst_offsets[1] = reinterpret_cast<const vk::Offset3D&>(dstOffsets.at(1));
+	blit.dst_offsets[0] = static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(dstOffsets.at(0)));
+	blit.dst_offsets[1] = static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(dstOffsets.at(1)));
 	auto bDepth = util::is_depth_format(imgSrc.GetFormat());
 	blit.src_subresource.aspect_mask = aspectFlags.has_value() ?
 		static_cast<Anvil::ImageAspectFlagBits>(*aspectFlags) :
