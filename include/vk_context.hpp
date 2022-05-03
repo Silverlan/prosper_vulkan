@@ -133,7 +133,7 @@ namespace prosper
 		virtual void Flush() override;
 		virtual Result WaitForFence(const IFence &fence,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const override;
 		virtual Result WaitForFences(const std::vector<IFence*> &fences,bool waitAll=true,uint64_t timeout=std::numeric_limits<uint64_t>::max()) const override;
-		virtual void DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame) override;
+		virtual void DrawFrame(const std::function<void()> &drawFrame) override;
 		virtual bool Submit(ICommandBuffer &cmdBuf,bool shouldBlock=false,IFence *optFence=nullptr) override;
 		virtual void SubmitCommandBuffer(prosper::ICommandBuffer &cmd,prosper::QueueFamilyType queueFamilyType,bool shouldBlock=false,prosper::IFence *fence=nullptr) override;
 		using IPrContext::SubmitCommandBuffer;
@@ -231,7 +231,6 @@ namespace prosper
 			uint64_t maxTotalSize,const void *data,
 			prosper::DeviceSize bufferBaseSize,uint32_t alignment
 		) override;
-		void InitCommandBuffers();
 		void InitVulkan(const CreateInfo &createInfo);
 		void InitMainRenderPass();
 		virtual void ReloadSwapchain() override;

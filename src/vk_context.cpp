@@ -167,8 +167,10 @@ bool VlkContext::WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg)
 	return true;
 }
 
-void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prosper::IPrimaryCommandBuffer>&,uint32_t)> &drawFrame)
+void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 {
+	ClearKeepAliveResources();
+
 	auto errCode = Anvil::SwapchainOperationErrorCode::SUCCESS;
 	uint64_t validWindows = 0;
 	std::string errMsg;
@@ -198,46 +200,64 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 		auto result = static_cast<VlkWindow&>(*window).WaitForFence(errMsg);
 		window->SetState(result ? prosper::Window::State::Active : prosper::Window::State::Inactive);
 		if(result)
+		{
 			validWindows |= (1<<idx);
+			auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*window->GetDrawCommandBuffer());
+			static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).start_recording(true,false);
+			primCmd.SetRecording(true);
+		}
 
 		++it;
 	}
-	
-	ClearKeepAliveResources();
+
+	auto fCancelRecording = [this,validWindows]() {
+		for(uint32_t idx=0; auto &wpWindow : m_windows)
+		{
+			auto window = wpWindow.lock();
+			if(!window || window->IsValid() == false)
+			{
+				++idx;
+				continue;
+			}
+		
+			if((validWindows &(1<<idx)) == 0)
+				continue;
+		
+			auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*window->GetDrawCommandBuffer());
+			primCmd.SetRecording(false);
+			static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).stop_recording();
+		}
+	};
 
 	//auto &keepAliveResources = m_keepAliveResources.at(m_n_swapchain_image);
 	//auto numKeepAliveResources = keepAliveResources.size(); // We can clear the resources from the previous render pass of this swapchain after we've waited for the semaphore (i.e. after the frame rendering is complete)
 	
 	auto swapchainImgIdx = GetLastAcquiredPrimaryWindowSwapchainImageIndex();
 	if(swapchainImgIdx == UINT32_MAX)
+	{
+		fCancelRecording();
 		return;
-	auto &cmd_buffer_ptr = m_commandBuffers.at(swapchainImgIdx);
+	}
 	/* Start recording commands */
-	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*cmd_buffer_ptr);
-	static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).start_recording(true,false);
-	primCmd.SetRecording(true);
+	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*GetWindow().GetDrawCommandBuffer());
 	umath::set_flag(m_stateFlags,StateFlags::IsRecording);
 	umath::set_flag(m_stateFlags,StateFlags::Idle,false);
 	while(m_scheduledBufferUpdates.empty() == false)
 	{
 		auto &f = m_scheduledBufferUpdates.front();
-		f(*cmd_buffer_ptr);
+		f(primCmd);
 		m_scheduledBufferUpdates.pop();
 	}
-	drawFrame(GetDrawCommandBuffer(),swapchainImgIdx);
+	drawFrame();
 	/* Close the recording process */
 	umath::set_flag(m_stateFlags,StateFlags::IsRecording,false);
-	primCmd.SetRecording(false);
-	static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).stop_recording();
 
 	if(!m_window)
+	{
+		fCancelRecording();
 		return;
-	// We need to update the main window first
-	auto &sigSem = static_cast<VlkWindow&>(*m_window).Submit(primCmd);
-	static_cast<VlkWindow&>(*m_window).Present(&sigSem);
-	auto *mainWaitSemaphore =  static_cast<VlkWindow&>(*m_window).GetCurrentFrameWaitSemaphore();
-	
-	// Now we can update all other windows
+	}
+
 	for(uint32_t idx=0; auto &wpWindow : m_windows)
 	{
 		auto window = wpWindow.lock();
@@ -247,14 +267,14 @@ void VlkContext::DrawFrame(const std::function<void(const std::shared_ptr<prospe
 			continue;
 		}
 		
-		if(window == m_window)
-		{
-			++idx;
-			continue;
-		}
 		if((validWindows &(1<<idx)) == 0)
 			continue;
-		static_cast<VlkWindow&>(*window).Submit(primCmd,mainWaitSemaphore);
+		
+		auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*window->GetDrawCommandBuffer());
+		primCmd.SetRecording(false);
+		static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).stop_recording();
+
+		auto &sigSem = static_cast<VlkWindow&>(*window).Submit(primCmd);
 		static_cast<VlkWindow&>(*window).Present(&sigSem);
 	}
 }
@@ -277,7 +297,6 @@ void VlkContext::ReloadWindow()
 {
 	WaitIdle();
 	m_renderPass.reset();
-	m_commandBuffers.clear();
 	InitWindow();
 	ReloadSwapchain();
 }
@@ -309,7 +328,6 @@ void VlkContext::Release()
 	if(it != s_devToContext.end())
 		s_devToContext.erase(it);
 	
-	m_commandBuffers.clear();
 	m_renderPass = nullptr;
 	m_devicePtr.reset(); // All Vulkan resources related to the device have to be cleared at this point!
 	m_instancePtr.reset();
@@ -504,7 +522,6 @@ void VlkContext::ReloadSwapchain()
 			OnPrimaryWindowSwapchainReloaded();
 	}
 
-	InitCommandBuffers();
 	InitMainRenderPass();
 	InitTemporaryBuffer();
 	OnSwapchainInitialized();
@@ -537,46 +554,9 @@ void VlkContext::ReloadSwapchain()
 	}
 }
 
-void VlkContext::InitCommandBuffers()
-{
-	VkImageSubresourceRange subresource_range;
-	auto *universal_queue_ptr = m_devicePtr->get_universal_queue(0);
-
-	subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	subresource_range.baseArrayLayer = 0;
-	subresource_range.baseMipLevel = 0;
-	subresource_range.layerCount = 1;
-	subresource_range.levelCount = 1;
-
-	/* Set up rendering command buffers. We need one per swap-chain image. */
-	uint32_t        n_universal_queue_family_indices = 0;
-	const uint32_t* universal_queue_family_indices   = nullptr;
-
-	m_devicePtr->get_queue_family_indices_for_queue_family_type(
-		Anvil::QueueFamilyType::UNIVERSAL,
-		&n_universal_queue_family_indices,
-		&universal_queue_family_indices
-	);
-
-	/* Set up rendering command buffers. We need one per swap-chain image. */
-	for(auto n_current_swapchain_image=0u;n_current_swapchain_image < m_commandBuffers.size();++n_current_swapchain_image)
-	{
-		auto cmd_buffer_ptr = prosper::VlkPrimaryCommandBuffer::Create(*this,m_devicePtr->get_command_pool_for_queue_family_index(universal_queue_family_indices[0])->alloc_primary_level_command_buffer(),prosper::QueueFamilyType::Universal);
-		cmd_buffer_ptr->SetDebugName("swapchain_cmd" +std::to_string(n_current_swapchain_image));
-		//m_devicePtr->get_command_pool(Anvil::QUEUE_FAMILY_TYPE_UNIVERSAL)->alloc_primary_level_command_buffer();
-
-		m_commandBuffers[n_current_swapchain_image] = cmd_buffer_ptr;
-	}
-}
-
 void VlkContext::OnPrimaryWindowSwapchainReloaded()
 {
 	auto numSwapchainImages = static_cast<VlkWindow&>(GetWindow()).GetSwapchainImageCount();
-	if(m_commandBuffers.empty())
-	{
-		m_commandBuffers.resize(numSwapchainImages);
-		InitCommandBuffers();
-	}
 	m_keepAliveResources.clear();
 	m_keepAliveResources.resize(numSwapchainImages);
 }

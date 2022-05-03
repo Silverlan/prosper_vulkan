@@ -15,6 +15,8 @@
 #include <wrappers/swapchain.h>
 #include <wrappers/semaphore.h>
 #include <wrappers/framebuffer.h>
+#include <wrappers/device.h>
+#include <wrappers/command_pool.h>
 #include <misc/semaphore_create_info.h>
 #include <misc/framebuffer_create_info.h>
 #include <misc/image_create_info.h>
@@ -67,6 +69,8 @@ std::shared_ptr<VlkWindow> prosper::VlkWindow::Create(const WindowSettings &wind
 }
 prosper::VlkWindow::~VlkWindow()
 {
+	m_commandBuffers.clear();
+
 	m_frameSignalSemaphores.clear();
 	m_frameWaitSemaphores.clear();
 
@@ -83,6 +87,41 @@ void prosper::VlkWindow::ReleaseWindow()
 	ReleaseSwapchain();
 	m_glfwWindow = nullptr;
 	m_windowPtr = nullptr;
+}
+
+void prosper::VlkWindow::InitCommandBuffers()
+{
+	VkImageSubresourceRange subresource_range;
+	auto &context = static_cast<VlkContext&>(GetContext());
+	auto &dev = context.GetDevice();
+	auto *universal_queue_ptr = dev.get_universal_queue(0);
+
+	subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresource_range.baseArrayLayer = 0;
+	subresource_range.baseMipLevel = 0;
+	subresource_range.layerCount = 1;
+	subresource_range.levelCount = 1;
+
+	/* Set up rendering command buffers. We need one per swap-chain image. */
+	uint32_t        n_universal_queue_family_indices = 0;
+	const uint32_t* universal_queue_family_indices   = nullptr;
+
+	dev.get_queue_family_indices_for_queue_family_type(
+		Anvil::QueueFamilyType::UNIVERSAL,
+		&n_universal_queue_family_indices,
+		&universal_queue_family_indices
+	);
+
+	/* Set up rendering command buffers. We need one per swap-chain image. */
+	m_commandBuffers.resize(GetSwapchainImageCount());
+	for(auto n_current_swapchain_image=0u;n_current_swapchain_image < m_commandBuffers.size();++n_current_swapchain_image)
+	{
+		auto cmd_buffer_ptr = prosper::VlkPrimaryCommandBuffer::Create(context,dev.get_command_pool_for_queue_family_index(universal_queue_family_indices[0])->alloc_primary_level_command_buffer(),prosper::QueueFamilyType::Universal);
+		cmd_buffer_ptr->SetDebugName("swapchain_cmd" +std::to_string(n_current_swapchain_image));
+		//dev.get_command_pool(Anvil::QUEUE_FAMILY_TYPE_UNIVERSAL)->alloc_primary_level_command_buffer();
+
+		m_commandBuffers[n_current_swapchain_image] = cmd_buffer_ptr;
+	}
 }
 
 void prosper::VlkWindow::DoReleaseSwapchain()
@@ -126,14 +165,16 @@ Anvil::Semaphore &prosper::VlkWindow::Submit(VlkPrimaryCommandBuffer &cmd,Anvil:
 	auto swapchainImgIdx = GetLastAcquiredSwapchainImageIndex();
 	auto &context = static_cast<VlkContext&>(GetContext());
 	auto &dev = context.GetDevice();
-	const Anvil::PipelineStageFlags wait_stage_mask = Anvil::PipelineStageFlagBits::ALL_COMMANDS_BIT;
+	const std::array<Anvil::PipelineStageFlags,2> wait_stage_mask {
+		Anvil::PipelineStageFlagBits::ALL_COMMANDS_BIT,Anvil::PipelineStageFlagBits::ALL_COMMANDS_BIT
+	};
 	dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
 		&cmd.GetAnvilCommandBuffer(),
 		1, /* n_semaphores_to_signal */
 		&signalSemaphore,
 		optWaitSemaphore ? 2 : 1, /* n_semaphores_to_wait_on */
 		waitSemaphores.data(),
-		&wait_stage_mask,
+		wait_stage_mask.data(),
 		false, /* should_block  */
 		m_cmdFences.at(swapchainImgIdx).get()
 	)); /* opt_fence_ptr */

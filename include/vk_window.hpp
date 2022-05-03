@@ -42,6 +42,7 @@ namespace prosper
 		virtual void ReleaseWindow() override;
 		virtual void DoInitSwapchain() override;
 		virtual void DoReleaseSwapchain() override;
+		virtual void InitCommandBuffers() override;
 		void InitSemaphores();
 		void InitFrameBuffers();
 
