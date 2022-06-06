@@ -155,9 +155,8 @@ prosper::Result VlkContext::WaitForFences(const std::vector<IFence*> &fences,boo
 
 bool VlkContext::WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg)
 {
-	for(auto &wpWindow : m_windows)
+	for(auto &window : m_windows)
 	{
-		auto window = wpWindow.lock();
 		if(!window || window->IsValid() == false)
 			continue;
 		auto result = static_cast<VlkWindow&>(*window).WaitForFence(outErrMsg);
@@ -176,10 +175,20 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 	std::string errMsg;
 	for(auto it=m_windows.begin();it!=m_windows.end();)
 	{
-		auto window = it->lock();
-		if(!window || window->IsValid() == false)
+		auto &window = *it;
+		if(!window)
 		{
 			it = m_windows.erase(it);
+			continue;
+		}
+		if(window->IsValid() == false)
+		{
+			if(window.use_count() == 1) // Destroy it if this is the last reference
+			{
+				it = m_windows.erase(it);
+				continue;
+			}
+			++it;
 			continue;
 		}
 		auto idx = it -m_windows.begin();
@@ -211,9 +220,8 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 	}
 
 	auto fCancelRecording = [this,validWindows]() {
-		for(uint32_t idx=0; auto &wpWindow : m_windows)
+		for(uint32_t idx=0; auto &window : m_windows)
 		{
-			auto window = wpWindow.lock();
 			if(!window || window->IsValid() == false)
 			{
 				++idx;
@@ -221,11 +229,15 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 			}
 		
 			if((validWindows &(1<<idx)) == 0)
+			{
+				++idx;
 				continue;
+			}
 		
 			auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*window->GetDrawCommandBuffer());
 			primCmd.SetRecording(false);
 			static_cast<Anvil::PrimaryCommandBuffer&>(primCmd.GetAnvilCommandBuffer()).stop_recording();
+			++idx;
 		}
 	};
 
@@ -258,9 +270,8 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 		return;
 	}
 
-	for(uint32_t idx=0; auto &wpWindow : m_windows)
+	for(uint32_t idx=0; auto &window : m_windows)
 	{
-		auto window = wpWindow.lock();
 		if(!window || window->IsValid() == false)
 		{
 			++idx;
@@ -268,7 +279,10 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 		}
 		
 		if((validWindows &(1<<idx)) == 0)
+		{
+			++idx;
 			continue;
+		}
 		
 		auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(*window->GetDrawCommandBuffer());
 		primCmd.SetRecording(false);
@@ -276,6 +290,7 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 
 		auto &sigSem = static_cast<VlkWindow&>(*window).Submit(primCmd);
 		static_cast<VlkWindow&>(*window).Present(&sigSem);
+		++idx;
 	}
 }
 
@@ -511,9 +526,8 @@ void VlkContext::ReloadSwapchain()
 {
 	// Reload swapchain related objects
 	WaitIdle();
-	for(auto &wpWindow : m_windows)
+	for(auto &window : m_windows)
 	{
-		auto window = wpWindow.lock();
 		if(!window || window->IsValid() == false)
 			continue;
 		auto &vlkWindow = static_cast<VlkWindow&>(*window);
