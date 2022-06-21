@@ -12,9 +12,11 @@ using namespace prosper;
 
 
 VlkRenderBuffer::VlkRenderBuffer(
-	prosper::IPrContext &context,const std::vector<prosper::IBuffer*> &buffers,const std::vector<prosper::DeviceSize> &offsets,const std::optional<IndexBufferInfo> &indexBufferInfo
+	prosper::IPrContext &context,const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,
+	const std::vector<prosper::IBuffer*> &buffers,const std::vector<prosper::DeviceSize> &offsets,
+	const std::optional<IndexBufferInfo> &indexBufferInfo
 )
-	: IRenderBuffer{context,buffers,indexBufferInfo},m_offsets{offsets}
+	: IRenderBuffer{context,pipelineCreateInfo,buffers,offsets,indexBufferInfo}
 {
 	Initialize();
 }
@@ -23,9 +25,8 @@ std::shared_ptr<VlkRenderBuffer> VlkRenderBuffer::Create(
 	const std::vector<prosper::DeviceSize> &offsets,const std::optional<IndexBufferInfo> &indexBufferInfo
 )
 {
-	return std::shared_ptr<VlkRenderBuffer>{new VlkRenderBuffer{context,buffers,offsets,indexBufferInfo}};
+	return std::shared_ptr<VlkRenderBuffer>{new VlkRenderBuffer{context,pipelineCreateInfo,buffers,offsets,indexBufferInfo}};
 }
-const std::vector<prosper::DeviceSize> &VlkRenderBuffer::GetOffsets() const {return m_offsets;}
 bool VlkRenderBuffer::Record(VkCommandBuffer cmdBuf) const
 {
 	// return cmdBuf.record_bind_vertex_buffers(0u,m_anvBuffers.size(),m_anvBuffers.data(),m_anvOffsets.data()) &&

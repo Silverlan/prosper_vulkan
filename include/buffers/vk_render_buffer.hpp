@@ -24,16 +24,16 @@ namespace prosper
 			prosper::VlkContext &context,const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,const std::vector<prosper::IBuffer*> &buffers,
 			const std::vector<prosper::DeviceSize> &offsets={},const std::optional<IndexBufferInfo> &indexBufferInfo={}
 		);
-		const std::vector<prosper::DeviceSize> &GetOffsets() const;
 
 		bool Record(VkCommandBuffer cmdBuf) const;
 	private:
 		VlkRenderBuffer(
-			prosper::IPrContext &context,const std::vector<prosper::IBuffer*> &buffers,const std::vector<prosper::DeviceSize> &offsets,const std::optional<IndexBufferInfo> &indexBufferInfo={}
+			prosper::IPrContext &context,const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,
+			const std::vector<prosper::IBuffer*> &buffers,const std::vector<prosper::DeviceSize> &offsets,
+			const std::optional<IndexBufferInfo> &indexBufferInfo={}
 		);
 		void Initialize();
 		virtual void Reload() override;
-		std::vector<prosper::DeviceSize> m_offsets {};
 
 		std::vector<DeviceSize> m_vkOffsets {};
 		mutable std::vector<VkBuffer> m_vkBuffers {};
