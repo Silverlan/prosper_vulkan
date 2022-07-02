@@ -366,7 +366,8 @@ void VlkContext::DoFlushCommandBuffer(ICommandBuffer &cmd)
 	if(cmd.IsPrimary() == false)
 		return;
 	auto &pcmd = static_cast<prosper::VlkPrimaryCommandBuffer&>(cmd.GetAPITypeRef<prosper::VlkCommandBuffer>());
-	auto bSuccess = static_cast<Anvil::PrimaryCommandBuffer&>(pcmd.GetAnvilCommandBuffer()).stop_recording();
+	if(cmd.IsRecording())
+		static_cast<Anvil::PrimaryCommandBuffer&>(pcmd.GetAnvilCommandBuffer()).stop_recording();
 	auto &dev = GetDevice();
 	dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(
 		&pcmd.GetAnvilCommandBuffer(),0u,nullptr,
