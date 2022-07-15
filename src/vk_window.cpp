@@ -57,7 +57,7 @@
 #endif
 
 using namespace prosper;
-#pragma optimize("",off)
+
 std::shared_ptr<VlkWindow> prosper::VlkWindow::Create(const WindowSettings &windowCreationInfo,prosper::VlkContext &context)
 {
 	auto window = std::shared_ptr<VlkWindow>{new VlkWindow{context,windowCreationInfo},[](VlkWindow *window) {
@@ -452,4 +452,3 @@ bool prosper::VlkWindow::IsPresentationModeSupported(prosper::PresentModeKHR pre
 	m_renderingSurfacePtr->supports_presentation_mode(context.GetDevice().get_physical_device(),static_cast<Anvil::PresentModeKHR>(presentMode),&res);
 	return res;
 }
-#pragma optimize("",on)

@@ -10,7 +10,7 @@
 #include "debug/vk_debug_lookup_map.hpp"
 
 using namespace prosper;
-#pragma optimize("",off)
+
 std::shared_ptr<VlkDescriptorSetGroup> VlkDescriptorSetGroup::Create(IPrContext &context,const DescriptorSetCreateInfo &createInfo,Anvil::DescriptorSetGroupUniquePtr imgView,const std::function<void(IDescriptorSetGroup&)> &onDestroyedCallback)
 {
 	if(imgView == nullptr)
@@ -140,4 +140,3 @@ Anvil::DescriptorSetGroup &VlkDescriptorSetGroup::operator*() {return *m_descrip
 const Anvil::DescriptorSetGroup &VlkDescriptorSetGroup::operator*() const {return const_cast<VlkDescriptorSetGroup*>(this)->operator*();}
 Anvil::DescriptorSetGroup *VlkDescriptorSetGroup::operator->() {return m_descriptorSetGroup.get();}
 const Anvil::DescriptorSetGroup *VlkDescriptorSetGroup::operator->() const {return const_cast<VlkDescriptorSetGroup*>(this)->operator->();}
-#pragma optimize("",on)

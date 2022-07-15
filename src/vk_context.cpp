@@ -73,7 +73,7 @@ using namespace prosper;
 static_assert(sizeof(prosper::util::BufferCopy) == sizeof(Anvil::BufferCopy));
 static_assert(sizeof(prosper::Extent2D) == sizeof(vk::Extent2D));
 
-#pragma optimize("",off)
+
 VlkShaderStageProgram::VlkShaderStageProgram(std::vector<unsigned int> &&spirvBlob)
 	: m_spirvBlob{std::move(spirvBlob)}
 {}
@@ -2044,4 +2044,3 @@ std::shared_ptr<prosper::IRenderBuffer> prosper::VlkContext::CreateRenderBuffer(
 {
 	return VlkRenderBuffer::Create(*this,pipelineCreateInfo,buffers,offsets,indexBufferInfo);
 }
-#pragma optimize("",on)

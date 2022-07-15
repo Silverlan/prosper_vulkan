@@ -32,7 +32,7 @@
 
 // Note: Most command buffer methods use the vulkan functions directly instead of Anvil, because
 // Anvil includes an additional mutex overhead
-#pragma optimize("",off)
+
 Anvil::CommandBufferBase &prosper::VlkCommandBuffer::GetAnvilCommandBuffer() const {return *m_cmdBuffer;}
 Anvil::CommandBufferBase &prosper::VlkCommandBuffer::operator*() {return *m_cmdBuffer;}
 const Anvil::CommandBufferBase &prosper::VlkCommandBuffer::operator*() const {return const_cast<VlkCommandBuffer*>(this)->operator*();}
@@ -888,13 +888,23 @@ bool prosper::VlkCommandBuffer::DoRecordBlitImage(const util::BlitInfo &blitInfo
 {
 	static_assert(sizeof(util::ImageSubresourceLayers) == sizeof(Anvil::ImageSubresourceLayers));
 	static_assert(sizeof(Offset3D) == sizeof(vk::Offset3D));
+	prosper::Offset3D srcOffset1 {
+		srcOffsets[0].x +srcOffsets[1].x,
+		srcOffsets[0].y +srcOffsets[1].y,
+		srcOffsets[0].z +srcOffsets[1].z
+	};
+	prosper::Offset3D srcOffset2 {
+		dstOffsets[0].x +dstOffsets[1].x,
+		dstOffsets[0].y +dstOffsets[1].y,
+		dstOffsets[0].z +dstOffsets[1].z
+	};
 	Anvil::ImageBlit blit {};
 	blit.src_subresource = reinterpret_cast<const Anvil::ImageSubresourceLayers&>(blitInfo.srcSubresourceLayer);
 	blit.src_offsets[0] = static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(srcOffsets.at(0)));
-	blit.src_offsets[1] = static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(srcOffsets.at(1)));
+	blit.src_offsets[1] = static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(srcOffset1));
 	blit.dst_subresource = reinterpret_cast<const Anvil::ImageSubresourceLayers&>(blitInfo.dstSubresourceLayer);
 	blit.dst_offsets[0] = static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(dstOffsets.at(0)));
-	blit.dst_offsets[1] = static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(dstOffsets.at(1)));
+	blit.dst_offsets[1] = static_cast<VkOffset3D>(reinterpret_cast<const vk::Offset3D&>(srcOffset2));
 	auto bDepth = util::is_depth_format(imgSrc.GetFormat());
 	blit.src_subresource.aspect_mask = aspectFlags.has_value() ?
 		static_cast<Anvil::ImageAspectFlagBits>(*aspectFlags) :
@@ -933,4 +943,3 @@ bool prosper::VlkPrimaryCommandBuffer::ExecuteCommands(prosper::ISecondaryComman
 	auto *anvCmdBuf = &static_cast<VlkSecondaryCommandBuffer&>(cmdBuf).GetAnvilCommandBuffer();
 	return static_cast<Anvil::PrimaryCommandBuffer&>(**this).record_execute_commands(1,&anvCmdBuf);
 }
-#pragma optimize("",on)
