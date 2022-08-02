@@ -32,6 +32,7 @@ namespace prosper
 		virtual DeviceSize GetAlignment() const override;
 		virtual bool Map(DeviceSize offset,DeviceSize size,void **outPtr=nullptr) override;
 		virtual bool Unmap() override;
+		virtual std::optional<size_t> GetStorageSize() const override;
 		virtual const void *GetInternalHandle() const override;
 		virtual std::optional<util::SubresourceLayout> GetSubresourceLayout(uint32_t layerId=0,uint32_t mipMapIdx=0) override;
 	protected:

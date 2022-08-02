@@ -88,6 +88,13 @@ void VlkImage::Bake()
 
 DeviceSize VlkImage::GetAlignment() const {return m_image->get_image_alignment(0);}
 
+std::optional<size_t> VlkImage::GetStorageSize() const
+{
+	if(!m_image)
+		return {};
+	return m_image->get_image_storage_size(0u);
+}
+
 bool VlkImage::Map(DeviceSize offset,DeviceSize size,void **outPtr)
 {
 	return m_image->get_memory_block()->map(offset,size,outPtr);
