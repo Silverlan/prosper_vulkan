@@ -43,7 +43,10 @@
 #ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
 #include <xcb/xcb.h>
 #include <X11/Xlib-xcb.h>
+#undef Success //very funny
 #endif
+
+
 
 /* Sanity checks */
 #if defined(_WIN32)

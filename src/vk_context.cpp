@@ -834,7 +834,7 @@ uint64_t VlkContext::ClampDeviceMemorySize(uint64_t size,float percentageOfGPUMe
 	auto r = FindCompatibleMemoryType(featureFlags);
 	if(r.first == nullptr || r.first->heap_ptr == nullptr)
 		throw std::runtime_error("Incompatible memory feature flags");
-	auto maxMem = std::floorl(r.first->heap_ptr->size *static_cast<long double>(percentageOfGPUMemory));
+    auto maxMem = floorl(r.first->heap_ptr->size *static_cast<long double>(percentageOfGPUMemory));
 	return umath::min(size,static_cast<uint64_t>(maxMem));
 }
 DeviceSize VlkContext::CalcBufferAlignment(BufferUsageFlags usageFlags)
