@@ -79,10 +79,12 @@ add_include_dir(anvil_deps)
 # add_include_dir(lunarglass_core)
 
 add_external_library(SPIRV)
-add_external_library(GLSLang_OS_Dependent)
-add_external_library(GLSLang_OGL_Compiler)
+
 add_external_library(GLSLang_Machine_Independent)
+add_external_library(GLSLang_OS_Dependent)
+
 add_external_library(GLSLang_Generic_Code_Gen)
+add_external_library(GLSLang_OGL_Compiler)
 add_external_library(SPIRV_Tools_Opt)
 add_external_library(SPV_Remapper)
 add_external_library(SPIRV_Tools)
