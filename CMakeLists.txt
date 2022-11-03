@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(${CMAKE_CURRENT_LIST_DIR}/cotire.cmake)
 
@@ -47,6 +48,57 @@ function(link_external_library IDENTIFIER)
 	set(DEPENDENCY_${UIDENTIFIER}_LIBRARY "" CACHE FILEPATH "Path to ${PRETTYNAME} library.")
 	set(LIBRARIES ${LIBRARIES} DEPENDENCY_${UIDENTIFIER}_LIBRARY PARENT_SCOPE)
 endfunction(link_external_library)
+
+set(DEPENDENCY_GLSLANG_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/third_party_libs/anvil/deps/glslang CACHE STRING "" FORCE)
+set(VULKAN_SDK "$ENV{VULKAN_SDK}" CACHE INTERNAL "Path to Vulkan SDK.")
+
+if(WIN32)
+	set(DEPENDENCY_VULKAN_INCLUDE "${VULKAN_SDK}/Include" CACHE PATH "Path to include directory.")
+else()
+
+    if(NOT "${VULKAN_SDK}" STREQUAL "")
+        set(DEPENDENCY_VULKAN_INCLUDE_PATH "${VULKAN_SDK}/include" CACHE PATH "Path to include directory.") #linux or macs are case-sensitive.
+    else()
+        set(DEPENDENCY_VULKAN_INCLUDE_PATH "/usr/include" CACHE PATH "Path to include directory.")
+    endif()
+        #we do not know where the libraries live. They may be in /usr/lib, or /usr/lib/{gcc-arch-id},or /usr/local/lib (Or God knows where really) or at VULKAN_SDK. Hint the last one to the library searcher.
+        find_library(DEPENDENCY_VULKAN_LIBRARY libvulkan HINTS "${VULKAN_SDK}/lib")
+        find_library(DEPENDENCY_SPIRV_LIBRARY libSPIRV HINTS "${VULKAN_SDK}/lib")
+        find_library(DEPENDENCY_SPIRV_TOOLS_LIBRARY libSPIRV-Tools STATIC HINTS "${VULKAN_SDK}/lib")
+        find_library(DEPENDENCY_SPIRV_TOOLS_OPT_LIBRARY libSPIRV-Tools-opt STATIC HINTS "${VULKAN_SDK}/lib")
+        find_library(DEPENDENCY_SPV_REMAPPER_LIBRARY libSPVRemapper STATIC HINTS "${VULKAN_SDK}/lib")
+endif()
+message("VULKAN_SDK: ${VULKAN_SDK}")
+message("DEPENDENCY_VULKAN_LIBRARY: ${DEPENDENCY_VULKAN_LIBRARY}")
+set(DEPENDENCY_ANVIL_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/third_party_libs/anvil/include CACHE PATH "Path to include directory.")
+set(DEPENDENCY_ANVIL_BUILD_INCLUDE ${CMAKE_CURRENT_BINARY_DIR}/third_party_libs/anvil/include CACHE PATH "Path to include directory.")
+set(DEPENDENCY_ANVIL_DEPS_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/third_party_libs/anvil/deps CACHE PATH "Path to include directory.")
+
+# Vulkan
+set(SPIRV_SKIP_EXECUTABLES ON CACHE BOOL ON FORCE)
+set(SPIRV_SKIP_TESTS ON CACHE BOOL ".." FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL OFF FORCE)
+
+if("${VULKAN_SDK}" STREQUAL "")
+
+    #don't even bother trying to find tools
+
+    if("${DEPENDENCY_SPIRV_TOOLS_DIR}" STREQUAL "")
+        message(ERROR "DEPENDENCY_SPIRV_TOOLS_DIR is not set! pr_prosper_vulkan will NOT be built!")
+        return()
+    else()
+
+        add_subdirectory("${DEPENDENCY_SPIRV_TOOLS_DIR}" third_party_libs/vulkan/spirv-tools)
+
+    endif()
+else()
+
+    set(DEPENDENCY_SPIRV_TOOLS_DIR "${VULKAN_SDK}/spirv-tools" CACHE PATH "Path to spirv-tools repo")
+    add_subdirectory(${DEPENDENCY_SPIRV_TOOLS_DIR} third_party_libs/vulkan/spirv-tools)
+endif()
+
+set(VULKAN_INCLUDE_DIR ${DEPENDENCY_VULKAN_INCLUDE} CACHE STRING "" FORCE)
+set(VULKAN_LIBRARY ${DEPENDENCY_VULKAN_LIBRARY} CACHE STRING "" FORCE)
 
 ##### CONFIGURATION #####
 
@@ -131,6 +183,8 @@ add_library(${PROJ_NAME} ${LIB_TYPE} ${SRC_FILES})
 if(WIN32)
 	target_compile_options(${PROJ_NAME} PRIVATE /wd4251)
 	target_compile_options(${PROJ_NAME} PRIVATE /wd4996)
+else()
+	target_compile_options(${PROJ_NAME} PRIVATE -Wno-comment)
 endif()
 def_vs_filters("${SRC_FILES}")
 
@@ -167,6 +221,10 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL OFF FORCE)
 add_subdirectory("third_party_libs/anvil")
 set(BUILD_SHARED_LIBS ON CACHE BOOL ON FORCE)
 
+if(UNIX)
+	target_compile_options(Anvil PRIVATE -Wno-comment -Wno-unused-variable)
+endif()
+
 # add_subdirectory(external_libs/util_lunarglass)
-add_dependencies(${PROJ_NAME} prosper Anvil SPIRV SPIRV-Tools OSDependent OGLCompiler SPIRV-Tools-opt SPVRemapper glslang)
+add_dependencies(${PROJ_NAME} Anvil SPIRV SPIRV-Tools OSDependent OGLCompiler SPIRV-Tools-opt SPVRemapper glslang)
 # util_lunarglass
