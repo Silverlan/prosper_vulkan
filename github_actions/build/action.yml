@@ -38,10 +38,10 @@ runs:
 
     - name: Build prosper
       id: build-prosper
+      working-directory: '${{ inputs.prosper_dir }}'
       uses: Silverlan/tmp_prosper_ci/github_actions/build@master
       with:
         root_dir: "${{ env.GA_ROOT_DIR }}"
-        dir: '${{ inputs.prosper_dir }}'
         
     - name: Install prerequisites
       shell: bash
