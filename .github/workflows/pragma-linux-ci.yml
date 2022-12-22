@@ -1,0 +1,96 @@
+name: Build Linux
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+concurrency:
+  group: environment-lin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build - ${{ matrix.config.os }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - os: ubuntu-22.04
+            name: "Ubuntu GCC-11"
+            artifact: "ubuntu_gcc.7z"
+            build_type: "RelWithDebInfo"
+            cc: "clang-14"
+            cxx: "clang++-14"
+            archiver: "7z a"
+            generators: "Unix Makefiles"
+            build_dir: 'build'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Setup
+        id: setup
+        uses: Silverlan/common_actions/setup@main
+        with:
+          cc_version: ${{ matrix.cc }}
+          cxx_version: ${{ matrix.cxx }}
+          
+      - name: Set Clang Compiler
+        shell: bash
+        run:   |
+          echo "CC=/usr/bin/clang-14" >> $GITHUB_ENV
+          echo "CXX=/usr/bin/clang++-14" >> $GITHUB_ENV
+          
+      - name: Initialize Env
+        id: init-env
+        uses: Silverlan/common_actions/set_common_env_vars@main
+        
+      - name: Download binaries
+        uses: Silverlan/common_actions/download_build_binaries@main
+        continue-on-error: true
+        
+      - name: Build
+        uses: Silverlan/tmp_prosper_vulkan_ci/github_actions/build@master
+        with:
+          dir: '.'
+          prosper_dir: 'prosper'
+
+      #- uses: mxschmitt/action-tmate@v3
+      #  name: CI
+
+      - name: Create Release Files
+        shell: bash
+        run: |
+          mkdir release
+          rsync --mkpath -l ./VULKAN_SDK/lib/libvulkan.so.1 release/
+          rsync --mkpath -l ./VULKAN_SDK/lib/libvulkan.so.1.3.211 release/
+          rsync --mkpath -l ./VULKAN_SDK/lib/libvulkan.so release/
+          rsync --mkpath -l ./VULKAN_SDK/lib/libvulkan.so release/
+          rsync --mkpath ./build/third_party_libs/zlib/libz.so.1.2.13 release/
+          rsync --mkpath -l ./build/third_party_libs/zlib/libz.so release/
+          rsync --mkpath -l ./build/third_party_libs/zlib/libz.so.1 release/
+          rsync --mkpath -l ./build/third_party_libs/libpng/libpng.so release/
+          rsync --mkpath -l ./build/third_party_libs/libpng/libpng16.so release/
+          rsync --mkpath -l ./build/third_party_libs/libpng/libpng16.so.16 release/
+          rsync --mkpath ./build/third_party_libs/libpng/libpng16.so.16.39.git release/
+          rsync --mkpath -l ./build/third_party_libs/glfw/src/libglfw.so release/
+          rsync --mkpath -l ./build/third_party_libs/glfw/src/libglfw.so.3 release/
+          rsync --mkpath ./build/third_party_libs/glfw/src/libglfw.so.3.3 release/
+          rsync --mkpath ./build/external_libs/util_image/libutil_image.so release/
+          rsync --mkpath ./build/external_libs/sharedutils/libsharedutils.so release/
+          rsync --mkpath ./build/external_libs/iglfw/libiglfw.so release/
+          rsync --mkpath ./build/external_libs/vfilesystem/libvfilesystem.so release/
+          rsync --mkpath ./build/external_libs/mathutil/libmathutil.so release/
+          rsync --mkpath ./build/prosper/prosper/libprosper.so release/
+          rsync --mkpath ./third_party_libs/anvil/libAnvil.a release/
+          rsync --mkpath ./libprosper_vulkan.so release/
+          rsync --mkpath ./third_party_libs/anvil/include/config.h release/anvil/include/
+ 
+      - name: Release Binaries
+        uses: Silverlan/common_actions/release_nightly_binaries@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit: ${{ github.ref_name }}
