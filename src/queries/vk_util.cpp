@@ -445,6 +445,8 @@ static std::string decode_driver_version(prosper::Vendor vendor,uint32_t version
 prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const IPrContext &context)
 {
 	auto &dev = static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetDevice();
+	if(&dev == nullptr)
+		return {};
 	auto &gpuProperties = dev.get_physical_device_properties();
 	auto apiVersion = gpuProperties.core_vk1_0_properties_ptr->api_version;
 	VendorDeviceInfo deviceInfo {};
