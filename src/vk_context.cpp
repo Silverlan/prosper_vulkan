@@ -803,7 +803,10 @@ std::optional<std::string> VlkContext::DumpMemoryStats() const
 	return str;
 }
 
-std::optional<prosper::util::VendorDeviceInfo> VlkContext::GetVendorDeviceInfo() const {return util::get_vendor_device_info(*this);}
+std::optional<prosper::util::VendorDeviceInfo> VlkContext::GetVendorDeviceInfo() const
+{
+	return util::get_vendor_device_info(*this);
+}
 
 std::optional<std::vector<prosper::util::VendorDeviceInfo>> VlkContext::GetAvailableVendorDevices() const {return util::get_available_vendor_devices(*this);}
 std::optional<prosper::util::PhysicalDeviceMemoryProperties> VlkContext::GetPhysicslDeviceMemoryProperties() const {return util::get_physical_device_memory_properties(*this);}
