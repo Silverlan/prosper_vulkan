@@ -771,6 +771,14 @@ std::optional<std::string> VlkContext::DumpMemoryBudget() const
 	VmaBudget budget;
 	vmaGetBudget(vmaHandle,&budget);
 
+#ifdef _WIN32
+	// For some reason without this call the destruction of 'budget' will cause a 'stack-based buffer overrun'.
+	// Reason unknown
+	VmaStats stats;
+	vmaCalculateStats(vmaHandle,&stats);
+	//
+#endif
+
 	std::stringstream str {};
 	str<<"Total block size: "<<::util::get_pretty_bytes(budget.blockBytes)<<" ("<<budget.blockBytes<<")\n";
 	str<<"Total allocation size: "<<::util::get_pretty_bytes(budget.allocationBytes)<<" ("<<budget.allocationBytes<<")\n";
