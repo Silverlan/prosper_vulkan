@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-include(${CMAKE_CURRENT_LIST_DIR}/cotire.cmake)
+#include(${CMAKE_CURRENT_LIST_DIR}/cotire.cmake)
 
 set(INCLUDE_DIRS)
 function(add_include_dir IDENTIFIER)
@@ -253,10 +253,18 @@ endforeach(INCLUDE_PATH)
 
 set(TARGET_PROPERTIES LINKER_LANGUAGE CXX)
 
+<<<<<<< Updated upstream
 if(DEFINED PRECOMPILED_HEADER)
         set_target_properties(${PROJ_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "src/${PRECOMPILED_HEADER}.h")
 endif()
 cotire(${PROJ_NAME})
+=======
+#if(DEFINED PRECOMPILED_HEADER)
+#	set_target_properties(${PROJ_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "src/${PRECOMPILED_HEADER}.h")
+#endif()
+#cotire(${PROJ_NAME})
+target_precompile_headers(${PROJ_NAME} PRIVATE "src/${PRECOMPILED_HEADER}.h")
+>>>>>>> Stashed changes
 set_target_properties(${PROJ_NAME} PROPERTIES ${TARGET_PROPERTIES})
 
 set(ANVIL_LINK_STATICALLY_WITH_VULKAN_LIB ON CACHE BOOL ON FORCE)
