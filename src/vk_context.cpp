@@ -614,17 +614,45 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 		// m_customValidationEnabled = true;
 	}
 
-	if(createInfo.device.has_value())
 	{
+		// Select GPU depending on how well it is supported
 		auto numDevices = m_instancePtr->get_n_physical_devices();
+		const std::unordered_map<Vendor,int32_t> vendorPriorities {
+			{Vendor::Nvidia,2},
+			{Vendor::AMD,1},
+			{Vendor::Intel,0},
+			{Vendor::Unknown,-1}
+		};
+		struct DeviceCandidate
+		{
+			const Anvil::PhysicalDevice *device;
+			Vendor vendor;
+		};
+		std::vector<DeviceCandidate> deviceCandidates;
 		for(auto i=decltype(numDevices){0u};i<numDevices;++i)
 		{
 			auto *pDevice = m_instancePtr->get_physical_device(i);
 			auto *props = (pDevice != nullptr) ? pDevice->get_device_properties().core_vk1_0_properties_ptr : nullptr;
-			if(props == nullptr || static_cast<Vendor>(props->vendor_id) != createInfo.device->vendorId || props->device_id != createInfo.device->deviceId)
+			if(!props)
 				continue;
-			m_physicalDevicePtr = m_instancePtr->get_physical_device(i);
+			auto vendor = static_cast<Vendor>(props->vendor_id);
+			auto it = vendorPriorities.find(vendor);
+			if(it == vendorPriorities.end())
+				vendor = Vendor::Unknown;
+			if(createInfo.device.has_value() && (vendor != createInfo.device->vendorId || props->device_id != createInfo.device->deviceId))
+				continue;
+			deviceCandidates.push_back(DeviceCandidate{pDevice,vendor});
+			if(createInfo.device.has_value())
+				break; // No need to look further
 		}
+		std::sort(deviceCandidates.begin(),deviceCandidates.end(),[&vendorPriorities](const DeviceCandidate &a,const DeviceCandidate &b) {
+			auto itA = vendorPriorities.find(a.vendor);
+			auto itB = vendorPriorities.find(b.vendor);
+			assert(itA != vendorPriorities.end() && itB != vendorPriorities.end());
+			return *itA > *itB;
+		});
+		if(!deviceCandidates.empty())
+			m_physicalDevicePtr = deviceCandidates.front().device;
 	}
 	if(m_physicalDevicePtr == nullptr)
 		m_physicalDevicePtr = m_instancePtr->get_physical_device(0);
@@ -771,6 +799,14 @@ std::optional<std::string> VlkContext::DumpMemoryBudget() const
 	VmaBudget budget;
 	vmaGetBudget(vmaHandle,&budget);
 
+#ifdef _WIN32
+	// For some reason without this call the destruction of 'budget' will cause a 'stack-based buffer overrun'.
+	// Reason unknown
+	VmaStats stats;
+	vmaCalculateStats(vmaHandle,&stats);
+	//
+#endif
+
 	std::stringstream str {};
 	str<<"Total block size: "<<::util::get_pretty_bytes(budget.blockBytes)<<" ("<<budget.blockBytes<<")\n";
 	str<<"Total allocation size: "<<::util::get_pretty_bytes(budget.allocationBytes)<<" ("<<budget.allocationBytes<<")\n";
@@ -795,7 +831,10 @@ std::optional<std::string> VlkContext::DumpMemoryStats() const
 	return str;
 }
 
-std::optional<prosper::util::VendorDeviceInfo> VlkContext::GetVendorDeviceInfo() const {return util::get_vendor_device_info(*this);}
+std::optional<prosper::util::VendorDeviceInfo> VlkContext::GetVendorDeviceInfo() const
+{
+	return util::get_vendor_device_info(*this);
+}
 
 std::optional<std::vector<prosper::util::VendorDeviceInfo>> VlkContext::GetAvailableVendorDevices() const {return util::get_available_vendor_devices(*this);}
 std::optional<prosper::util::PhysicalDeviceMemoryProperties> VlkContext::GetPhysicslDeviceMemoryProperties() const {return util::get_physical_device_memory_properties(*this);}

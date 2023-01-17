@@ -442,12 +442,13 @@ static std::string decode_driver_version(prosper::Vendor vendor,uint32_t version
 	return std::to_string(major) +"." +std::to_string(minor) +"." +std::to_string(revision);
 }
 
-prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const IPrContext &context)
+static std::optional<prosper::util::VendorDeviceInfo> get_vendor_device_info(const Anvil::PhysicalDevice &dev)
 {
-	auto &dev = static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetDevice();
-	auto &gpuProperties = dev.get_physical_device_properties();
-	auto apiVersion = gpuProperties.core_vk1_0_properties_ptr->api_version;
-	VendorDeviceInfo deviceInfo {};
+	auto *props = dev.get_device_properties().core_vk1_0_properties_ptr;
+	if(!props)
+		return {};
+	auto apiVersion = props->api_version;
+	prosper::util::VendorDeviceInfo deviceInfo {};
 
 	// See https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#extendingvulkan-coreversions-versionnumbers
 	auto variant = apiVersion>>29;
@@ -456,32 +457,45 @@ prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const IPrC
 	auto patch = apiVersion &0xFFFU;
 	deviceInfo.apiVersion = std::to_string(major) +"." +std::to_string(minor) +"." +std::to_string(patch);
 
-	deviceInfo.deviceType = static_cast<prosper::PhysicalDeviceType>(gpuProperties.core_vk1_0_properties_ptr->device_type);
-	deviceInfo.deviceName = gpuProperties.core_vk1_0_properties_ptr->device_name;
-	deviceInfo.vendor = static_cast<Vendor>(gpuProperties.core_vk1_0_properties_ptr->vendor_id);
-	deviceInfo.driverVersion = decode_driver_version(deviceInfo.vendor,gpuProperties.core_vk1_0_properties_ptr->driver_version);
-	deviceInfo.deviceId = gpuProperties.core_vk1_0_properties_ptr->device_id;
+	deviceInfo.deviceType = static_cast<prosper::PhysicalDeviceType>(props->device_type);
+	deviceInfo.deviceName = props->device_name;
+	deviceInfo.vendor = static_cast<Vendor>(props->vendor_id);
+	deviceInfo.driverVersion = decode_driver_version(deviceInfo.vendor,props->driver_version);
+	deviceInfo.deviceId = props->device_id;
 	return deviceInfo;
+}
+
+prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const IPrContext &context)
+{
+	auto &dev = static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetDevice();
+	if(&dev == nullptr)
+		return {};
+	auto *devPhys = dev.get_physical_device();
+	assert(devPhys);
+	if(!devPhys)
+		return {};
+	auto devInfo = ::get_vendor_device_info(*devPhys);
+	assert(devInfo.has_value());
+	if(!devInfo.has_value())
+		return {};
+	return *devInfo;
 }
 
 std::vector<prosper::util::VendorDeviceInfo> prosper::util::get_available_vendor_devices(const IPrContext &context)
 {
-	auto &instance = static_cast<const VlkContext&>(context).GetAnvilInstance();
+	auto &instance = static_cast<VlkContext&>(const_cast<IPrContext&>(context)).GetAnvilInstance();
 	auto numDevices = instance.get_n_physical_devices();
-	std::vector<prosper::util::VendorDeviceInfo> devices {};
+	std::vector<prosper::util::VendorDeviceInfo> devices;
 	devices.reserve(numDevices);
 	for(auto i=decltype(numDevices){0u};i<numDevices;++i)
 	{
-		auto &dev = *instance.get_physical_device(i);
-		auto &gpuProperties = dev.get_device_properties();
-		VendorDeviceInfo deviceInfo {};
-		deviceInfo.apiVersion = gpuProperties.core_vk1_0_properties_ptr->api_version;
-		deviceInfo.deviceType = static_cast<prosper::PhysicalDeviceType>(gpuProperties.core_vk1_0_properties_ptr->device_type);
-		deviceInfo.deviceName = gpuProperties.core_vk1_0_properties_ptr->device_name;
-		deviceInfo.driverVersion = gpuProperties.core_vk1_0_properties_ptr->driver_version;
-		deviceInfo.vendor = static_cast<Vendor>(gpuProperties.core_vk1_0_properties_ptr->vendor_id);
-		deviceInfo.deviceId = gpuProperties.core_vk1_0_properties_ptr->device_id;
-		devices.push_back(deviceInfo);
+		auto *pDevice = instance.get_physical_device(i);
+		if(!pDevice)
+			continue;
+		auto devInfo = ::get_vendor_device_info(*pDevice);
+		if(!devInfo.has_value())
+			continue;
+		devices.push_back(*devInfo);
 	}
 	return devices;
 }
