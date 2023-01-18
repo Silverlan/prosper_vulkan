@@ -160,10 +160,11 @@ bool prosper::glsl_to_spv(IPrContext &context,prosper::ShaderStage stage,const s
 			glslFileName = tmp;
 		}
 	}
-	if(applyPreprocessing)
+	if(applyPreprocessing && context.IsValidationEnabled())
 	{
-		// TODO: Put this in a log somewhere
-		std::cout<<"[VK] WARNING: No optimized version found for shader '"<<fileName<<"'! This may cause poor performance!"<<std::endl;
+		std::stringstream ss;
+		ss<<"[VK] WARNING: No optimized version found for shader '"<<fileName<<"'! This may cause poor performance!\n";
+		context.ValidationCallback(prosper::DebugMessageSeverityFlags::WarningBit,ss.str());
 	}
 
 	std::vector<prosper::glsl::IncludeLine> includeLines;
