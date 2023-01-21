@@ -617,6 +617,23 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	{
 		// Select GPU depending on how well it is supported
 		auto numDevices = m_instancePtr->get_n_physical_devices();
+		if(ShouldLog())
+		{
+			std::stringstream ss;
+			ss<<"Available GPU devices:\n";
+			auto devices = util::get_available_vendor_devices(*this);
+			for(auto &info : devices)
+			{
+				ss<<info.deviceName<<"\n";
+				ss<<"apiVersion: "<<info.apiVersion<<"\n";
+				ss<<"deviceType: "<<magic_enum::enum_name(info.deviceType)<<"\n";
+				ss<<"deviceId: "<<info.deviceId<<"\n";
+				ss<<"driverVersion: "<<info.driverVersion<<"\n";
+				ss<<"vendor: "<<umath::to_integral(info.vendor)<<"\n";
+			}
+			ss<<"\n";
+			m_logHandler(ss.str(),::util::LogSeverity::Info);
+		}
 		const std::unordered_map<Vendor,int32_t> vendorPriorities {
 			{Vendor::Nvidia,2},
 			{Vendor::AMD,1},
@@ -652,7 +669,15 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 			return *itA > *itB;
 		});
 		if(!deviceCandidates.empty())
+		{
 			m_physicalDevicePtr = deviceCandidates.front().device;
+			if(ShouldLog())
+			{
+				auto *props = (m_physicalDevicePtr != nullptr) ? m_physicalDevicePtr->get_device_properties().core_vk1_0_properties_ptr : nullptr;
+				if(props)
+					m_logHandler("Selected device: " +std::to_string(props->vendor_id),::util::LogSeverity::Info);
+			}
+		}
 	}
 	if(m_physicalDevicePtr == nullptr)
 		m_physicalDevicePtr = m_instancePtr->get_physical_device(0);
@@ -979,6 +1004,12 @@ std::shared_ptr<prosper::IDynamicResizableBuffer> prosper::VlkContext::CreateDyn
 
 std::shared_ptr<prosper::IBuffer> VlkContext::CreateBuffer(const prosper::util::BufferCreateInfo &createInfo,const void *data)
 {
+	if(ShouldLog(::util::LogSeverity::Debug))
+	{
+		std::stringstream ss;
+		ss<<"CreateBuffer:";
+		util::to_string(createInfo,ss);
+	}
 	if(createInfo.size == 0ull)
 		return nullptr;
 	auto sharingMode = Anvil::SharingMode::EXCLUSIVE;
@@ -1128,6 +1159,12 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context,const
 
 std::shared_ptr<IImage> prosper::VlkContext::CreateImage(const util::ImageCreateInfo &createInfo,const std::function<const uint8_t*(uint32_t layer,uint32_t mipmap,uint32_t &dataSize,uint32_t &rowSize)> &getImageData)
 {
+	if(ShouldLog(::util::LogSeverity::Debug))
+	{
+		std::stringstream ss;
+		ss<<"CreateImage:";
+		util::to_string(createInfo,ss);
+	}
 	auto byteSize = util::get_pixel_size(createInfo.format);
 	std::vector<Anvil::MipmapRawData> anvMipmapData {};
 	if(getImageData)
