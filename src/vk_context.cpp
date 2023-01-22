@@ -675,7 +675,7 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 			{
 				auto *props = (m_physicalDevicePtr != nullptr) ? m_physicalDevicePtr->get_device_properties().core_vk1_0_properties_ptr : nullptr;
 				if(props)
-					m_logHandler("Selected device: " +std::to_string(props->vendor_id),::util::LogSeverity::Info);
+					m_logHandler("Selected device: " +std::to_string(props->device_id),::util::LogSeverity::Info);
 			}
 		}
 	}
