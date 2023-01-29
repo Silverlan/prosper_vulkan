@@ -12,18 +12,11 @@
 
 using namespace prosper;
 
-prosper::VkDynamicResizableBuffer::VkDynamicResizableBuffer(
-	IPrContext &context,IBuffer &buffer,const util::BufferCreateInfo &createInfo,uint64_t maxTotalSize
-)
-	: IDynamicResizableBuffer{context,buffer,createInfo,maxTotalSize},
-	IBuffer{buffer.GetContext(),buffer.GetCreateInfo(),buffer.GetStartOffset(),buffer.GetSize()},
-	VlkBuffer{buffer.GetContext(),buffer.GetCreateInfo(),buffer.GetStartOffset(),buffer.GetSize(),nullptr}
+prosper::VkDynamicResizableBuffer::VkDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const util::BufferCreateInfo &createInfo, uint64_t maxTotalSize)
+    : IDynamicResizableBuffer {context, buffer, createInfo, maxTotalSize}, IBuffer {buffer.GetContext(), buffer.GetCreateInfo(), buffer.GetStartOffset(), buffer.GetSize()}, VlkBuffer {buffer.GetContext(), buffer.GetCreateInfo(), buffer.GetStartOffset(), buffer.GetSize(), nullptr}
 {
 	VlkBuffer::m_buffer = std::move(buffer.GetAPITypeRef<VlkBuffer>().m_buffer);
 	VlkBuffer::m_vkBuffer = VlkBuffer::m_buffer->get_buffer();
 }
 
-void prosper::VkDynamicResizableBuffer::MoveInternalBuffer(IBuffer &other)
-{
-	SetBuffer(std::move(other.GetAPITypeRef<VlkBuffer>().m_buffer));
-}
+void prosper::VkDynamicResizableBuffer::MoveInternalBuffer(IBuffer &other) { SetBuffer(std::move(other.GetAPITypeRef<VlkBuffer>().m_buffer)); }

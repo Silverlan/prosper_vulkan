@@ -9,13 +9,11 @@
 #include "image/prosper_image_view.hpp"
 #include <wrappers/image_view.h>
 
-namespace prosper
-{
-	class DLLPROSPER_VK VlkImageView
-		: public IImageView
-	{
-	public:
-		static std::shared_ptr<VlkImageView> Create(IPrContext &context,IImage &img,const util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView,const std::function<void(IImageView&)> &onDestroyedCallback=nullptr);
+namespace prosper {
+	class DLLPROSPER_VK VlkImageView : public IImageView {
+	  public:
+		static std::shared_ptr<VlkImageView> Create(IPrContext &context, IImage &img, const util::ImageViewCreateInfo &createInfo, ImageViewType type, ImageAspectFlags aspectFlags, std::unique_ptr<Anvil::ImageView, std::function<void(Anvil::ImageView *)>> imgView,
+		  const std::function<void(IImageView &)> &onDestroyedCallback = nullptr);
 		virtual ~VlkImageView() override;
 		Anvil::ImageView &GetAnvilImageView() const;
 		Anvil::ImageView &operator*();
@@ -25,10 +23,10 @@ namespace prosper
 
 		virtual void Bake() override;
 
-		virtual const void *GetInternalHandle() const override {return GetAnvilImageView().get_image_view();}
-	protected:
-		VlkImageView(IPrContext &context,IImage &img,const util::ImageViewCreateInfo &createInfo,ImageViewType type,ImageAspectFlags aspectFlags,std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> imgView);
-		std::unique_ptr<Anvil::ImageView,std::function<void(Anvil::ImageView*)>> m_imageView = nullptr;
+		virtual const void *GetInternalHandle() const override { return GetAnvilImageView().get_image_view(); }
+	  protected:
+		VlkImageView(IPrContext &context, IImage &img, const util::ImageViewCreateInfo &createInfo, ImageViewType type, ImageAspectFlags aspectFlags, std::unique_ptr<Anvil::ImageView, std::function<void(Anvil::ImageView *)>> imgView);
+		std::unique_ptr<Anvil::ImageView, std::function<void(Anvil::ImageView *)>> m_imageView = nullptr;
 	};
 };
 

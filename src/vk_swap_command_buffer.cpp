@@ -9,7 +9,7 @@
 
 using namespace prosper;
 
-std::shared_ptr<prosper::ISwapCommandBufferGroup> prosper::VlkContext::CreateSwapCommandBufferGroup(Window &window,bool allowMt)
+std::shared_ptr<prosper::ISwapCommandBufferGroup> prosper::VlkContext::CreateSwapCommandBufferGroup(Window &window, bool allowMt)
 {
 	if(allowMt)
 		return std::make_shared<MtSwapCommandBufferGroup>(window);

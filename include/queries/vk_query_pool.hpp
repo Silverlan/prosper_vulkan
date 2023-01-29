@@ -9,19 +9,16 @@
 #include "queries/prosper_query_pool.hpp"
 #include <wrappers/query_pool.h>
 
-namespace prosper
-{
+namespace prosper {
 	class VlkContext;
-	class DLLPROSPER_VK VlkQueryPool
-		: public IQueryPool
-	{
-	public:
-		virtual bool RequestQuery(uint32_t &queryId,QueryType type) override;
+	class DLLPROSPER_VK VlkQueryPool : public IQueryPool {
+	  public:
+		virtual bool RequestQuery(uint32_t &queryId, QueryType type) override;
 		Anvil::QueryPool &GetAnvilQueryPool() const;
-	protected:
+	  protected:
 		friend VlkContext;
-		VlkQueryPool(IPrContext &context,std::unique_ptr<Anvil::QueryPool,std::function<void(Anvil::QueryPool*)>> queryPool,QueryType type);
-		std::unique_ptr<Anvil::QueryPool,std::function<void(Anvil::QueryPool*)>> m_queryPool = nullptr;
+		VlkQueryPool(IPrContext &context, std::unique_ptr<Anvil::QueryPool, std::function<void(Anvil::QueryPool *)>> queryPool, QueryType type);
+		std::unique_ptr<Anvil::QueryPool, std::function<void(Anvil::QueryPool *)>> m_queryPool = nullptr;
 
 		QueryType m_type = {};
 		uint32_t m_queryCount = 0u;

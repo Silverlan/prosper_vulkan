@@ -8,8 +8,7 @@
 #include "prosper_vulkan_definitions.hpp"
 #include <prosper_swap_command_buffer.hpp>
 
-namespace prosper
-{
+namespace prosper {
 };
 
 #endif
