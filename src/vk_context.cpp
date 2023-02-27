@@ -587,7 +587,7 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 			auto itA = vendorPriorities.find(a.vendor);
 			auto itB = vendorPriorities.find(b.vendor);
 			assert(itA != vendorPriorities.end() && itB != vendorPriorities.end());
-			return *itA > *itB;
+			return itA->second > itB->second;
 		});
 		if(!deviceCandidates.empty()) {
 			m_physicalDevicePtr = deviceCandidates.front().device;
