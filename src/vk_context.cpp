@@ -1197,13 +1197,13 @@ static void init_base_pipeline_create_info(const prosper::BasePipelineCreateInfo
 
 std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) { return static_cast<VlkContext *>(this)->CreateDescriptorSetGroup(descSetInfo, to_anv_descriptor_set_create_info(descSetInfo)); }
 
-std::shared_ptr<prosper::ShaderStageProgram> prosper::VlkContext::CompileShader(prosper::ShaderStage stage, const std::string &shaderPath, std::string &outInfoLog, std::string &outDebugInfoLog, bool reload)
+std::shared_ptr<prosper::ShaderStageProgram> prosper::VlkContext::CompileShader(prosper::ShaderStage stage, const std::string &shaderPath, std::string &outInfoLog, std::string &outDebugInfoLog, bool reload, const std::unordered_map<std::string, std::string> &definitions)
 {
 	auto shaderLocation = prosper::Shader::GetRootShaderLocation();
 	if(shaderLocation.empty() == false)
 		shaderLocation += '\\';
 	std::vector<unsigned int> spirvBlob {};
-	auto success = prosper::glsl_to_spv(*this, stage, shaderLocation + shaderPath, spirvBlob, &outInfoLog, &outDebugInfoLog, reload);
+	auto success = prosper::glsl_to_spv(*this, stage, shaderLocation + shaderPath, spirvBlob, &outInfoLog, &outDebugInfoLog, reload, definitions);
 	if(success == false)
 		return nullptr;
 	return std::make_shared<VlkShaderStageProgram>(std::move(spirvBlob));

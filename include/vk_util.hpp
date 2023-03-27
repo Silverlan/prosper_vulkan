@@ -33,7 +33,7 @@ namespace prosper {
 	struct DescriptorSetInfo;
 	enum class ShaderStage : uint8_t;
 	std::unique_ptr<Anvil::DescriptorSetCreateInfo> ToAnvilDescriptorSetInfo(const DescriptorSetInfo &descSetInfo);
-	DLLPROSPER_VK bool glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::vector<unsigned int> &spirv, std::string *infoLog, std::string *debugInfoLog, bool bReload);
+	DLLPROSPER_VK bool glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::vector<unsigned int> &spirv, std::string *infoLog, std::string *debugInfoLog, bool bReload, const std::unordered_map<std::string, std::string> &definitions = {});
 	DLLPROSPER_VK std::optional<std::unordered_map<prosper::ShaderStage, std::string>> optimize_glsl(prosper::IPrContext &context, const std::unordered_map<prosper::ShaderStage, std::string> &shaderStages, std::string &outInfoLog);
 };
 
