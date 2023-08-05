@@ -11,27 +11,21 @@
 #include <buffers/prosper_render_buffer.hpp>
 #include <vulkan/vulkan.h>
 
-namespace Anvil {class CommandBufferBase; class Buffer;};
-namespace prosper
-{
+namespace Anvil {
+	class CommandBufferBase;
+	class Buffer;
+};
+namespace prosper {
 	class VlkContext;
 	class GraphicsPipelineCreateInfo;
-	class DLLPROSPER_VK VlkRenderBuffer
-		: public prosper::IRenderBuffer
-	{
-	public:
-		static std::shared_ptr<VlkRenderBuffer> Create(
-			prosper::VlkContext &context,const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,const std::vector<prosper::IBuffer*> &buffers,
-			const std::vector<prosper::DeviceSize> &offsets={},const std::optional<IndexBufferInfo> &indexBufferInfo={}
-		);
+	class DLLPROSPER_VK VlkRenderBuffer : public prosper::IRenderBuffer {
+	  public:
+		static std::shared_ptr<VlkRenderBuffer> Create(prosper::VlkContext &context, const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<prosper::IBuffer *> &buffers, const std::vector<prosper::DeviceSize> &offsets = {},
+		  const std::optional<IndexBufferInfo> &indexBufferInfo = {});
 
 		bool Record(VkCommandBuffer cmdBuf) const;
-	private:
-		VlkRenderBuffer(
-			prosper::IPrContext &context,const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo,
-			const std::vector<prosper::IBuffer*> &buffers,const std::vector<prosper::DeviceSize> &offsets,
-			const std::optional<IndexBufferInfo> &indexBufferInfo={}
-		);
+	  private:
+		VlkRenderBuffer(prosper::IPrContext &context, const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<prosper::IBuffer *> &buffers, const std::vector<prosper::DeviceSize> &offsets, const std::optional<IndexBufferInfo> &indexBufferInfo = {});
 		void Initialize();
 		virtual void Reload() override;
 

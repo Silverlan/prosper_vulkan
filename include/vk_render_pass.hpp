@@ -9,13 +9,10 @@
 #include "prosper_render_pass.hpp"
 #include <wrappers/render_pass.h>
 
-namespace prosper
-{
-	class DLLPROSPER_VK VlkRenderPass
-		: public IRenderPass
-	{
-	public:
-		static std::shared_ptr<VlkRenderPass> Create(IPrContext &context,const util::RenderPassCreateInfo &createInfo,std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> rp,const std::function<void(IRenderPass&)> &onDestroyedCallback=nullptr);
+namespace prosper {
+	class DLLPROSPER_VK VlkRenderPass : public IRenderPass {
+	  public:
+		static std::shared_ptr<VlkRenderPass> Create(IPrContext &context, const util::RenderPassCreateInfo &createInfo, std::unique_ptr<Anvil::RenderPass, std::function<void(Anvil::RenderPass *)>> rp, const std::function<void(IRenderPass &)> &onDestroyedCallback = nullptr);
 		virtual ~VlkRenderPass() override;
 		Anvil::RenderPass &GetAnvilRenderPass() const;
 		Anvil::RenderPass &operator*();
@@ -24,10 +21,10 @@ namespace prosper
 		const Anvil::RenderPass *operator->() const;
 		virtual void Bake() override;
 
-		virtual const void *GetInternalHandle() const override {return GetAnvilRenderPass().get_render_pass();}
-	protected:
-		VlkRenderPass(IPrContext &context,const util::RenderPassCreateInfo &createInfo,std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> rp);
-		std::unique_ptr<Anvil::RenderPass,std::function<void(Anvil::RenderPass*)>> m_renderPass = nullptr;
+		virtual const void *GetInternalHandle() const override { return GetAnvilRenderPass().get_render_pass(); }
+	  protected:
+		VlkRenderPass(IPrContext &context, const util::RenderPassCreateInfo &createInfo, std::unique_ptr<Anvil::RenderPass, std::function<void(Anvil::RenderPass *)>> rp);
+		std::unique_ptr<Anvil::RenderPass, std::function<void(Anvil::RenderPass *)>> m_renderPass = nullptr;
 	};
 };
 

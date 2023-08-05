@@ -11,8 +11,7 @@
 #include <unordered_map>
 
 // TODO: Move this to prosper_vulkan implementation?
-namespace vk
-{
+namespace vk {
 	class Image;
 	class ImageView;
 	class Sampler;
@@ -24,8 +23,7 @@ namespace vk
 	class Pipeline;
 };
 
-namespace prosper
-{
+namespace prosper {
 	class VlkImage;
 	class VlkImageView;
 	class VlkSampler;
@@ -35,32 +33,19 @@ namespace prosper
 	class VlkDescriptorSetGroup;
 	class VlkBuffer;
 	class Shader;
-	namespace debug
-	{
-		enum class ObjectType : uint32_t
-		{
-			Image = 0u,
-			ImageView,
-			Sampler,
-			Buffer,
-			CommandBuffer,
-			RenderPass,
-			Framebuffer,
-			DescriptorSet,
-			Pipeline
-		};
-		struct ShaderPipelineInfo
-		{
+	namespace debug {
+		enum class ObjectType : uint32_t { Image = 0u, ImageView, Sampler, Buffer, CommandBuffer, RenderPass, Framebuffer, DescriptorSet, Pipeline };
+		struct ShaderPipelineInfo {
 			Shader *shader = nullptr;
 			uint32_t pipelineIdx = std::numeric_limits<uint32_t>::max();
 		};
 		DLLPROSPER_VK void set_debug_mode_enabled(bool b);
 		DLLPROSPER_VK bool is_debug_mode_enabled();
-		DLLPROSPER_VK void register_debug_object(void *vkPtr,prosper::ContextObject &obj,ObjectType type);
-		DLLPROSPER_VK void register_debug_shader_pipeline(void *vkPtr,const ShaderPipelineInfo &pipelineInfo);
+		DLLPROSPER_VK void register_debug_object(void *vkPtr, prosper::ContextObject &obj, ObjectType type);
+		DLLPROSPER_VK void register_debug_shader_pipeline(void *vkPtr, const ShaderPipelineInfo &pipelineInfo);
 		DLLPROSPER_VK void deregister_debug_object(void *vkPtr);
 
-		DLLPROSPER_VK void *get_object(void *vkObj,ObjectType &type);
+		DLLPROSPER_VK void *get_object(void *vkObj, ObjectType &type);
 		DLLPROSPER_VK VlkImage *get_image(const vk::Image &vkImage);
 		DLLPROSPER_VK VlkImageView *get_image_view(const vk::ImageView &vkImageView);
 		DLLPROSPER_VK VlkSampler *get_sampler(const vk::Sampler &vkSampler);

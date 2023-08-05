@@ -43,16 +43,14 @@ static void interop_text(prosper::VlkContext &context,uint32_t w,uint32_t h)
 #endif
 
 std::mutex &get_mem_alloc_mutex();
-prosper::VlkBuffer::VlkBuffer(IPrContext &context,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,Anvil::BufferUniquePtr buf)
-	: IBuffer{context,bufCreateInfo,startOffset,size},m_buffer{std::move(buf)}
+prosper::VlkBuffer::VlkBuffer(IPrContext &context, const util::BufferCreateInfo &bufCreateInfo, DeviceSize startOffset, DeviceSize size, Anvil::BufferUniquePtr buf) : IBuffer {context, bufCreateInfo, startOffset, size}, m_buffer {std::move(buf)}
 {
-	if(m_buffer != nullptr)
-	{
+	if(m_buffer != nullptr) {
 		auto &memAllocMutex = get_mem_alloc_mutex();
 		memAllocMutex.lock();
-			m_buffer->get_buffer(); // This will invoke memory allocation and is not thread-safe!
+		m_buffer->get_buffer(); // This will invoke memory allocation and is not thread-safe!
 		memAllocMutex.unlock();
-		prosper::debug::register_debug_object(m_buffer->get_buffer(),*this,prosper::debug::ObjectType::Buffer);
+		prosper::debug::register_debug_object(m_buffer->get_buffer(), *this, prosper::debug::ObjectType::Buffer);
 		m_vkBuffer = m_buffer->get_buffer();
 	}
 	m_apiTypePtr = this;
@@ -68,84 +66,77 @@ void prosper::VlkBuffer::Initialize()
 	IBuffer::Initialize();
 	MemoryTracker::GetInstance().AddResource(*this);
 }
-std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::Create(IPrContext &context,Anvil::BufferUniquePtr buf,const util::BufferCreateInfo &bufCreateInfo,DeviceSize startOffset,DeviceSize size,const std::function<void(IBuffer&)> &onDestroyedCallback)
+std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::Create(IPrContext &context, Anvil::BufferUniquePtr buf, const util::BufferCreateInfo &bufCreateInfo, DeviceSize startOffset, DeviceSize size, const std::function<void(IBuffer &)> &onDestroyedCallback)
 {
 	if(buf == nullptr)
 		return nullptr;
-	auto r = std::shared_ptr<VlkBuffer>(new VlkBuffer(context,bufCreateInfo,startOffset,size,std::move(buf)),[onDestroyedCallback](VlkBuffer *buf) {
+	auto r = std::shared_ptr<VlkBuffer>(new VlkBuffer(context, bufCreateInfo, startOffset, size, std::move(buf)), [onDestroyedCallback](VlkBuffer *buf) {
 		buf->OnRelease();
 		if(onDestroyedCallback != nullptr)
 			onDestroyedCallback(*buf);
 		buf->GetContext().ReleaseResource<VlkBuffer>(buf);
-		});
+	});
 	r->Initialize();
 	return r;
 }
 
-void prosper::VlkBuffer::Bake()
-{
-	GetAnvilBuffer().get_buffer();
-}
+void prosper::VlkBuffer::Bake() { GetAnvilBuffer().get_buffer(); }
 
-std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::GetParent() {return std::dynamic_pointer_cast<VlkBuffer>(IBuffer::GetParent());}
-const std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::GetParent() const {return const_cast<VlkBuffer*>(this)->GetParent();}
+std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::GetParent() { return std::dynamic_pointer_cast<VlkBuffer>(IBuffer::GetParent()); }
+const std::shared_ptr<prosper::VlkBuffer> prosper::VlkBuffer::GetParent() const { return const_cast<VlkBuffer *>(this)->GetParent(); }
 
-std::shared_ptr<prosper::IBuffer> prosper::VlkBuffer::CreateSubBuffer(DeviceSize offset,DeviceSize size,const std::function<void(IBuffer&)> &onDestroyedCallback)
+std::shared_ptr<prosper::IBuffer> prosper::VlkBuffer::CreateSubBuffer(DeviceSize offset, DeviceSize size, const std::function<void(IBuffer &)> &onDestroyedCallback)
 {
 	auto subBufferCreateInfo = m_createInfo;
 	subBufferCreateInfo.size = size;
-	auto buf = Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&GetAnvilBuffer(),offset,size));
-	auto subBuffer = Create(GetContext(),std::move(buf),subBufferCreateInfo,(m_parent ? m_parent->GetStartOffset() : 0ull) +offset,size,onDestroyedCallback);
+	auto buf = Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&GetAnvilBuffer(), offset, size));
+	auto subBuffer = Create(GetContext(), std::move(buf), subBufferCreateInfo, (m_parent ? m_parent->GetStartOffset() : 0ull) + offset, size, onDestroyedCallback);
 	subBuffer->SetParent(*this);
 	return subBuffer;
 }
 
-Anvil::Buffer &prosper::VlkBuffer::GetAnvilBuffer() const {return *m_buffer;}
-Anvil::Buffer &prosper::VlkBuffer::GetBaseAnvilBuffer() const {return m_parent ? GetParent()->GetAnvilBuffer() : GetAnvilBuffer();}
-Anvil::Buffer &prosper::VlkBuffer::operator*() {return *m_buffer;}
-const Anvil::Buffer &prosper::VlkBuffer::operator*() const {return const_cast<VlkBuffer*>(this)->operator*();}
-Anvil::Buffer *prosper::VlkBuffer::operator->() {return m_buffer.get();}
-const Anvil::Buffer *prosper::VlkBuffer::operator->() const {return const_cast<VlkBuffer*>(this)->operator->();}
+Anvil::Buffer &prosper::VlkBuffer::GetAnvilBuffer() const { return *m_buffer; }
+Anvil::Buffer &prosper::VlkBuffer::GetBaseAnvilBuffer() const { return m_parent ? GetParent()->GetAnvilBuffer() : GetAnvilBuffer(); }
+Anvil::Buffer &prosper::VlkBuffer::operator*() { return *m_buffer; }
+const Anvil::Buffer &prosper::VlkBuffer::operator*() const { return const_cast<VlkBuffer *>(this)->operator*(); }
+Anvil::Buffer *prosper::VlkBuffer::operator->() { return m_buffer.get(); }
+const Anvil::Buffer *prosper::VlkBuffer::operator->() const { return const_cast<VlkBuffer *>(this)->operator->(); }
 
-bool prosper::VlkBuffer::DoWrite(Offset offset,Size size,const void *data) const
+bool prosper::VlkBuffer::DoWrite(Offset offset, Size size, const void *data) const
 {
 	if(size == 0)
 		return true;
-	return m_buffer->get_memory_block(0u)->write(offset,size,data);
+	return m_buffer->get_memory_block(0u)->write(offset, size, data);
 }
-bool prosper::VlkBuffer::DoRead(Offset offset,Size size,void *data) const
+bool prosper::VlkBuffer::DoRead(Offset offset, Size size, void *data) const
 {
 	if(size == 0)
 		return true;
-	return m_buffer->get_memory_block(0u)->read(offset,size,data);
+	return m_buffer->get_memory_block(0u)->read(offset, size, data);
 }
-bool prosper::VlkBuffer::DoMap(Offset offset,Size size,MapFlags mapFlags,void **optOutMappedPtr) const
+bool prosper::VlkBuffer::DoMap(Offset offset, Size size, MapFlags mapFlags, void **optOutMappedPtr) const
 {
 	if(size == 0)
 		return false;
-	return m_buffer->get_memory_block(0u)->map(offset,size,optOutMappedPtr);
+	return m_buffer->get_memory_block(0u)->map(offset, size, optOutMappedPtr);
 }
-bool prosper::VlkBuffer::DoUnmap() const {return m_buffer->get_memory_block(0u)->unmap();}
+bool prosper::VlkBuffer::DoUnmap() const { return m_buffer->get_memory_block(0u)->unmap(); }
 
-void prosper::VlkBuffer::RecreateInternalSubBuffer(IBuffer &newParentBuffer)
-{
-	SetBuffer(Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&newParentBuffer.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(),GetStartOffset(),GetSize())));
-}
+void prosper::VlkBuffer::RecreateInternalSubBuffer(IBuffer &newParentBuffer) { SetBuffer(Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&newParentBuffer.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(), GetStartOffset(), GetSize()))); }
 
 void prosper::VlkBuffer::SetBuffer(Anvil::BufferUniquePtr buf)
 {
 	auto bPermanentlyMapped = m_permanentlyMapped;
-	SetPermanentlyMapped(false,prosper::IBuffer::MapFlags::None);
+	SetPermanentlyMapped(false, prosper::IBuffer::MapFlags::None);
 
 	if(m_buffer != nullptr)
 		prosper::debug::deregister_debug_object(m_buffer->get_buffer());
 	m_buffer = std::move(buf);
-	if(m_buffer != nullptr)
-	{
-		prosper::debug::register_debug_object(m_buffer->get_buffer(),*this,prosper::debug::ObjectType::Buffer);
+	if(m_buffer != nullptr) {
+		prosper::debug::register_debug_object(m_buffer->get_buffer(), *this, prosper::debug::ObjectType::Buffer);
 		m_vkBuffer = m_buffer->get_buffer();
 	}
 
 	if(m_permanentlyMapped.has_value())
-		SetPermanentlyMapped(true,*m_permanentlyMapped);
+		SetPermanentlyMapped(true, *m_permanentlyMapped);
 }

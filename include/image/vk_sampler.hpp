@@ -9,13 +9,10 @@
 #include "image/prosper_sampler.hpp"
 #include <wrappers/sampler.h>
 
-namespace prosper
-{
-	class DLLPROSPER_VK VlkSampler
-		: public ISampler
-	{
-	public:
-		static std::shared_ptr<VlkSampler> Create(IPrContext &context,const util::SamplerCreateInfo &createInfo);
+namespace prosper {
+	class DLLPROSPER_VK VlkSampler : public ISampler {
+	  public:
+		static std::shared_ptr<VlkSampler> Create(IPrContext &context, const util::SamplerCreateInfo &createInfo);
 		virtual ~VlkSampler() override;
 
 		Anvil::Sampler &GetAnvilSampler() const;
@@ -26,11 +23,11 @@ namespace prosper
 
 		virtual void Bake() override;
 
-		virtual const void *GetInternalHandle() const override {return GetAnvilSampler().get_sampler();}
-	protected:
-		VlkSampler(IPrContext &context,const util::SamplerCreateInfo &samplerCreateInfo);
+		virtual const void *GetInternalHandle() const override { return GetAnvilSampler().get_sampler(); }
+	  protected:
+		VlkSampler(IPrContext &context, const util::SamplerCreateInfo &samplerCreateInfo);
 		virtual bool DoUpdate() override;
-		std::unique_ptr<Anvil::Sampler,std::function<void(Anvil::Sampler*)>> m_sampler = nullptr;
+		std::unique_ptr<Anvil::Sampler, std::function<void(Anvil::Sampler *)>> m_sampler = nullptr;
 	};
 };
 

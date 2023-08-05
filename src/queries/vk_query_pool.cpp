@@ -9,16 +9,13 @@
 
 using namespace prosper;
 
-VlkQueryPool::VlkQueryPool(IPrContext &context,Anvil::QueryPoolUniquePtr queryPool,QueryType type)
-	: IQueryPool{context,type,queryPool->get_capacity()},m_queryPool{std::move(queryPool)}
-{}
-Anvil::QueryPool &VlkQueryPool::GetAnvilQueryPool() const {return *m_queryPool;}
+VlkQueryPool::VlkQueryPool(IPrContext &context, Anvil::QueryPoolUniquePtr queryPool, QueryType type) : IQueryPool {context, type, queryPool->get_capacity()}, m_queryPool {std::move(queryPool)} {}
+Anvil::QueryPool &VlkQueryPool::GetAnvilQueryPool() const { return *m_queryPool; }
 
-bool VlkQueryPool::RequestQuery(uint32_t &queryId,QueryType type)
+bool VlkQueryPool::RequestQuery(uint32_t &queryId, QueryType type)
 {
-	auto *features = static_cast<VlkContext&>(GetContext()).GetDevice().get_physical_device_features().core_vk1_0_features_ptr;
-	switch(type)
-	{
+	auto *features = static_cast<VlkContext &>(GetContext()).GetDevice().get_physical_device_features().core_vk1_0_features_ptr;
+	switch(type) {
 	case QueryType::Occlusion:
 		break;
 	case QueryType::PipelineStatistics:
@@ -28,5 +25,5 @@ bool VlkQueryPool::RequestQuery(uint32_t &queryId,QueryType type)
 	case QueryType::Timestamp:
 		break;
 	}
-	return IQueryPool::RequestQuery(queryId,type);
+	return IQueryPool::RequestQuery(queryId, type);
 }

@@ -275,5 +275,5 @@ if(UNIX)
 endif()
 
 # add_subdirectory(external_libs/util_lunarglass)
-add_dependencies(${PROJ_NAME} Anvil SPIRV SPIRV-Tools OSDependent OGLCompiler SPIRV-Tools-opt SPVRemapper glslang)
+add_dependencies(${PROJ_NAME} prosper iclient Anvil SPIRV SPIRV-Tools OSDependent OGLCompiler SPIRV-Tools-opt SPVRemapper glslang)
 # util_lunarglass

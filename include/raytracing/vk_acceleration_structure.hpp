@@ -10,19 +10,16 @@
 #include <prosper_context_object.hpp>
 #include <vulkan/vulkan.h>
 
-namespace prosper
-{
-	class DLLPROSPER_VK VlkAccelerationStructure
-		: public ContextObject,public std::enable_shared_from_this<VlkAccelerationStructure>
-	{
-	public:
+namespace prosper {
+	class DLLPROSPER_VK VlkAccelerationStructure : public ContextObject, public std::enable_shared_from_this<VlkAccelerationStructure> {
+	  public:
 		static std::shared_ptr<VlkAccelerationStructure> Create(IPrContext &context);
 
 		virtual ~VlkAccelerationStructure() override;
 
-		VkAccelerationStructureKHR GetVkAccelerationStructure() const {return m_vkAccStruct;};
-	protected:
-		VlkAccelerationStructure(IPrContext &context,VkAccelerationStructureKHR vkAccStruct,VkAllocationCallbacks vkAllocCallbacks);
+		VkAccelerationStructureKHR GetVkAccelerationStructure() const { return m_vkAccStruct; };
+	  protected:
+		VlkAccelerationStructure(IPrContext &context, VkAccelerationStructureKHR vkAccStruct, VkAllocationCallbacks vkAllocCallbacks);
 
 		VkAccelerationStructureKHR m_vkAccStruct;
 		VkAllocationCallbacks m_vkAllocCallbacks;

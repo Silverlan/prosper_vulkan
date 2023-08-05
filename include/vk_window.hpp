@@ -9,34 +9,31 @@
 #include <prosper_window.hpp>
 #include <wrappers/event.h>
 
-namespace prosper
-{
+namespace prosper {
 	class VlkContext;
 	class VlkPrimaryCommandBuffer;
 	enum class PresentModeKHR : uint32_t;
-	class DLLPROSPER_VK VlkWindow
-		: public Window
-	{
-	public:
-		static std::shared_ptr<VlkWindow> Create(const WindowSettings &windowCreationInfo,prosper::VlkContext &context);
+	class DLLPROSPER_VK VlkWindow : public Window {
+	  public:
+		static std::shared_ptr<VlkWindow> Create(const WindowSettings &windowCreationInfo, prosper::VlkContext &context);
 		virtual ~VlkWindow() override;
 
-		Anvil::Swapchain &GetSwapchain() {return *m_swapchainPtr;}
-		const Anvil::Swapchain &GetSwapchain() const {return const_cast<VlkWindow*>(this)->GetSwapchain();}
-		Anvil::RenderingSurface &GetRenderingSurface() {return *m_renderingSurfacePtr;}
-		const Anvil::RenderingSurface &GetRenderingSurface() const {return const_cast<VlkWindow*>(this)->GetRenderingSurface();}
+		Anvil::Swapchain &GetSwapchain() { return *m_swapchainPtr; }
+		const Anvil::Swapchain &GetSwapchain() const { return const_cast<VlkWindow *>(this)->GetSwapchain(); }
+		Anvil::RenderingSurface &GetRenderingSurface() { return *m_renderingSurfacePtr; }
+		const Anvil::RenderingSurface &GetRenderingSurface() const { return const_cast<VlkWindow *>(this)->GetRenderingSurface(); }
 
-		Anvil::Semaphore *GetCurrentFrameSignalSemaphore() {return m_curFrameSignalSemaphore;}
-		Anvil::Semaphore *GetCurrentFrameWaitSemaphore() {return m_curFrameWaitSemaphore;}
-		
+		Anvil::Semaphore *GetCurrentFrameSignalSemaphore() { return m_curFrameSignalSemaphore; }
+		Anvil::Semaphore *GetCurrentFrameWaitSemaphore() { return m_curFrameWaitSemaphore; }
+
 		Anvil::Fence *GetFence(uint32_t idx);
 		bool WaitForFence(std::string &outErr);
 		bool IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const;
 		virtual uint32_t GetLastAcquiredSwapchainImageIndex() const override;
 		Anvil::SwapchainOperationErrorCode AcquireImage();
-		Anvil::Semaphore &Submit(VlkPrimaryCommandBuffer &cmd,Anvil::Semaphore *optWaitSemaphore=nullptr);
-		void Present(Anvil::Semaphore *optWaitSemaphore=nullptr);
-	protected:
+		Anvil::Semaphore &Submit(VlkPrimaryCommandBuffer &cmd, Anvil::Semaphore *optWaitSemaphore = nullptr);
+		void Present(Anvil::Semaphore *optWaitSemaphore = nullptr);
+	  protected:
 		using Window::Window;
 		virtual void InitWindow() override;
 		virtual void ReleaseWindow() override;
