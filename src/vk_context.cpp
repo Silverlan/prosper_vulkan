@@ -108,10 +108,20 @@ std::unique_ptr<VlkShaderPipelineLayout> VlkShaderPipelineLayout::Create(const S
 
 decltype(VlkContext::s_devToContext) VlkContext::s_devToContext = {};
 
-VlkContext::VlkContext(const std::string &appName, bool bEnableValidation) : IPrContext {appName, bEnableValidation} { SetMultiThreadedRenderingEnabled(true); }
+VlkContext::VlkContext(const std::string &appName, bool bEnableValidation) : IPrContext {appName, bEnableValidation}
+{
+	SetMultiThreadedRenderingEnabled(true);
+	Anvil::set_assertion_failure_handler([this](const char *fileName, uint32_t lineIdx, const char *msg) {
+		std::stringstream ss;
+		ss << "Anvil assertion failed in file \"" << fileName << "\", line " << lineIdx << ": " << msg;
+
+		Log(ss.str(), ::util::LogSeverity::Error);
+	});
+}
 
 void VlkContext::OnClose()
 {
+	Anvil::set_assertion_failure_handler(nullptr);
 	m_dummyTexture = nullptr;
 	m_dummyCubemapTexture = nullptr;
 
