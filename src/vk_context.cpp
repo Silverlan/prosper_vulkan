@@ -203,10 +203,14 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 		auto result = static_cast<VlkWindow &>(*window).WaitForFence(errMsg);
 		window->SetState(result ? prosper::Window::State::Active : prosper::Window::State::Inactive);
 		if(result) {
-			validWindows |= (1 << idx);
 			auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer &>(*window->GetDrawCommandBuffer());
-			static_cast<Anvil::PrimaryCommandBuffer &>(primCmd.GetAnvilCommandBuffer()).start_recording(true, false);
-			primCmd.SetRecording(true);
+			auto success = static_cast<Anvil::PrimaryCommandBuffer &>(primCmd.GetAnvilCommandBuffer()).start_recording(true, false);
+			if(success) {
+				validWindows |= (1 << idx);
+				primCmd.SetRecording(true);
+			}
+			else
+				window->SetState(prosper::Window::State::Inactive);
 		}
 
 		++it;
@@ -241,6 +245,8 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 	}
 	/* Start recording commands */
 	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer &>(*GetWindow().GetDrawCommandBuffer());
+	if(primCmd.IsRecording() == false)
+		return; // Something went wrong?
 	umath::set_flag(m_stateFlags, StateFlags::IsRecording);
 	umath::set_flag(m_stateFlags, StateFlags::Idle, false);
 	while(m_scheduledBufferUpdates.empty() == false) {
