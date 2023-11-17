@@ -297,11 +297,17 @@ void prosper::VlkWindow::InitSemaphores()
 void prosper::VlkWindow::DoInitSwapchain()
 {
 	auto &context = static_cast<VlkContext &>(GetContext());
-	m_renderingSurfacePtr = Anvil::RenderingSurface::create(Anvil::RenderingSurfaceCreateInfo::create(&context.GetAnvilInstance(), &context.GetDevice(), m_windowPtr.get()));
+
+	if(m_renderingSurfacePtr == nullptr) {
+		m_renderingSurfacePtr = Anvil::RenderingSurface::create(Anvil::RenderingSurfaceCreateInfo::create(&context.GetAnvilInstance(), &context.GetDevice(), m_windowPtr.get()));
+		m_renderingSurfacePtr->set_name("Main rendering surface");
+	}
+	if(!m_renderingSurfacePtr)
+		return;
+	m_renderingSurfacePtr->update_surface_extents();
 	if(m_renderingSurfacePtr->get_width() == 0 || m_renderingSurfacePtr->get_height() == 0)
 		return; // Minimized?
 
-	m_renderingSurfacePtr->set_name("Main rendering surface");
 	// TODO: This shouldn't be handled through the context, this could be problematic if there's
 	// multiple windows with different present modes!
 	context.SetPresentMode(context.GetPresentMode()); // Update present mode to make sure it's supported by our surface
@@ -319,10 +325,6 @@ void prosper::VlkWindow::DoInitSwapchain()
 		numSwapchainImages = 1u;
 	}
 
-	m_swapchainImages.clear();
-	m_cmdFences.clear();
-	m_swapchainFramebuffers.clear();
-
 	auto createInfo = Anvil::SwapchainCreateInfo::create(&context.GetDevice(), m_renderingSurfacePtr.get(), m_windowPtr.get(), Anvil::Format::B8G8R8A8_UNORM, Anvil::ColorSpaceKHR::SRGB_NONLINEAR_KHR, static_cast<Anvil::PresentModeKHR>(presentMode),
 	  Anvil::ImageUsageFlagBits::COLOR_ATTACHMENT_BIT | Anvil::ImageUsageFlagBits::TRANSFER_DST_BIT, numSwapchainImages);
 	createInfo->set_mt_safety(Anvil::MTSafety::ENABLED);
@@ -330,7 +332,14 @@ void prosper::VlkWindow::DoInitSwapchain()
 	auto recreateSwapchain = (m_swapchainPtr != nullptr);
 	if(recreateSwapchain)
 		createInfo->set_old_swapchain(m_swapchainPtr.get());
-	m_swapchainPtr = Anvil::Swapchain::create(std::move(createInfo));
+	auto newSwapchain = Anvil::Swapchain::create(std::move(createInfo));
+
+	// Now we can release the old swapchain
+	m_swapchainImages.clear();
+	m_cmdFences.clear();
+	m_swapchainFramebuffers.clear();
+	m_swapchainPtr = nullptr;
+	m_swapchainPtr = std::move(newSwapchain);
 
 	// The actual swapchain may have a different number of images
 	numSwapchainImages = m_swapchainPtr->get_n_images();

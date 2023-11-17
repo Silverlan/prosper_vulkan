@@ -29,7 +29,7 @@ VlkDescriptorSetGroup::VlkDescriptorSetGroup(IPrContext &context, const Descript
 	auto numSets = m_descriptorSetGroup->get_n_descriptor_sets();
 	if(prosper::debug::is_debug_mode_enabled()) {
 		for(auto i = decltype(numSets) {0}; i < numSets; ++i)
-			prosper::debug::register_debug_object(m_descriptorSetGroup->get_descriptor_set(i), *this, prosper::debug::ObjectType::DescriptorSet);
+			prosper::debug::register_debug_object(m_descriptorSetGroup->get_descriptor_set(i)->get_descriptor_set_vk(), *this, prosper::debug::ObjectType::DescriptorSet);
 	}
 	m_descriptorSets.resize(numSets);
 
@@ -45,7 +45,7 @@ VlkDescriptorSetGroup::~VlkDescriptorSetGroup()
 	if(prosper::debug::is_debug_mode_enabled()) {
 		auto numSets = m_descriptorSetGroup->get_n_descriptor_sets();
 		for(auto i = decltype(numSets) {0}; i < numSets; ++i)
-			prosper::debug::deregister_debug_object(m_descriptorSetGroup->get_descriptor_set(i));
+			prosper::debug::deregister_debug_object(m_descriptorSetGroup->get_descriptor_set(i)->get_descriptor_set_vk(false));
 	}
 }
 

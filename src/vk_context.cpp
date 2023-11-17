@@ -1517,11 +1517,12 @@ std::shared_ptr<prosper::IRenderPass> prosper::VlkContext::CreateRenderPass(cons
 {
 	return prosper::VlkRenderPass::Create(*this, renderPassInfo, Anvil::RenderPass::create(std::move(anvRenderPassInfo), &GetSwapchain()));
 }
-static void init_default_dsg_bindings(Anvil::BaseDevice &dev, Anvil::DescriptorSetGroup &dsg)
+static void init_default_dsg_bindings(Anvil::BaseDevice &dev, Anvil::DescriptorSetGroup &dsg, const std::vector<bool> &cubemapBindings)
 {
 	// Initialize image sampler bindings with dummy texture
 	auto &context = prosper::VlkContext::GetContext(dev);
 	auto &dummyTex = context.GetDummyTexture();
+	auto &dummyCubemapTex = context.GetDummyCubemapTexture();
 	auto &dummyBuf = context.GetDummyBuffer();
 	auto numSets = dsg.get_n_descriptor_sets();
 	for(auto i = decltype(numSets) {0}; i < numSets; ++i) {
@@ -1537,9 +1538,9 @@ static void init_default_dsg_bindings(Anvil::BaseDevice &dev, Anvil::DescriptorS
 			switch(descType) {
 			case Anvil::DescriptorType::COMBINED_IMAGE_SAMPLER:
 				{
+					auto &tex = cubemapBindings[j] ? dummyCubemapTex : dummyTex;
 					std::vector<Anvil::DescriptorSet::CombinedImageSamplerBindingElement> bindingElements(arraySize,
-					  Anvil::DescriptorSet::CombinedImageSamplerBindingElement {Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL, &static_cast<prosper::VlkImageView &>(*dummyTex->GetImageView()).GetAnvilImageView(),
-					    &static_cast<prosper::VlkSampler &>(*dummyTex->GetSampler()).GetAnvilSampler()});
+					  Anvil::DescriptorSet::CombinedImageSamplerBindingElement {Anvil::ImageLayout::SHADER_READ_ONLY_OPTIMAL, &static_cast<prosper::VlkImageView &>(*tex->GetImageView()).GetAnvilImageView(), &static_cast<prosper::VlkSampler &>(*tex->GetSampler()).GetAnvilSampler()});
 					descSet->set_binding_array_items(bindingIndex, {0u, arraySize}, bindingElements.data());
 					break;
 				}
@@ -1575,10 +1576,21 @@ static void init_default_dsg_bindings(Anvil::BaseDevice &dev, Anvil::DescriptorS
 }
 std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo, std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo)
 {
+	auto numBindings = descSetCreateInfo.GetBindingCount();
+	std::vector<bool> cubemapBindings;
+	cubemapBindings.resize(numBindings, false);
+	for(auto i = decltype(numBindings) {0u}; i < numBindings; ++i) {
+		prosper::PrDescriptorSetBindingFlags prFlags;
+		if(descSetCreateInfo.GetBindingPropertiesByBindingIndex(i, nullptr, nullptr, nullptr, nullptr, nullptr, &prFlags)) {
+			if(umath::is_flag_set(prFlags, prosper::PrDescriptorSetBindingFlags::Cubemap))
+				cubemapBindings[i] = true;
+		}
+	}
+
 	std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> descSetInfos = {};
 	descSetInfos.push_back(std::move(descSetInfo));
 	auto dsg = Anvil::DescriptorSetGroup::create(&static_cast<VlkContext &>(*this).GetDevice(), descSetInfos, Anvil::DescriptorPoolCreateFlagBits::FREE_DESCRIPTOR_SET_BIT);
-	init_default_dsg_bindings(static_cast<VlkContext &>(*this).GetDevice(), *dsg);
+	init_default_dsg_bindings(static_cast<VlkContext &>(*this).GetDevice(), *dsg, cubemapBindings);
 	return prosper::VlkDescriptorSetGroup::Create(*this, descSetCreateInfo, std::move(dsg));
 }
 
