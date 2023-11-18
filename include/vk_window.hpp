@@ -33,8 +33,11 @@ namespace prosper {
 		Anvil::SwapchainOperationErrorCode AcquireImage();
 		Anvil::Semaphore &Submit(VlkPrimaryCommandBuffer &cmd, Anvil::Semaphore *optWaitSemaphore = nullptr);
 		void Present(Anvil::Semaphore *optWaitSemaphore = nullptr);
+		bool UpdateSwapchain();
 	  protected:
 		using Window::Window;
+		void ClearSwapchain();
+		void ResetSwapchain();
 		virtual void InitWindow() override;
 		virtual void ReleaseWindow() override;
 		virtual void DoInitSwapchain() override;
@@ -43,6 +46,7 @@ namespace prosper {
 		void InitSemaphores();
 		void InitFrameBuffers();
 
+		bool m_initializeSwapchainWhenPossible = false;
 		Anvil::Semaphore *m_curFrameSignalSemaphore = nullptr;
 		Anvil::Semaphore *m_curFrameWaitSemaphore = nullptr;
 

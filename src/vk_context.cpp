@@ -193,7 +193,13 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 			window->SetState(prosper::Window::State::Inactive);
 			continue;
 		}
-		errCode = static_cast<VlkWindow &>(*window).AcquireImage();
+		auto &vlkWindow = static_cast<VlkWindow &>(*window);
+		if(!vlkWindow.UpdateSwapchain()) {
+			++it;
+			window->SetState(prosper::Window::State::Inactive);
+			continue;
+		}
+		errCode = vlkWindow.AcquireImage();
 		if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS) {
 			++it;
 			window->SetState(prosper::Window::State::Inactive);

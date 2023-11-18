@@ -145,8 +145,8 @@ Anvil::SwapchainOperationErrorCode prosper::VlkWindow::AcquireImage()
 
 	uint32_t idx;
 	auto errCode = m_swapchainPtr->acquire_image(m_curFrameWaitSemaphore, &idx);
-	if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE)
-		InitSwapchain();
+	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS)
+		ResetSwapchain();
 	return errCode;
 }
 
@@ -158,11 +158,12 @@ Anvil::Semaphore &prosper::VlkWindow::Submit(VlkPrimaryCommandBuffer &cmd, Anvil
 	auto swapchainImgIdx = GetLastAcquiredSwapchainImageIndex();
 	auto &context = static_cast<VlkContext &>(GetContext());
 	auto &dev = context.GetDevice();
+
 	const std::array<Anvil::PipelineStageFlags, 2> wait_stage_mask {Anvil::PipelineStageFlagBits::ALL_COMMANDS_BIT, Anvil::PipelineStageFlagBits::ALL_COMMANDS_BIT};
-	dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(&cmd.GetAnvilCommandBuffer(), 1, /* n_semaphores_to_signal */
-	  &signalSemaphore, optWaitSemaphore ? 2 : 1,                                                 /* n_semaphores_to_wait_on */
-	  waitSemaphores.data(), wait_stage_mask.data(), false,                                       /* should_block  */
-	  m_cmdFences.at(swapchainImgIdx).get()));                                                    /* opt_fence_ptr */
+	auto res = dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(&cmd.GetAnvilCommandBuffer(), 1, /* n_semaphores_to_signal */
+	  &signalSemaphore, optWaitSemaphore ? 2 : 1,                                                            /* n_semaphores_to_wait_on */
+	  waitSemaphores.data(), wait_stage_mask.data(), false,                                                  /* should_block  */
+	  m_cmdFences.at(swapchainImgIdx).get()));                                                               /* opt_fence_ptr */
 	return *signalSemaphore;
 }
 
@@ -178,7 +179,7 @@ void prosper::VlkWindow::Present(Anvil::Semaphore *optWaitSemaphore)
 
 	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS || bPresentSuccess == false) {
 		if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE) {
-			InitSwapchain();
+			ResetSwapchain();
 			return;
 		}
 		else
@@ -222,7 +223,7 @@ void prosper::VlkWindow::InitWindow()
 		const char *errDesc;
 		auto err = glfwGetError(&errDesc);
 		if(err != GLFW_NO_ERROR) {
-			std::cout << "Error retrieving GLFW window handle: " << errDesc << std::endl;
+			GetContext().Log("Error retrieving GLFW window handle: " + std::string {errDesc}, ::util::LogSeverity::Critical);
 			std::this_thread::sleep_for(std::chrono::seconds(5));
 			exit(EXIT_FAILURE);
 		}
@@ -243,13 +244,13 @@ void prosper::VlkWindow::InitWindow()
 		err = glfwCreateWindowSurface(context.GetAnvilInstance().get_instance_vk(), const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), nullptr, reinterpret_cast<VkSurfaceKHR *>(&m_surface));
 		if(err != GLFW_NO_ERROR) {
 			glfwGetError(&errDesc);
-			std::cout << "Error creating GLFW window surface: " << errDesc << std::endl;
+			GetContext().Log("Error creating GLFW window surface: " + std::string {errDesc}, ::util::LogSeverity::Critical);
 			std::this_thread::sleep_for(std::chrono::seconds(5));
 			exit(EXIT_FAILURE);
 		}
 
-		m_glfwWindow->SetResizeCallback([](GLFW::Window &window, Vector2i size) {
-			std::cout << "Resizing..." << std::endl; // TODO
+		m_glfwWindow->SetResizeCallback([this](GLFW::Window &window, Vector2i size) {
+			GetContext().Log("Resizing...");
 		});
 	}
 	catch(const std::exception &e) {
@@ -279,6 +280,13 @@ void prosper::VlkWindow::InitFrameBuffers()
 
 void prosper::VlkWindow::InitSemaphores()
 {
+	m_frameSignalSemaphores.clear();
+	m_frameWaitSemaphores.clear();
+
+	m_lastSemaporeUsed = 0;
+	m_curFrameSignalSemaphore = nullptr;
+	m_curFrameWaitSemaphore = nullptr;
+
 	auto &context = static_cast<VlkContext &>(GetContext());
 	auto &dev = context.GetDevice();
 	auto n = GetSwapchainImageCount();
@@ -294,6 +302,32 @@ void prosper::VlkWindow::InitSemaphores()
 	}
 }
 
+bool prosper::VlkWindow::UpdateSwapchain()
+{
+	if(m_initializeSwapchainWhenPossible)
+		InitSwapchain();
+	return m_swapchainPtr != nullptr;
+}
+
+void prosper::VlkWindow::ResetSwapchain()
+{
+	ClearSwapchain();
+	m_initializeSwapchainWhenPossible = true;
+
+	UpdateSwapchain();
+}
+
+void prosper::VlkWindow::ClearSwapchain()
+{
+	auto &context = static_cast<VlkContext &>(GetContext());
+	context.WaitIdle();
+
+	m_swapchainImages.clear();
+	m_cmdFences.clear();
+	m_swapchainFramebuffers.clear();
+	m_swapchainPtr = nullptr;
+}
+
 void prosper::VlkWindow::DoInitSwapchain()
 {
 	auto &context = static_cast<VlkContext &>(GetContext());
@@ -307,6 +341,7 @@ void prosper::VlkWindow::DoInitSwapchain()
 	m_renderingSurfacePtr->update_surface_extents();
 	if(m_renderingSurfacePtr->get_width() == 0 || m_renderingSurfacePtr->get_height() == 0)
 		return; // Minimized?
+	m_initializeSwapchainWhenPossible = false;
 
 	// TODO: This shouldn't be handled through the context, this could be problematic if there's
 	// multiple windows with different present modes!
@@ -387,6 +422,7 @@ void prosper::VlkWindow::DoInitSwapchain()
 
 	InitFrameBuffers();
 	InitSemaphores();
+	OnSwapchainInitialized();
 }
 
 Anvil::Fence *prosper::VlkWindow::GetFence(uint32_t idx) { return (idx < m_cmdFences.size()) ? m_cmdFences[idx].get() : nullptr; }
