@@ -29,6 +29,7 @@ std::shared_ptr<VlkSampler> VlkSampler::Create(IPrContext &context, const prospe
 VlkSampler::VlkSampler(IPrContext &context, const prosper::util::SamplerCreateInfo &samplerCreateInfo) : ISampler {context, samplerCreateInfo} {}
 VlkSampler::~VlkSampler()
 {
+	VlkDebugObject::Clear(GetContext(), debug::ObjectType::Sampler, GetInternalHandle());
 	if(m_sampler != nullptr)
 		prosper::debug::deregister_debug_object(m_sampler->get_sampler());
 }
@@ -46,10 +47,13 @@ bool VlkSampler::DoUpdate()
 	  static_cast<Anvil::CompareOp>(createInfo.compareOp), createInfo.minLod, createInfo.maxLod, static_cast<Anvil::BorderColor>(createInfo.borderColor), false //,createInfo.useUnnormalizedCoordinates
 	  ));
 	if(newSampler != nullptr) {
-		if(m_sampler != nullptr)
+		if(m_sampler != nullptr) {
 			prosper::debug::deregister_debug_object(m_sampler->get_sampler());
+			VlkDebugObject::Clear(GetContext(), debug::ObjectType::Sampler, GetInternalHandle());
+		}
 		m_sampler = std::move(newSampler);
 		prosper::debug::register_debug_object(m_sampler->get_sampler(), *this, prosper::debug::ObjectType::Sampler);
+		Init(GetContext(), debug::ObjectType::Sampler, GetInternalHandle());
 		return true;
 	}
 	return false;

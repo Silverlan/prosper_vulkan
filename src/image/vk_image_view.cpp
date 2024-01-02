@@ -30,9 +30,14 @@ std::shared_ptr<VlkImageView> VlkImageView::Create(IPrContext &context, IImage &
 VlkImageView::VlkImageView(IPrContext &context, IImage &img, const prosper::util::ImageViewCreateInfo &createInfo, ImageViewType type, ImageAspectFlags aspectFlags, Anvil::ImageViewUniquePtr imgView)
     : IImageView {context, img, createInfo, type, aspectFlags}, m_imageView(std::move(imgView))
 {
+	VlkDebugObject::Init(GetContext(), debug::ObjectType::ImageView, GetInternalHandle());
 	prosper::debug::register_debug_object(m_imageView->get_image_view(), *this, prosper::debug::ObjectType::ImageView);
 }
-VlkImageView::~VlkImageView() { prosper::debug::deregister_debug_object(m_imageView->get_image_view()); }
+VlkImageView::~VlkImageView()
+{
+	VlkDebugObject::Clear(GetContext(), debug::ObjectType::ImageView, GetInternalHandle());
+	prosper::debug::deregister_debug_object(m_imageView->get_image_view());
+}
 void VlkImageView::Bake() { GetAnvilImageView().get_image_view(); }
 Anvil::ImageView &VlkImageView::GetAnvilImageView() const { return *m_imageView; }
 Anvil::ImageView &VlkImageView::operator*() { return *m_imageView; }

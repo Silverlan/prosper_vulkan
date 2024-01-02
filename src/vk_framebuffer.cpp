@@ -30,7 +30,11 @@ VlkFramebuffer::VlkFramebuffer(IPrContext &context, const std::vector<std::share
 {
 	//prosper::debug::register_debug_object(m_framebuffer->get_framebuffer(),this,prosper::debug::ObjectType::Framebuffer);
 }
-VlkFramebuffer::~VlkFramebuffer() {}
+VlkFramebuffer::~VlkFramebuffer()
+{
+	// TODO
+	//VlkDebugObject::Clear(GetContext(), VlkDebugObject::Type::VkFramebuffer, GetInternalHandle());
+}
 void VlkFramebuffer::Bake(IRenderPass &rp)
 {
 	auto &anvRenderPass = static_cast<VlkRenderPass &>(rp).GetAnvilRenderPass();

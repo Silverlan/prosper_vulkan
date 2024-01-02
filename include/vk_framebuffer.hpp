@@ -7,10 +7,11 @@
 
 #include "prosper_vulkan_definitions.hpp"
 #include "prosper_framebuffer.hpp"
+#include "debug/vk_debug_object.hpp"
 #include <wrappers/framebuffer.h>
 
 namespace prosper {
-	class DLLPROSPER_VK VlkFramebuffer : public IFramebuffer {
+	class DLLPROSPER_VK VlkFramebuffer : public IFramebuffer, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkFramebuffer> Create(IPrContext &context, const std::vector<IImageView *> &attachments, uint32_t width, uint32_t height, uint32_t depth, uint32_t layers, std::unique_ptr<Anvil::Framebuffer, std::function<void(Anvil::Framebuffer *)>> fb,
 		  const std::function<void(IFramebuffer &)> &onDestroyedCallback = nullptr);

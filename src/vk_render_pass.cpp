@@ -26,8 +26,16 @@ VlkRenderPass::VlkRenderPass(IPrContext &context, const prosper::util::RenderPas
 {
 	prosper::debug::register_debug_object(m_renderPass->get_render_pass(), *this, prosper::debug::ObjectType::RenderPass);
 }
-VlkRenderPass::~VlkRenderPass() { prosper::debug::deregister_debug_object(m_renderPass->get_render_pass()); }
-void VlkRenderPass::Bake() { GetAnvilRenderPass().get_render_pass(); }
+VlkRenderPass::~VlkRenderPass()
+{
+	VlkDebugObject::Clear(GetContext(), debug::ObjectType::RenderPass, GetInternalHandle());
+	prosper::debug::deregister_debug_object(m_renderPass->get_render_pass());
+}
+void VlkRenderPass::Bake()
+{
+	GetAnvilRenderPass().get_render_pass();
+	VlkDebugObject::Init(GetContext(), debug::ObjectType::RenderPass, GetInternalHandle());
+}
 
 Anvil::RenderPass &VlkRenderPass::GetAnvilRenderPass() const { return *m_renderPass; }
 Anvil::RenderPass &VlkRenderPass::operator*() { return *m_renderPass; }

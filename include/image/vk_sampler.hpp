@@ -7,10 +7,11 @@
 
 #include "prosper_vulkan_definitions.hpp"
 #include "image/prosper_sampler.hpp"
+#include "debug/vk_debug_object.hpp"
 #include <wrappers/sampler.h>
 
 namespace prosper {
-	class DLLPROSPER_VK VlkSampler : public ISampler {
+	class DLLPROSPER_VK VlkSampler : public ISampler, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkSampler> Create(IPrContext &context, const util::SamplerCreateInfo &createInfo);
 		virtual ~VlkSampler() override;

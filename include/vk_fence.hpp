@@ -7,10 +7,11 @@
 
 #include "prosper_vulkan_definitions.hpp"
 #include "prosper_fence.hpp"
+#include "debug/vk_debug_object.hpp"
 #include <wrappers/fence.h>
 
 namespace prosper {
-	class DLLPROSPER_VK VlkFence : public IFence {
+	class DLLPROSPER_VK VlkFence : public IFence, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkFence> Create(IPrContext &context, bool createSignalled = false, const std::function<void(IFence &)> &onDestroyedCallback = nullptr);
 		virtual ~VlkFence() override;

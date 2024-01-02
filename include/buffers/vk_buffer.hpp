@@ -9,6 +9,7 @@
 #include "prosper_includes.hpp"
 #include "prosper_context_object.hpp"
 #include "buffers/prosper_buffer.hpp"
+#include "debug/vk_debug_object.hpp"
 #include "buffers/prosper_buffer_create_info.hpp"
 #include <wrappers/buffer.h>
 #include <mathutil/umath.h>
@@ -23,7 +24,7 @@ namespace Anvil {
 namespace prosper {
 	class VkDynamicResizableBuffer;
 	class VkUniformResizableBuffer;
-	class DLLPROSPER_VK VlkBuffer : virtual public IBuffer {
+	class DLLPROSPER_VK VlkBuffer : virtual public IBuffer, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkBuffer> Create(IPrContext &context, Anvil::BufferUniquePtr buf, const util::BufferCreateInfo &bufCreateInfo, DeviceSize startOffset, DeviceSize size, const std::function<void(IBuffer &)> &onDestroyedCallback = nullptr);
 

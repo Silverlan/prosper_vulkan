@@ -32,9 +32,22 @@ namespace prosper {
 	class VlkFramebuffer;
 	class VlkDescriptorSetGroup;
 	class VlkBuffer;
+	class ContextObject;
 	class Shader;
 	namespace debug {
-		enum class ObjectType : uint32_t { Image = 0u, ImageView, Sampler, Buffer, CommandBuffer, RenderPass, Framebuffer, DescriptorSet, Pipeline };
+		enum class ObjectType : uint32_t {
+			Image = 0u,
+			ImageView,
+			Sampler,
+			Buffer,
+			CommandBuffer,
+			RenderPass,
+			Framebuffer,
+			DescriptorSet,
+			Pipeline,
+			Fence,
+			Count,
+		};
 		struct ShaderPipelineInfo {
 			Shader *shader = nullptr;
 			uint32_t pipelineIdx = std::numeric_limits<uint32_t>::max();

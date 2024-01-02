@@ -14,6 +14,7 @@
 #include "image/vk_image.hpp"
 #include "image/vk_image_view.hpp"
 #include "image/vk_sampler.hpp"
+#include "debug/vk_debug_object.hpp"
 #include "vk_context.hpp"
 #include "vk_command_buffer.hpp"
 #include "vk_render_pass.hpp"
@@ -225,6 +226,12 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 				r << " (" << object_type_to_string(type) << ")";
 		}
 		r << " prosper::ContextObject(0x" << o << ")";
+		auto *dbgO = dynamic_cast<VlkDebugObject *>(contextObject);
+		if(dbgO) {
+			auto dbgIdx = dbgO->GetDebugIndex();
+			if(dbgIdx != std::numeric_limits<size_t>::max())
+				r << " (" << dbgIdx << ")";
+		}
 
 		prevPos = posEnd;
 		pos = msgValidation.find("0x", pos + 1ull);

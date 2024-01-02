@@ -49,7 +49,17 @@ VlkDescriptorSetGroup::~VlkDescriptorSetGroup()
 	}
 }
 
-VlkDescriptorSet::VlkDescriptorSet(VlkDescriptorSetGroup &dsg, Anvil::DescriptorSet &ds) : IDescriptorSet {dsg}, m_descSet {ds} { m_apiTypePtr = static_cast<VlkDescriptorSet *>(this); }
+VlkDescriptorSet::VlkDescriptorSet(VlkDescriptorSetGroup &dsg, Anvil::DescriptorSet &ds) : IDescriptorSet {dsg}, m_descSet {ds}
+{
+	m_apiTypePtr = static_cast<VlkDescriptorSet *>(this);
+	VlkDebugObject::Init(dsg.GetContext(), debug::ObjectType::DescriptorSet, GetVkDescriptorSet());
+}
+
+VlkDescriptorSet::~VlkDescriptorSet()
+{
+	auto &dsg = GetDescriptorSetGroup();
+	VlkDebugObject::Clear(dsg.GetContext(), debug::ObjectType::DescriptorSet, GetVkDescriptorSet());
+}
 
 VkDescriptorSet VlkDescriptorSet::GetVkDescriptorSet() const { return m_descSet.get_descriptor_set_vk(); }
 

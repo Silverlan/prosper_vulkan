@@ -7,6 +7,7 @@
 
 #include "prosper_vulkan_definitions.hpp"
 #include "prosper_descriptor_set_group.hpp"
+#include "debug/vk_debug_object.hpp"
 #include <wrappers/descriptor_set_group.h>
 
 namespace prosper {
@@ -26,9 +27,10 @@ namespace prosper {
 		std::unique_ptr<Anvil::DescriptorSetGroup, std::function<void(Anvil::DescriptorSetGroup *)>> m_descriptorSetGroup = nullptr;
 	};
 
-	class DLLPROSPER_VK VlkDescriptorSet : public IDescriptorSet {
+	class DLLPROSPER_VK VlkDescriptorSet : public IDescriptorSet, public VlkDebugObject {
 	  public:
 		VlkDescriptorSet(VlkDescriptorSetGroup &dsg, Anvil::DescriptorSet &ds);
+		virtual ~VlkDescriptorSet() override;
 
 		Anvil::DescriptorSet &GetAnvilDescriptorSet() const;
 		Anvil::DescriptorSet &operator*();
