@@ -59,6 +59,18 @@ VlkImage::VlkImage(IPrContext &context, std::unique_ptr<Anvil::Image, std::funct
 	}
 	prosper::debug::register_debug_object(m_image->get_image(), *this, prosper::debug::ObjectType::Image);
 	MemoryTracker::GetInstance().AddResource(*this);
+
+	if(context.IsValidationEnabled()) {
+		// Quick and dirty debugging, can be used to identify a specific image by a global index
+		// Assuming the order of creation for images is the same every session
+		static size_t g_imgIndex = 0;
+		if(m_image) {
+			std::stringstream ss;
+			ss << "VkImage 0x" << std::hex << reinterpret_cast<std::uintptr_t>(m_image->get_image()) << " with index " << std::dec << g_imgIndex;
+			context.Log(ss.str());
+		}
+		++g_imgIndex;
+	}
 }
 VlkImage::~VlkImage()
 {
