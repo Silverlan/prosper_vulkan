@@ -59,11 +59,13 @@ VlkImage::VlkImage(IPrContext &context, std::unique_ptr<Anvil::Image, std::funct
 	}
 	prosper::debug::register_debug_object(m_image->get_image(), *this, prosper::debug::ObjectType::Image);
 	MemoryTracker::GetInstance().AddResource(*this);
-	VlkDebugObject::Init(context, debug::ObjectType::Image, GetInternalHandle());
+	if(GetContext().IsValidationEnabled())
+		VlkDebugObject::Init(context, debug::ObjectType::Image, GetInternalHandle());
 }
 VlkImage::~VlkImage()
 {
-	VlkDebugObject::Clear(GetContext(), debug::ObjectType::Image, m_image ? m_image->get_image(false) : nullptr);
+	if(GetContext().IsValidationEnabled())
+		VlkDebugObject::Clear(GetContext(), debug::ObjectType::Image, m_image ? m_image->get_image(false) : nullptr);
 	if(m_swapchainImage)
 		return;
 	if(s_imageMap != nullptr) {

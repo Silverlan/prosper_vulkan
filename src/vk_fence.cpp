@@ -25,10 +25,15 @@ std::shared_ptr<VlkFence> VlkFence::Create(IPrContext &context, bool createSigna
 
 VlkFence::VlkFence(IPrContext &context, Anvil::FenceUniquePtr fence) : IFence {context}, m_fence(std::move(fence))
 {
-	VlkDebugObject::Init(GetContext(), debug::ObjectType::Fence, GetInternalHandle());
+	if(GetContext().IsValidationEnabled())
+		VlkDebugObject::Init(GetContext(), debug::ObjectType::Fence, GetInternalHandle());
 	//prosper::debug::register_debug_object(m_framebuffer->get_framebuffer(),this,prosper::debug::ObjectType::Fence);
 }
-VlkFence::~VlkFence() { VlkDebugObject::Clear(GetContext(), debug::ObjectType::Fence, GetInternalHandle()); }
+VlkFence::~VlkFence()
+{
+	if(GetContext().IsValidationEnabled())
+		VlkDebugObject::Clear(GetContext(), debug::ObjectType::Fence, GetInternalHandle());
+}
 bool VlkFence::IsSet() const { return m_fence->is_set(); }
 bool VlkFence::Reset() const { return m_fence->reset(); }
 

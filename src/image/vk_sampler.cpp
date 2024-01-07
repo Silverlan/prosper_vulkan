@@ -29,7 +29,8 @@ std::shared_ptr<VlkSampler> VlkSampler::Create(IPrContext &context, const prospe
 VlkSampler::VlkSampler(IPrContext &context, const prosper::util::SamplerCreateInfo &samplerCreateInfo) : ISampler {context, samplerCreateInfo} {}
 VlkSampler::~VlkSampler()
 {
-	VlkDebugObject::Clear(GetContext(), debug::ObjectType::Sampler, GetInternalHandle());
+	if(GetContext().IsValidationEnabled())
+		VlkDebugObject::Clear(GetContext(), debug::ObjectType::Sampler, GetInternalHandle());
 	if(m_sampler != nullptr)
 		prosper::debug::deregister_debug_object(m_sampler->get_sampler());
 }
@@ -49,7 +50,8 @@ bool VlkSampler::DoUpdate()
 	if(newSampler != nullptr) {
 		if(m_sampler != nullptr) {
 			prosper::debug::deregister_debug_object(m_sampler->get_sampler());
-			VlkDebugObject::Clear(GetContext(), debug::ObjectType::Sampler, GetInternalHandle());
+			if(GetContext().IsValidationEnabled())
+				VlkDebugObject::Clear(GetContext(), debug::ObjectType::Sampler, GetInternalHandle());
 		}
 		m_sampler = std::move(newSampler);
 		prosper::debug::register_debug_object(m_sampler->get_sampler(), *this, prosper::debug::ObjectType::Sampler);

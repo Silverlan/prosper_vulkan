@@ -53,14 +53,16 @@ prosper::VlkBuffer::VlkBuffer(IPrContext &context, const util::BufferCreateInfo 
 		prosper::debug::register_debug_object(m_buffer->get_buffer(), *this, prosper::debug::ObjectType::Buffer);
 		m_vkBuffer = m_buffer->get_buffer();
 
-		VlkDebugObject::Init(GetContext(), debug::ObjectType::Buffer, GetInternalHandle());
+		if(GetContext().IsValidationEnabled())
+			VlkDebugObject::Init(GetContext(), debug::ObjectType::Buffer, GetInternalHandle());
 	}
 	m_apiTypePtr = this;
 }
 prosper::VlkBuffer::~VlkBuffer()
 {
 	MemoryTracker::GetInstance().RemoveResource(*this);
-	VlkDebugObject::Clear(GetContext(), debug::ObjectType::Buffer, GetInternalHandle());
+	if(GetContext().IsValidationEnabled())
+		VlkDebugObject::Clear(GetContext(), debug::ObjectType::Buffer, GetInternalHandle());
 	if(m_buffer != nullptr)
 		prosper::debug::deregister_debug_object(m_buffer->get_buffer());
 }
