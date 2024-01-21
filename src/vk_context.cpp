@@ -356,7 +356,9 @@ void VlkContext::DoFlushCommandBuffer(ICommandBuffer &cmd)
 	if(cmd.IsRecording())
 		static_cast<Anvil::PrimaryCommandBuffer &>(pcmd.GetAnvilCommandBuffer()).stop_recording();
 	auto &dev = GetDevice();
-	dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(&pcmd.GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, true));
+	auto res = static_cast<prosper::Result>(dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(&pcmd.GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, true)));
+	if(res != prosper::Result::Success)
+		throw std::runtime_error {"Failed to submit command buffer: " + util::to_string(res) + "!"};
 }
 
 bool VlkContext::IsImageFormatSupported(prosper::Format format, prosper::ImageUsageFlags usageFlags, prosper::ImageType type, prosper::ImageTiling tiling) const
