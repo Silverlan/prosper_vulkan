@@ -122,12 +122,16 @@ void prosper::VlkWindow::InitCommandBuffers()
 
 void prosper::VlkWindow::DoReleaseSwapchain()
 {
+
 	for(auto &fbo : m_swapchainFramebuffers)
 		fbo.reset();
+    m_swapchainImages.clear();
+
+    //m_commandBuffers.clear();
 	m_swapchainPtr.reset();
 	m_renderingSurfacePtr.reset();
 
-	m_swapchainFramebuffers.clear();
+    m_swapchainFramebuffers.clear();
 	m_cmdFences.clear();
 	m_frameSignalSemaphores.clear();
 	m_frameWaitSemaphores.clear();
