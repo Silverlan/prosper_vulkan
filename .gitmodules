@@ -1,6 +1,6 @@
 [submodule "third_party_libs/anvil"]
 	path = third_party_libs/anvil
-	url = https://github.com/Silverlan/Anvil.git
+	url = https://github.com/SlawekNowy/Anvil.git
 [submodule "external_libs/util_lunarglass"]
 	path = external_libs/util_lunarglass
 	url = https://github.com/Silverlan/util_lunarglass.git

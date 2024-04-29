@@ -478,7 +478,7 @@ bool prosper::util::get_memory_stats(IPrContext &context, MemoryPropertyFlags me
 		if(type.heap_ptr == nullptr || (type.flags & static_cast<Anvil::MemoryPropertyFlagBits>(memPropFlags)) == Anvil::MemoryPropertyFlagBits::NONE)
 			continue;
 		if(deviceLocalTypes.empty() == false)
-			assert(type.heap_trp->size() == memProps.types.at(deviceLocalTypes.front()).heap_ptr->size());
+			assert(type.heap_ptr->size == memProps.types.at(deviceLocalTypes.front()).heap_ptr->size);
 		deviceLocalTypes.push_back(i);
 		uint64_t allocatedSize = 0ull;
 		uint64_t totalSize = 0ull;
