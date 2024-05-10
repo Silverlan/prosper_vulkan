@@ -961,6 +961,12 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, cons
 {
 	auto createInfo = pCreateInfo;
 
+	// See https://vulkan.lunarg.com/doc/view/1.3.268.0/windows/1.3-extensions/vkspec.html#valid-imageview-imageusage
+	constexpr auto requiredFlags
+	  = prosper::ImageUsageFlags::SampledBit | prosper::ImageUsageFlags::StorageBit | prosper::ImageUsageFlags::ColorAttachmentBit | prosper::ImageUsageFlags::DepthStencilAttachmentBit | prosper::ImageUsageFlags::InputAttachmentBit | prosper::ImageUsageFlags::TransientAttachmentBit;
+	if((createInfo.usage & requiredFlags) == prosper::ImageUsageFlags::None)
+		createInfo.usage |= prosper::ImageUsageFlags::SampledBit;
+
 	constexpr auto flags = MemoryFeatureFlags::HostCached | MemoryFeatureFlags::DeviceLocal;
 	if((createInfo.memoryFeatures & flags) == flags) {
 		context.ValidationCallback(DebugMessageSeverityFlags::ErrorBit, "Attempted to create image with both HostCached and DeviceLocal flags, which is poorly supported. Removing DeviceLocal flag...");
