@@ -179,6 +179,7 @@ namespace prosper {
 		VlkContext(const std::string &appName, bool bEnableValidation = false);
 		virtual void Release() override;
 		virtual void OnClose() override;
+		virtual void OnSwapchainResourcesCleared(uint32_t swapchainIdx) override;
 		void OnPrimaryWindowSwapchainReloaded();
 
 		template<class T, typename TBaseType = T>
@@ -206,6 +207,8 @@ namespace prosper {
 		bool m_customValidationEnabled = false;
 		std::vector<Anvil::PipelineID> m_prosperPipelineToAnvilPipeline;
 		VkRaytracingFunctions m_rtFunctions {};
+		std::vector<bool> m_swapchainResourcesInUse;
+		std::mutex m_swapchainResourcesInUseMutex;
 
 		mutable std::unordered_map<Format, Anvil::FormatProperties> m_formatProperties; // Caching
 		mutable std::mutex m_formatPropertiesMutex;

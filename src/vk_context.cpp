@@ -165,6 +165,12 @@ bool VlkContext::WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg)
 	return true;
 }
 
+void VlkContext::OnSwapchainResourcesCleared(uint32_t swapchainIdx)
+{
+	std::unique_lock lock {m_swapchainResourcesInUseMutex};
+	m_swapchainResourcesInUse[swapchainIdx] = false;
+}
+
 void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 {
 	ClearKeepAliveResources();
@@ -253,6 +259,9 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer &>(*GetWindow().GetDrawCommandBuffer());
 	if(primCmd.IsRecording() == false)
 		return; // Something went wrong?
+	m_swapchainResourcesInUseMutex.lock();
+	m_swapchainResourcesInUse[swapchainImgIdx] = true;
+	m_swapchainResourcesInUseMutex.unlock();
 	umath::set_flag(m_stateFlags, StateFlags::IsRecording);
 	umath::set_flag(m_stateFlags, StateFlags::Idle, false);
 	while(m_scheduledBufferUpdates.empty() == false) {
@@ -346,6 +355,9 @@ void VlkContext::DoWaitIdle()
 {
 	auto &dev = GetDevice();
 	dev.wait_idle();
+
+	std::unique_lock lock {m_swapchainResourcesInUseMutex};
+	m_swapchainResourcesInUse.assign(m_swapchainResourcesInUse.size(), false);
 }
 
 void VlkContext::DoFlushCommandBuffer(ICommandBuffer &cmd)
@@ -529,6 +541,8 @@ void VlkContext::OnPrimaryWindowSwapchainReloaded()
 	auto numSwapchainImages = static_cast<VlkWindow &>(GetWindow()).GetSwapchainImageCount();
 	m_keepAliveResources.clear();
 	m_keepAliveResources.resize(numSwapchainImages);
+	m_swapchainResourcesInUse.resize(numSwapchainImages, false);
+	m_swapchainResourcesInUse.assign(m_swapchainResourcesInUse.size(), false);
 }
 
 std::shared_ptr<Window> VlkContext::CreateWindow(const WindowSettings &windowCreationInfo)
@@ -842,6 +856,9 @@ void VlkContext::DoKeepResourceAliveUntilPresentationComplete(const std::shared_
 	auto swapchainImgIdx = GetLastAcquiredPrimaryWindowSwapchainImageIndex();
 	auto *fence = static_cast<VlkWindow &>(GetWindow()).GetFence(swapchainImgIdx);
 	if(!fence || fence->is_set())
+		return;
+	std::unique_lock lock {m_swapchainResourcesInUseMutex};
+	if(!m_swapchainResourcesInUse[swapchainImgIdx])
 		return;
 	m_keepAliveResources.at(swapchainImgIdx).push_back(resource);
 }
