@@ -305,7 +305,12 @@ bool VlkContext::Submit(ICommandBuffer &cmdBuf, bool shouldBlock, IFence *optFen
 	return dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(&cmdBuf.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, shouldBlock, optFence ? &dynamic_cast<VlkFence *>(optFence)->GetAnvilFence() : nullptr));
 }
 
-bool VlkContext::GetSurfaceCapabilities(Anvil::SurfaceCapabilities &caps) const { return const_cast<VlkContext *>(this)->GetDevice().get_physical_device_surface_capabilities(&static_cast<VlkWindow &>(const_cast<Window &>(GetWindow())).GetRenderingSurface(), &caps); }
+bool VlkContext::GetSurfaceCapabilities(Anvil::SurfaceCapabilities &caps) const
+{
+	if(!m_window)
+		return false;
+	return const_cast<VlkContext *>(this)->GetDevice().get_physical_device_surface_capabilities(&static_cast<VlkWindow &>(const_cast<Window &>(GetWindow())).GetRenderingSurface(), &caps);
+}
 
 void VlkContext::ReloadWindow()
 {
@@ -392,6 +397,7 @@ prosper::util::Limits VlkContext::GetPhysicalDeviceLimits() const
 	limits.maxSamplerAnisotropy = vkLimits.max_sampler_anisotropy;
 	limits.maxStorageBufferRange = vkLimits.max_storage_buffer_range;
 	limits.maxImageArrayLayers = vkLimits.max_image_array_layers;
+	limits.maxBoundDescriptorSets = vkLimits.max_bound_descriptor_sets;
 
 	Anvil::SurfaceCapabilities surfCapabilities {};
 	if(GetSurfaceCapabilities(surfCapabilities))
@@ -1143,6 +1149,7 @@ bool VlkContext::GetUniversalQueueFamilyIndex(prosper::QueueFamilyType queueFami
 void VlkContext::InitAPI(const CreateInfo &createInfo)
 {
 	InitVulkan(createInfo);
+	CheckDeviceLimits();
 	InitWindow();
 	ReloadSwapchain();
 }
