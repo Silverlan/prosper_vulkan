@@ -30,6 +30,8 @@ if("${DEPENDENCY_SPIRV_TOOLS_DIR}" STREQUAL "")
 else()
         add_subdirectory("${DEPENDENCY_SPIRV_TOOLS_DIR}" "third_party_libs/vulkan/spirv-tools")
 endif()
+pr_set_target_folder(spirv-tools-pkg-config modules/rendering/vulkan)
+pr_set_target_folder(spirv-tools-shared-pkg-config modules/rendering/vulkan)
 
 pr_add_dependency(${PROJ_NAME} SPIRV TARGET)
 pr_add_dependency(${PROJ_NAME} SPIRV-Tools TARGET)
