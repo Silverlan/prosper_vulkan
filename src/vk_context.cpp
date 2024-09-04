@@ -592,18 +592,23 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 		// Select GPU depending on how well it is supported
 		auto numDevices = m_instancePtr->get_n_physical_devices();
 		if(ShouldLog()) {
+#ifdef _WIN32
+			constexpr std::string nl = "\r\n";
+#else
+			constexpr std::string nl = "\n";
+#endif
 			std::stringstream ss;
-			ss << "Available GPU devices:\n";
+			ss << "Available GPU devices:" << nl;
 			auto devices = util::get_available_vendor_devices(*this);
 			for(auto &info : devices) {
-				ss << info.deviceName << "\n";
-				ss << "apiVersion: " << info.apiVersion << "\n";
-				ss << "deviceType: " << magic_enum::enum_name(info.deviceType) << "\n";
-				ss << "deviceId: " << info.deviceId << "\n";
-				ss << "driverVersion: " << info.driverVersion << "\n";
-				ss << "vendor: " << umath::to_integral(info.vendor) << "\n";
+				ss << info.deviceName << nl;
+				ss << "apiVersion: " << info.apiVersion << nl;
+				ss << "deviceType: " << magic_enum::enum_name(info.deviceType) << nl;
+				ss << "deviceId: " << info.deviceId << nl;
+				ss << "driverVersion: " << info.driverVersion << nl;
+				ss << "vendor: " << umath::to_integral(info.vendor) << nl;
 			}
-			ss << "\n";
+			ss << nl;
 			m_logHandler(ss.str(), ::util::LogSeverity::Info);
 		}
 		const std::unordered_map<Vendor, int32_t> vendorPriorities {{Vendor::Nvidia, 2}, {Vendor::AMD, 1}, {Vendor::Intel, 0}, {Vendor::Unknown, -1}};
