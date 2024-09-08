@@ -80,21 +80,18 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 	auto fName = fileName;
 	std::string ext;
 	if(!ufile::get_extension(fileName, &ext)) {
-		auto fNameSpv = "cache/" + fileName + ".spv";
+		auto stageExt = prosper::glsl::get_shader_file_extension(stage);
+		auto fullFileName = fileName + '.' + stageExt;
+		auto fNameSpv = "cache/" + fullFileName + ".spv";
 		auto bSpvExists = FileManager::Exists(fNameSpv);
 		if(bSpvExists == true) {
 			ext = "spv";
 			fName = fNameSpv;
 		}
 		if(bSpvExists == false || bReload == true) {
-			auto fNameGls = fileName + ".gls";
-			if(FileManager::Exists(fNameGls)) {
-				ext = "gls";
-				fName = fNameGls;
-			}
-			else if(bSpvExists == false) {
-				ext = "hls";
-				fName = fileName + ".hls";
+			if(FileManager::Exists(fullFileName)) {
+				ext = stageExt;
+				fName = fullFileName;
 			}
 		}
 	}
@@ -104,7 +101,9 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 			*infoLog = std::string("File '") + fName + std::string("' not found!");
 		return false;
 	}
-	if(ext != "gls" && ext != "hls") // We'll assume it's a SPIR-V file
+
+	auto isGlslExt = prosper::glsl::is_glsl_file_extension(ext);
+	if(!isGlslExt && ext != "hlsl") // We'll assume it's a SPIR-V file
 	{
 		auto f = FileManager::OpenFile(fName.c_str(), "rb");
 		if(f == nullptr) {
@@ -124,11 +123,12 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 
 	auto applyPreprocessing = true;
 	auto glslFileName = fName;
-	if(ext == "gls") {
+	if(isGlslExt) {
 		// Use specialized vulkan shader if one exists
 		auto tmp = glslFileName;
-		ufile::remove_extension_from_filename(tmp);
-		tmp += "_vk.gls";
+		auto ext = ufile::remove_extension_from_filename(tmp, prosper::glsl::get_glsl_file_extensions());
+		assert(ext.has_value());
+		tmp += "_vk." + *ext;
 		if(FileManager::Exists(tmp)) {
 			applyPreprocessing = false;
 			glslFileName = tmp;
@@ -163,10 +163,10 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 			shaderCode = f->ReadString();
 		f = nullptr;
 	}*/
-	auto r = ::glsl_to_spv(context, stage, *shaderCode, spirv, infoLog, debugInfoLog, fName, includeLines, lineOffset, (ext == "hls") ? true : false);
+	auto r = ::glsl_to_spv(context, stage, *shaderCode, spirv, infoLog, debugInfoLog, fName, includeLines, lineOffset, (ext == "hlsl") ? true : false);
 	if(r == false)
 		return r;
-	auto spirvName = "cache/" + fName.substr(0, fName.length() - ext.length()) + "spv";
+	auto spirvName = "cache/" + fName + ".spv";
 	FileManager::CreatePath(ufile::get_path_from_filename(spirvName).c_str());
 	auto fOut = FileManager::OpenFile<VFilePtrReal>(spirvName.c_str(), "wb");
 	if(fOut == nullptr)
@@ -381,7 +381,7 @@ static std::string decode_driver_version(prosper::Vendor vendor, uint32_t versio
 			auto major = (versionEncoded >> 22) & 0x3ff;
 			auto minor = (versionEncoded >> 14) & 0x0ff;
 			auto revision = (versionEncoded >> 6) & 0x0ff;
-			auto misc = (versionEncoded)&0x003f;
+			auto misc = (versionEncoded) & 0x003f;
 			return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision) + "." + std::to_string(misc);
 		}
 	case prosper::Vendor::Intel:
