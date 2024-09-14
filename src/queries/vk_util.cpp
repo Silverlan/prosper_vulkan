@@ -75,7 +75,8 @@ static bool glsl_to_spv(prosper::IPrContext &context, prosper::ShaderStage stage
 	return true;
 }
 
-bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::vector<unsigned int> &spirv, std::string *infoLog, std::string *debugInfoLog, bool bReload, const std::unordered_map<std::string, std::string> &definitions)
+bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::vector<unsigned int> &spirv, std::string *infoLog, std::string *debugInfoLog, bool bReload, const std::string &prefixCode,
+  const std::unordered_map<std::string, std::string> &definitions)
 {
 	auto fName = fileName;
 	std::string ext;
@@ -144,7 +145,7 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 	unsigned int lineOffset = 0;
 	::util::Path fPath {glslFileName};
 	fPath.PopFront();
-	auto shaderCode = load_glsl(context, stage, fPath.GetString(), infoLog, debugInfoLog, includeLines, lineOffset, definitions, applyPreprocessing);
+	auto shaderCode = load_glsl(context, stage, fPath.GetString(), infoLog, debugInfoLog, includeLines, lineOffset, prefixCode, definitions, applyPreprocessing);
 	if(shaderCode.has_value() == false)
 		return false;
 	/*if(fileName.find("fs_pbr") != std::string::npos)
