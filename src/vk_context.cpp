@@ -593,9 +593,9 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 		auto numDevices = m_instancePtr->get_n_physical_devices();
 		if(ShouldLog()) {
 #ifdef _WIN32
-			constexpr std::string nl = "\r\n";
+			static std::string nl = "\r\n";
 #else
-			constexpr std::string nl = "\n";
+			static std::string nl = "\n";
 #endif
 			std::stringstream ss;
 			ss << "Available GPU devices:" << nl;
