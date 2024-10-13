@@ -985,10 +985,8 @@ std::shared_ptr<prosper::IBuffer> VlkContext::CreateBuffer(const prosper::util::
 	  createInfo, 0ull, createInfo.size);
 }
 
-std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, const prosper::util::ImageCreateInfo &pCreateInfo, const std::vector<Anvil::MipmapRawData> *data)
+static Anvil::ImageCreateInfoUniquePtr create_anvil_create_info(prosper::IPrContext &context, prosper::util::ImageCreateInfo &createInfo, bool &outUseDiscreteMemory, const std::vector<Anvil::MipmapRawData> *data = nullptr)
 {
-	auto createInfo = pCreateInfo;
-
 	// See https://vulkan.lunarg.com/doc/view/1.3.268.0/windows/1.3-extensions/vkspec.html#valid-imageview-imageusage
 	constexpr auto requiredFlags
 	  = prosper::ImageUsageFlags::SampledBit | prosper::ImageUsageFlags::StorageBit | prosper::ImageUsageFlags::ColorAttachmentBit | prosper::ImageUsageFlags::DepthStencilAttachmentBit | prosper::ImageUsageFlags::InputAttachmentBit | prosper::ImageUsageFlags::TransientAttachmentBit;
@@ -1013,13 +1011,13 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, cons
 
 	auto memoryFeatures = createInfo.memoryFeatures;
 	find_compatible_memory_feature_flags(static_cast<prosper::VlkContext &>(context), memoryFeatures);
-	auto memoryFeatureFlags = memory_feature_flags_to_anvil_flags(memoryFeatures);
 	auto queueFamilies = queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask);
 	auto sharingMode = Anvil::SharingMode::EXCLUSIVE;
 	if((createInfo.flags & prosper::util::ImageCreateInfo::Flags::ConcurrentSharing) != prosper::util::ImageCreateInfo::Flags::None)
 		sharingMode = Anvil::SharingMode::CONCURRENT;
 
-	auto useDiscreteMemory = umath::is_flag_set(createInfo.flags, prosper::util::ImageCreateInfo::Flags::AllocateDiscreteMemory);
+	auto &useDiscreteMemory = outUseDiscreteMemory;
+	useDiscreteMemory = umath::is_flag_set(createInfo.flags, prosper::util::ImageCreateInfo::Flags::AllocateDiscreteMemory);
 	if(useDiscreteMemory == false && ((createInfo.memoryFeatures & prosper::MemoryFeatureFlags::HostAccessable) != prosper::MemoryFeatureFlags::None || (createInfo.memoryFeatures & prosper::MemoryFeatureFlags::DeviceLocal) == prosper::MemoryFeatureFlags::None))
 		useDiscreteMemory = true; // Pre-allocated memory currently only supported for device local memory
 
@@ -1031,13 +1029,33 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, cons
 		if((createInfo.flags & prosper::util::ImageCreateInfo::Flags::SparseAliasedResidency) != prosper::util::ImageCreateInfo::Flags::None)
 			imageCreateFlags |= Anvil::ImageCreateFlagBits::SPARSE_ALIASED_BIT | Anvil::ImageCreateFlagBits::SPARSE_RESIDENCY_BIT;
 
-		auto anvImg = Anvil::Image::create(Anvil::ImageCreateInfo::create_no_alloc(&static_cast<prosper::VlkContext &>(context).GetDevice(), static_cast<Anvil::ImageType>(createInfo.type), static_cast<Anvil::Format>(createInfo.format), static_cast<Anvil::ImageTiling>(createInfo.tiling),
+		auto anvCreateInfo = Anvil::ImageCreateInfo::create_no_alloc(&static_cast<prosper::VlkContext &>(context).GetDevice(), static_cast<Anvil::ImageType>(createInfo.type), static_cast<Anvil::Format>(createInfo.format), static_cast<Anvil::ImageTiling>(createInfo.tiling),
 		  static_cast<Anvil::ImageUsageFlagBits>(createInfo.usage), createInfo.width, createInfo.height, 1u, layers, static_cast<Anvil::SampleCountFlagBits>(createInfo.samples), queueFamilies, sharingMode, bUseFullMipmapChain, imageCreateFlags,
-		  static_cast<Anvil::ImageLayout>(postCreateLayout), data));
+		  static_cast<Anvil::ImageLayout>(postCreateLayout), data);
+		return anvCreateInfo;
+	}
+
+	auto anvCreateInfo = Anvil::ImageCreateInfo::create_alloc(&static_cast<prosper::VlkContext &>(context).GetDevice(), static_cast<Anvil::ImageType>(createInfo.type), static_cast<Anvil::Format>(createInfo.format), static_cast<Anvil::ImageTiling>(createInfo.tiling),
+	  static_cast<Anvil::ImageUsageFlagBits>(createInfo.usage), createInfo.width, createInfo.height, 1u, layers, static_cast<Anvil::SampleCountFlagBits>(createInfo.samples), queueFamilies, sharingMode, bUseFullMipmapChain, memory_feature_flags_to_anvil_flags(createInfo.memoryFeatures),
+	  imageCreateFlags, static_cast<Anvil::ImageLayout>(postCreateLayout), data);
+	return anvCreateInfo;
+}
+
+std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, const prosper::util::ImageCreateInfo &pCreateInfo, const std::vector<Anvil::MipmapRawData> *data)
+{
+	auto createInfo = pCreateInfo;
+	auto useDiscreteMemory = false;
+	auto anvCreateInfo = create_anvil_create_info(context, createInfo, useDiscreteMemory, data);
+	auto sparse = (createInfo.flags & prosper::util::ImageCreateInfo::Flags::Sparse) != prosper::util::ImageCreateInfo::Flags::None;
+	auto dontAllocateMemory = umath::is_flag_set(createInfo.flags, prosper::util::ImageCreateInfo::Flags::DontAllocateMemory);
+	if(useDiscreteMemory == false || sparse || dontAllocateMemory) {
+		auto anvImg = Anvil::Image::create(std::move(anvCreateInfo));
 		auto *memAllocator = static_cast<prosper::VlkContext &>(context).GetMemoryAllocator();
 		if(memAllocator) {
-			if(sparse == false && dontAllocateMemory == false)
+			if(sparse == false && dontAllocateMemory == false) {
+				auto memoryFeatureFlags = memory_feature_flags_to_anvil_flags(createInfo.memoryFeatures);
 				memAllocator->add_image_whole(anvImg.get(), memoryFeatureFlags);
+			}
 		}
 		auto img = prosper::VlkImage::Create(context, std::move(anvImg), createInfo, false);
 		if(!memAllocator && sparse == false && dontAllocateMemory == false)
@@ -1045,12 +1063,7 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, cons
 		return img;
 	}
 
-	auto result = prosper::VlkImage::Create(context,
-	  Anvil::Image::create(Anvil::ImageCreateInfo::create_alloc(&static_cast<prosper::VlkContext &>(context).GetDevice(), static_cast<Anvil::ImageType>(createInfo.type), static_cast<Anvil::Format>(createInfo.format), static_cast<Anvil::ImageTiling>(createInfo.tiling),
-	    static_cast<Anvil::ImageUsageFlagBits>(createInfo.usage), createInfo.width, createInfo.height, 1u, layers, static_cast<Anvil::SampleCountFlagBits>(createInfo.samples), queueFamilies, sharingMode, bUseFullMipmapChain, memoryFeatureFlags, imageCreateFlags,
-	    static_cast<Anvil::ImageLayout>(postCreateLayout), data)),
-	  createInfo, false);
-	return result;
+	return prosper::VlkImage::Create(context, Anvil::Image::create(std::move(anvCreateInfo)), createInfo, false);
 }
 
 std::shared_ptr<IImage> prosper::VlkContext::CreateImage(const util::ImageCreateInfo &createInfo, const std::function<const uint8_t *(uint32_t layer, uint32_t mipmap, uint32_t &dataSize, uint32_t &rowSize)> &getImageData)
