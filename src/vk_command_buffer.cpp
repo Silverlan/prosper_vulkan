@@ -704,12 +704,18 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImag
 
 	Anvil::BufferImageCopy bufferImageCopy {};
 	bufferImageCopy.buffer_offset = bufferSrc.GetStartOffset() + copyInfo.bufferOffset;
-	bufferImageCopy.buffer_row_length = imgExtent.x;
-	bufferImageCopy.buffer_image_height = imgExtent.y;
-	if(isCompressedFormat) {
-		auto blockSize = prosper::util::get_block_size(imgDst.GetFormat());
-		bufferImageCopy.buffer_row_length = umath::max(bufferImageCopy.buffer_row_length, blockSize);
-		bufferImageCopy.buffer_image_height = umath::max(bufferImageCopy.buffer_image_height, blockSize);
+	if(copyInfo.bufferExtent) {
+		bufferImageCopy.buffer_row_length = copyInfo.bufferExtent->x;
+		bufferImageCopy.buffer_image_height = copyInfo.bufferExtent->y;
+	}
+	else {
+		bufferImageCopy.buffer_row_length = imgExtent.x;
+		bufferImageCopy.buffer_image_height = imgExtent.y;
+		if(isCompressedFormat) {
+			auto blockSize = prosper::util::get_block_size(imgDst.GetFormat());
+			bufferImageCopy.buffer_row_length = umath::max(bufferImageCopy.buffer_row_length, blockSize);
+			bufferImageCopy.buffer_image_height = umath::max(bufferImageCopy.buffer_image_height, blockSize);
+		}
 	}
 	bufferImageCopy.image_extent = static_cast<VkExtent3D>(vk::Extent3D(imgExtent.x, imgExtent.y, 1));
 	bufferImageCopy.image_offset = static_cast<VkOffset3D>(vk::Offset3D(copyInfo.imageOffset.x, copyInfo.imageOffset.y, 0));
