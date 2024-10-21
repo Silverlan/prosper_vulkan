@@ -1219,12 +1219,16 @@ static Anvil::ShaderModuleUniquePtr to_anv_shader_module(Anvil::BaseDevice &dev,
 	if(shaderStageProgram == nullptr)
 		return nullptr;
 	auto &spirvBlob = shaderStageProgram->GetSPIRVBlob();
+	if(spirvBlob.empty())
+		return nullptr;
 	return Anvil::ShaderModule::create_from_spirv_blob(&dev, spirvBlob.data(), spirvBlob.size(), module.GetCSEntrypointName(), module.GetFSEntrypointName(), module.GetGSEntrypointName(), module.GetTCEntrypointName(), module.GetTEEntrypointName(), module.GetVSEntrypointName());
 }
 
 static Anvil::ShaderModuleStageEntryPoint to_anv_entrypoint(Anvil::BaseDevice &dev, prosper::ShaderModuleStageEntryPoint &entrypoint)
 {
 	auto module = to_anv_shader_module(dev, *entrypoint.shader_module_ptr);
+	if(!module)
+		return {};
 	return Anvil::ShaderModuleStageEntryPoint {entrypoint.name, std::move(module), static_cast<Anvil::ShaderStage>(entrypoint.stage)};
 }
 
@@ -1327,7 +1331,10 @@ std::optional<prosper::PipelineID> VlkContext::AddPipeline(prosper::Shader &shad
 	Anvil::PipelineID anvBasePipelineId;
 	if(bIsDerivative)
 		anvBasePipelineId = m_prosperPipelineToAnvilPipeline[basePipelineId];
-	auto computePipelineInfo = Anvil::ComputePipelineCreateInfo::create(createFlags, to_anv_entrypoint(dev, *stage.entryPoint), bIsDerivative ? &anvBasePipelineId : nullptr);
+	auto ep = to_anv_entrypoint(dev, *stage.entryPoint);
+	if(ep.name.empty())
+		return {};
+	auto computePipelineInfo = Anvil::ComputePipelineCreateInfo::create(createFlags, std::move(ep), bIsDerivative ? &anvBasePipelineId : nullptr);
 	if(computePipelineInfo == nullptr)
 		return {};
 	init_base_pipeline_create_info(createInfo, *computePipelineInfo, true);
@@ -1364,9 +1371,26 @@ std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(prosper::Sha
 	Anvil::PipelineID anvBasePipelineId;
 	if(bIsDerivative)
 		anvBasePipelineId = m_prosperPipelineToAnvilPipeline[basePipelineId];
-	auto gfxPipelineInfo = Anvil::GraphicsPipelineCreateInfo::create(createFlags, &static_cast<VlkRenderPass &>(rp).GetAnvilRenderPass(), subPassId, shaderStageFs ? to_anv_entrypoint(dev, *shaderStageFs->entryPoint) : Anvil::ShaderModuleStageEntryPoint {},
-	  shaderStageGs ? to_anv_entrypoint(dev, *shaderStageGs->entryPoint) : Anvil::ShaderModuleStageEntryPoint {}, shaderStageTc ? to_anv_entrypoint(dev, *shaderStageTc->entryPoint) : Anvil::ShaderModuleStageEntryPoint {},
-	  shaderStageTe ? to_anv_entrypoint(dev, *shaderStageTe->entryPoint) : Anvil::ShaderModuleStageEntryPoint {}, shaderStageVs ? to_anv_entrypoint(dev, *shaderStageVs->entryPoint) : Anvil::ShaderModuleStageEntryPoint {}, nullptr, bIsDerivative ? &anvBasePipelineId : nullptr);
+	auto valid = true;
+	auto toAnvEntrypoint = [&dev, &valid](prosper::ShaderStageData *shaderStage) -> Anvil::ShaderModuleStageEntryPoint {
+		if(shaderStage) {
+			auto ep = to_anv_entrypoint(dev, *shaderStage->entryPoint);
+			if(ep.name.empty()) {
+				valid = false;
+				return {};
+			}
+			return ep;
+		}
+		return {};
+	};
+	auto epFs = toAnvEntrypoint(shaderStageFs);
+	auto epGs = toAnvEntrypoint(shaderStageGs);
+	auto epTc = toAnvEntrypoint(shaderStageTc);
+	auto epTe = toAnvEntrypoint(shaderStageTe);
+	auto epVs = toAnvEntrypoint(shaderStageVs);
+	if(!valid)
+		return {};
+	auto gfxPipelineInfo = Anvil::GraphicsPipelineCreateInfo::create(createFlags, &static_cast<VlkRenderPass &>(rp).GetAnvilRenderPass(), subPassId, epFs, epGs, epTc, epTe, epVs, nullptr, bIsDerivative ? &anvBasePipelineId : nullptr);
 	if(gfxPipelineInfo == nullptr)
 		return {};
 	gfxPipelineInfo->toggle_depth_writes(createInfo.AreDepthWritesEnabled());
