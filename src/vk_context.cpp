@@ -513,11 +513,17 @@ void VlkContext::ReloadSwapchain()
 			OnPrimaryWindowSwapchainReloaded();
 	}
 
+	if(ShouldLog(::util::LogSeverity::Debug))
+		m_logHandler("Initializing main render pass...", ::util::LogSeverity::Debug);
 	InitMainRenderPass();
+	if(ShouldLog(::util::LogSeverity::Debug))
+		m_logHandler("Initializing memory buffer for temporary memory allocations...", ::util::LogSeverity::Debug);
 	InitTemporaryBuffer();
 	OnSwapchainInitialized();
 
 	if(m_shaderManager != nullptr) {
+		if(ShouldLog(::util::LogSeverity::Debug))
+			Log("Reloading shader pipelines...", ::util::LogSeverity::Debug);
 		auto &shaderManager = *m_shaderManager;
 		for(auto &pshader : shaderManager.GetShaders()) {
 			if(pshader->IsGraphicsShader() == false)
@@ -592,23 +598,18 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 		// Select GPU depending on how well it is supported
 		auto numDevices = m_instancePtr->get_n_physical_devices();
 		if(ShouldLog()) {
-#ifdef _WIN32
-			static std::string nl = "\r\n";
-#else
-			static std::string nl = "\n";
-#endif
 			std::stringstream ss;
-			ss << "Available GPU devices:" << nl;
+			ss << "Available GPU devices:" << ::util::LOG_NL;
 			auto devices = util::get_available_vendor_devices(*this);
 			for(auto &info : devices) {
-				ss << info.deviceName << nl;
-				ss << "apiVersion: " << info.apiVersion << nl;
-				ss << "deviceType: " << magic_enum::enum_name(info.deviceType) << nl;
-				ss << "deviceId: " << info.deviceId << nl;
-				ss << "driverVersion: " << info.driverVersion << nl;
-				ss << "vendor: " << umath::to_integral(info.vendor) << nl;
+				ss << info.deviceName << ::util::LOG_NL;
+				ss << "apiVersion: " << info.apiVersion << ::util::LOG_NL;
+				ss << "deviceType: " << magic_enum::enum_name(info.deviceType) << ::util::LOG_NL;
+				ss << "deviceId: " << info.deviceId << ::util::LOG_NL;
+				ss << "driverVersion: " << info.driverVersion << ::util::LOG_NL;
+				ss << "vendor: " << umath::to_integral(info.vendor) << ::util::LOG_NL;
 			}
-			ss << nl;
+			ss << ::util::LOG_NL;
 			m_logHandler(ss.str(), ::util::LogSeverity::Info);
 		}
 		const std::unordered_map<Vendor, int32_t> vendorPriorities {{Vendor::Nvidia, 2}, {Vendor::AMD, 1}, {Vendor::Intel, 0}, {Vendor::Unknown, -1}};
@@ -650,6 +651,8 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	if(m_physicalDevicePtr == nullptr)
 		m_physicalDevicePtr = m_instancePtr->get_physical_device(0);
 
+	if(ShouldLog(::util::LogSeverity::Debug))
+		m_logHandler("Initializing shader manager...", ::util::LogSeverity::Debug);
 	m_shaderManager = std::make_unique<ShaderManager>(*this);
 
 	/* Create a Vulkan device */
@@ -674,15 +677,31 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	devExtConfig.extension_status["GLSL_EXT_ray_query"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["GLSL_EXT_ray_flags_primitive_culling"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 
+
+	if(ShouldLog(::util::LogSeverity::Debug)) {
+		std::stringstream ss;
+		ss << "Extension availability:" << ::util::LOG_NL;
+		for(auto &[ext, availability] : devExtConfig.extension_status) {
+			ss << "[" << ext << "]: " << magic_enum::enum_name(availability) << ::util::LOG_NL;
+		}
+		ss << ::util::LOG_NL;
+		m_logHandler(ss.str(), ::util::LogSeverity::Debug);
+	}
+
 	auto devCreateInfo = Anvil::DeviceCreateInfo::create_sgpu(m_physicalDevicePtr, true, /* in_enable_shader_module_cache */
 	  devExtConfig, std::vector<std::string>(), Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT, ENABLE_ANVIL_THREAD_SAFETY);
 	// devCreateInfo->set_pipeline_cache_ptr() // TODO
+	if(ShouldLog(::util::LogSeverity::Debug))
+		m_logHandler("Creating GPU device...", ::util::LogSeverity::Debug);
 	m_devicePtr = Anvil::SGPUDevice::create(std::move(devCreateInfo));
 	if(m_useAllocator)
 		m_useReservedDeviceLocalImageBuffer = false; // VMA already handles the allocation of large buffers; We'll just let it do its thing for image allocation
 
-	if(m_useAllocator)
+	if(m_useAllocator) {
+		if(ShouldLog(::util::LogSeverity::Debug))
+			m_logHandler("Creating VMA allocator...", ::util::LogSeverity::Debug);
 		m_memAllocator = Anvil::MemoryAllocator::create_vma(m_devicePtr.get());
+	}
 
 	/*[](Anvil::BaseDevice &dev) -> Anvil::PipelineCacheUniquePtr {
 	prosper::PipelineCache::LoadError loadErr {};
@@ -1170,6 +1189,8 @@ void VlkContext::InitAPI(const CreateInfo &createInfo)
 	CheckDeviceLimits();
 	InitWindow();
 	ReloadSwapchain();
+	if(ShouldLog(::util::LogSeverity::Debug))
+		Log("Core API initialization is complete!", ::util::LogSeverity::Debug);
 }
 
 void VlkContext::InitMainRenderPass()

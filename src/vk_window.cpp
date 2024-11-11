@@ -364,6 +364,8 @@ void prosper::VlkWindow::DoInitSwapchain()
 		numSwapchainImages = 1u;
 	}
 
+	if(context.ShouldLog(::util::LogSeverity::Debug))
+		context.Log("Creating new swapchain...", ::util::LogSeverity::Debug);
 	auto createInfo = Anvil::SwapchainCreateInfo::create(&context.GetDevice(), m_renderingSurfacePtr.get(), m_windowPtr.get(), Anvil::Format::B8G8R8A8_UNORM, Anvil::ColorSpaceKHR::SRGB_NONLINEAR_KHR, static_cast<Anvil::PresentModeKHR>(presentMode),
 	  Anvil::ImageUsageFlagBits::COLOR_ATTACHMENT_BIT | Anvil::ImageUsageFlagBits::TRANSFER_DST_BIT, numSwapchainImages);
 	createInfo->set_mt_safety(Anvil::MTSafety::ENABLED);
