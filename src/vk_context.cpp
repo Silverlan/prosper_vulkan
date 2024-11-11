@@ -677,6 +677,8 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	devExtConfig.extension_status["GLSL_EXT_ray_query"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["GLSL_EXT_ray_flags_primitive_culling"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 
+	for(auto &[ext, availability] : createInfo.extensions)
+		devExtConfig.extension_status[ext] = static_cast<Anvil::ExtensionAvailability>(availability);
 
 	if(ShouldLog(::util::LogSeverity::Debug)) {
 		std::stringstream ss;
