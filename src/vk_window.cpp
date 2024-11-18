@@ -122,16 +122,18 @@ void prosper::VlkWindow::InitCommandBuffers()
 
 void prosper::VlkWindow::DoReleaseSwapchain()
 {
-
+	auto &context = GetContext();
+	if(context.ShouldLog(::util::LogSeverity::Debug))
+		context.Log("Releasing swapchain resources...", ::util::LogSeverity::Debug);
 	for(auto &fbo : m_swapchainFramebuffers)
 		fbo.reset();
-    m_swapchainImages.clear();
+	m_swapchainImages.clear();
 
-    //m_commandBuffers.clear();
+	//m_commandBuffers.clear();
 	m_swapchainPtr.reset();
 	m_renderingSurfacePtr.reset();
 
-    m_swapchainFramebuffers.clear();
+	m_swapchainFramebuffers.clear();
 	m_cmdFences.clear();
 	m_frameSignalSemaphores.clear();
 	m_frameWaitSemaphores.clear();
@@ -210,6 +212,8 @@ void prosper::VlkWindow::InitWindow()
 		auto settings = m_settings;
 		if(!settings.windowedMode && (settings.monitor.has_value() == false || settings.monitor->GetGLFWMonitor() == nullptr))
 			settings.monitor = GLFW::get_primary_monitor();
+		if(context.ShouldLog(::util::LogSeverity::Debug))
+			context.Log("Creating GLFW window...", ::util::LogSeverity::Debug);
 		m_glfwWindow = GLFW::Window::Create(settings); // TODO: Release
 #ifdef _WIN32
 		auto hWindow = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
@@ -238,6 +242,8 @@ void prosper::VlkWindow::InitWindow()
 		m_settings.width = actualWindowSize.x;
 		m_settings.height = actualWindowSize.y;
 
+		if(context.ShouldLog(::util::LogSeverity::Debug))
+			context.Log("Creating Anvil window...", ::util::LogSeverity::Debug);
 		m_windowPtr = Anvil::WindowFactory::create_window(platform, hWindow
 #ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
 		  ,
@@ -245,6 +251,8 @@ void prosper::VlkWindow::InitWindow()
 #endif
 		);
 
+		if(context.ShouldLog(::util::LogSeverity::Debug))
+			context.Log("Creating GLFW window surface...", ::util::LogSeverity::Debug);
 		err = glfwCreateWindowSurface(context.GetAnvilInstance().get_instance_vk(), const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), nullptr, reinterpret_cast<VkSurfaceKHR *>(&m_surface));
 		if(err != GLFW_NO_ERROR) {
 			glfwGetError(&errDesc);
@@ -253,9 +261,7 @@ void prosper::VlkWindow::InitWindow()
 			exit(EXIT_FAILURE);
 		}
 
-		m_glfwWindow->SetResizeCallback([this](GLFW::Window &window, Vector2i size) {
-			GetContext().Log("Resizing...");
-		});
+		m_glfwWindow->SetResizeCallback([this](GLFW::Window &window, Vector2i size) { GetContext().Log("Resizing..."); });
 	}
 	catch(const std::exception &e) {
 	}
@@ -335,13 +341,19 @@ void prosper::VlkWindow::ClearSwapchain()
 void prosper::VlkWindow::DoInitSwapchain()
 {
 	auto &context = static_cast<VlkContext &>(GetContext());
+	if(context.ShouldLog(::util::LogSeverity::Debug))
+		context.Log("Initializing swapchain...", ::util::LogSeverity::Debug);
 
 	if(m_renderingSurfacePtr == nullptr) {
+		if(context.ShouldLog(::util::LogSeverity::Debug))
+			context.Log("Creating Anvil rendering surface...", ::util::LogSeverity::Debug);
 		m_renderingSurfacePtr = Anvil::RenderingSurface::create(Anvil::RenderingSurfaceCreateInfo::create(&context.GetAnvilInstance(), &context.GetDevice(), m_windowPtr.get()));
 		m_renderingSurfacePtr->set_name("Main rendering surface");
 	}
 	if(!m_renderingSurfacePtr)
 		return;
+	if(context.ShouldLog(::util::LogSeverity::Debug))
+		context.Log("Updating surface extents...", ::util::LogSeverity::Debug);
 	m_renderingSurfacePtr->update_surface_extents();
 	if(m_renderingSurfacePtr->get_width() == 0 || m_renderingSurfacePtr->get_height() == 0)
 		return; // Minimized?
