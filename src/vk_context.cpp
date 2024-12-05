@@ -62,6 +62,7 @@
 #include <misc/image_view_create_info.h>
 #include <iglfw/glfw_window.h>
 #include <sharedutils/util.h>
+#include <sharedutils/util_path.hpp>
 #include <sharedutils/magic_enum.hpp>
 
 #include <string>
@@ -678,6 +679,14 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	devExtConfig.extension_status["GLSL_EXT_ray_query"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["GLSL_EXT_ray_flags_primitive_culling"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 
+	auto path = ::util::DirPath(::util::get_program_path(), "modules/graphics/vulkan/layers/");
+	auto addLayerPath = ::util::get_env_variable("VK_ADD_LAYER_PATH");
+	std::string newAddLayerPath;
+	if(addLayerPath)
+		newAddLayerPath = *addLayerPath + ";";
+	newAddLayerPath += path.GetString();
+	::util::set_env_variable("VK_ADD_LAYER_PATH", newAddLayerPath);
+
 	for(auto &[ext, availability] : createInfo.extensions)
 		devExtConfig.extension_status[ext] = static_cast<Anvil::ExtensionAvailability>(availability);
 
@@ -692,7 +701,7 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	}
 
 	auto devCreateInfo = Anvil::DeviceCreateInfo::create_sgpu(m_physicalDevicePtr, true, /* in_enable_shader_module_cache */
-	  devExtConfig, std::vector<std::string>(), Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT, ENABLE_ANVIL_THREAD_SAFETY);
+	  devExtConfig, createInfo.layers, Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT, ENABLE_ANVIL_THREAD_SAFETY);
 	// devCreateInfo->set_pipeline_cache_ptr() // TODO
 	if(ShouldLog(::util::LogSeverity::Debug))
 		m_logHandler("Creating GPU device...", ::util::LogSeverity::Debug);
