@@ -159,6 +159,12 @@ namespace prosper {
 		std::pair<const Anvil::MemoryType *, prosper::MemoryFeatureFlags> FindCompatibleMemoryType(MemoryFeatureFlags featureFlags) const;
 		virtual std::optional<std::string> DumpMemoryBudget() const override;
 		virtual std::optional<std::string> DumpMemoryStats() const override;
+		virtual std::optional<std::string> DumpLimits() const override;
+		virtual std::optional<std::string> DumpFeatures() const override;
+		virtual std::optional<std::string> DumpFormatProperties() const override;
+		virtual std::optional<std::string> DumpImageFormatProperties() const override;
+		virtual std::optional<std::string> DumpLayers() const override;
+		virtual std::optional<std::string> DumpExtensions() const override;
 		virtual std::optional<util::VendorDeviceInfo> GetVendorDeviceInfo() const override;
 		virtual std::optional<std::vector<util::VendorDeviceInfo>> GetAvailableVendorDevices() const override;
 		virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicslDeviceMemoryProperties() const override;

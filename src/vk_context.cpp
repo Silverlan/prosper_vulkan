@@ -27,6 +27,7 @@
 #include "queries/prosper_timestamp_query.hpp"
 #include "queries/vk_query_pool.hpp"
 #include "debug/vk_debug_lookup_map.hpp"
+#include "debug/vk_debug.hpp"
 #include "vk_util.hpp"
 #include <prosper_glsl.hpp>
 #include <util_image_buffer.hpp>
@@ -834,6 +835,43 @@ std::optional<std::string> VlkContext::DumpMemoryStats() const
 	std::string str = statsString;
 	vmaFreeStatsString(vmaHandle, statsString);
 	return str;
+}
+
+std::optional<std::string> VlkContext::DumpLimits() const
+{
+	std::stringstream ss;
+	debug::dump_limits(const_cast<VlkContext &>(*this), ss);
+	return ss.str();
+}
+std::optional<std::string> VlkContext::DumpFeatures() const
+{
+	std::stringstream ss;
+	debug::dump_features(const_cast<VlkContext &>(*this), ss);
+	return ss.str();
+}
+std::optional<std::string> VlkContext::DumpFormatProperties() const
+{
+	std::stringstream ss;
+	debug::dump_format_properties(const_cast<VlkContext &>(*this), ss);
+	return ss.str();
+}
+std::optional<std::string> VlkContext::DumpImageFormatProperties() const
+{
+	std::stringstream ss;
+	debug::dump_image_format_properties(const_cast<VlkContext &>(*this), ss);
+	return ss.str();
+}
+std::optional<std::string> VlkContext::DumpLayers() const
+{
+	std::stringstream ss;
+	debug::dump_layers(const_cast<VlkContext &>(*this), ss);
+	return ss.str();
+}
+std::optional<std::string> VlkContext::DumpExtensions() const
+{
+	std::stringstream ss;
+	debug::dump_extensions(const_cast<VlkContext &>(*this), ss);
+	return ss.str();
 }
 
 std::optional<prosper::util::VendorDeviceInfo> VlkContext::GetVendorDeviceInfo() const { return util::get_vendor_device_info(*this); }
