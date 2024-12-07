@@ -421,6 +421,15 @@ static std::optional<prosper::util::VendorDeviceInfo> get_vendor_device_info(con
 	return deviceInfo;
 }
 
+prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const Anvil::PhysicalDevice &dev)
+{
+	auto devInfo = ::get_vendor_device_info(dev);
+	assert(devInfo.has_value());
+	if(!devInfo.has_value())
+		return {};
+	return *devInfo;
+}
+
 prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const IPrContext &context)
 {
 	auto &dev = static_cast<VlkContext &>(const_cast<IPrContext &>(context)).GetDevice();
@@ -430,11 +439,7 @@ prosper::util::VendorDeviceInfo prosper::util::get_vendor_device_info(const IPrC
 	assert(devPhys);
 	if(!devPhys)
 		return {};
-	auto devInfo = ::get_vendor_device_info(*devPhys);
-	assert(devInfo.has_value());
-	if(!devInfo.has_value())
-		return {};
-	return *devInfo;
+	return get_vendor_device_info(*devPhys);
 }
 
 std::vector<prosper::util::VendorDeviceInfo> prosper::util::get_available_vendor_devices(const IPrContext &context)

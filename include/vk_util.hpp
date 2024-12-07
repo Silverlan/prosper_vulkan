@@ -23,6 +23,7 @@ namespace prosper {
 		struct VendorDeviceInfo;
 		struct PhysicalDeviceMemoryProperties;
 		DLLPROSPER_VK void initialize_image(Anvil::BaseDevice &dev, const uimg::ImageBuffer &imgSrc, IImage &img);
+		DLLPROSPER_VK util::VendorDeviceInfo get_vendor_device_info(const Anvil::PhysicalDevice &dev);
 		DLLPROSPER_VK util::VendorDeviceInfo get_vendor_device_info(const IPrContext &context);
 		DLLPROSPER_VK std::vector<util::VendorDeviceInfo> get_available_vendor_devices(const IPrContext &context);
 		DLLPROSPER_VK std::optional<util::PhysicalDeviceMemoryProperties> get_physical_device_memory_properties(const IPrContext &context);

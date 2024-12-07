@@ -708,6 +708,14 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 		m_logHandler(ss.str(), ::util::LogSeverity::Debug);
 	}
 
+	if(m_preDeviceCreationCallback) {
+		if(ShouldLog(::util::LogSeverity::Debug))
+			m_logHandler("Running pre-device creation callback...", ::util::LogSeverity::Debug);
+
+		auto devInfo = util::get_vendor_device_info(*m_physicalDevicePtr);
+		m_preDeviceCreationCallback(devInfo);
+	}
+
 	auto devCreateInfo = Anvil::DeviceCreateInfo::create_sgpu(m_physicalDevicePtr, true, /* in_enable_shader_module_cache */
 	  devExtConfig, createInfo.layers, Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT, ENABLE_ANVIL_THREAD_SAFETY);
 	// devCreateInfo->set_pipeline_cache_ptr() // TODO
