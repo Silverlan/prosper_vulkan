@@ -572,10 +572,26 @@ std::shared_ptr<Window> VlkContext::CreateWindow(const WindowSettings &windowCre
 void VlkContext::InitVulkan(const CreateInfo &createInfo)
 {
 	auto &appName = GetAppName();
+	auto layers = createInfo.layers;
+	std::vector<Anvil::LayerSetting> layerSettings;
+	layerSettings.reserve(createInfo.layerSettings.size());
+	for(auto &layerSetting : createInfo.layerSettings)
+		layerSettings.push_back(Anvil::LayerSetting {layerSetting.layerName.c_str(), layerSetting.settingName.c_str(), static_cast<Anvil::LayerSettingType>(layerSetting.type), layerSetting.valueCount, layerSetting.values.get()});
+
+	auto path = ::util::DirPath(::util::get_program_path(), "modules/graphics/vulkan/layers/");
+	auto addLayerPath = ::util::get_env_variable("VK_ADD_LAYER_PATH");
+	std::string newAddLayerPath;
+	if(addLayerPath)
+		newAddLayerPath = *addLayerPath + ";";
+	newAddLayerPath += path.GetString();
+	::util::set_env_variable("VK_ADD_LAYER_PATH", newAddLayerPath);
+
 	/* Create a Vulkan instance */
 	m_instancePtr = Anvil::Instance::create(Anvil::InstanceCreateInfo::create(
 		appName, /* app_name */
 		appName, /* engine_name */
+		std::move(layers),
+		std::move(layerSettings),
 		(umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled) == true) ? [this](
 			Anvil::DebugMessageSeverityFlags severityFlags,
 			const char *message
@@ -678,14 +694,6 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	devExtConfig.extension_status["GLSL_EXT_ray_tracing"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["GLSL_EXT_ray_query"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["GLSL_EXT_ray_flags_primitive_culling"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
-
-	auto path = ::util::DirPath(::util::get_program_path(), "modules/graphics/vulkan/layers/");
-	auto addLayerPath = ::util::get_env_variable("VK_ADD_LAYER_PATH");
-	std::string newAddLayerPath;
-	if(addLayerPath)
-		newAddLayerPath = *addLayerPath + ";";
-	newAddLayerPath += path.GetString();
-	::util::set_env_variable("VK_ADD_LAYER_PATH", newAddLayerPath);
 
 	for(auto &[ext, availability] : createInfo.extensions)
 		devExtConfig.extension_status[ext] = static_cast<Anvil::ExtensionAvailability>(availability);
