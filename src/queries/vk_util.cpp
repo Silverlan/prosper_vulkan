@@ -39,12 +39,17 @@ std::unique_ptr<Anvil::DescriptorSetCreateInfo> prosper::ToAnvilDescriptorSetInf
 }
 
 static bool glsl_to_spv(prosper::IPrContext &context, prosper::ShaderStage stage, const std::string &shaderCode, std::vector<unsigned int> &spirv, std::string *infoLog, std::string *debugInfoLog, const std::string &fileName, const std::vector<prosper::glsl::IncludeLine> &includeLines,
-  unsigned int lineOffset, bool bHlsl = false)
+  unsigned int lineOffset, bool bHlsl = false, bool withDebugInfo = false)
 {
 	auto &dev = static_cast<prosper::VlkContext &>(context).GetDevice();
 	auto shaderPtr = Anvil::GLSLShaderToSPIRVGenerator::create(&dev, Anvil::GLSLShaderToSPIRVGenerator::MODE_USE_SPECIFIED_SOURCE, shaderCode, static_cast<Anvil::ShaderStage>(stage));
 	if(shaderPtr == nullptr)
 		return false;
+	auto relPath = ::util::FilePath(fileName);
+	if(relPath.GetFront() == "shaders")
+		relPath.PopFront();
+	shaderPtr->set_glsl_file_path(relPath.GetString());
+	shaderPtr->set_with_debug_info(withDebugInfo);
 	if(shaderPtr->get_spirv_blob_size() == 0u) {
 		auto &shaderInfoLog = shaderPtr->get_shader_info_log();
 		if(shaderInfoLog.empty() == false) {
@@ -75,29 +80,33 @@ static bool glsl_to_spv(prosper::IPrContext &context, prosper::ShaderStage stage
 	return true;
 }
 
-bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const std::string &fileName, std::vector<unsigned int> &spirv, std::string *infoLog, std::string *debugInfoLog, bool bReload, const std::string &prefixCode,
-  const std::unordered_map<std::string, std::string> &definitions)
+static std::string get_cache_path(const std::string &shaderRootPath, bool withDebugInfo) { return ::util::DirPath("cache", shaderRootPath, withDebugInfo ? "spirv_full" : "spirv").GetString(); }
+
+bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const std::string &shaderRootPath, const std::string &relFileName, std::vector<unsigned int> &spirv, std::string *infoLog, std::string *debugInfoLog, bool bReload, const std::string &prefixCode,
+  const std::unordered_map<std::string, std::string> &definitions, bool withDebugInfo)
 {
+	auto spvCachePath = get_cache_path(shaderRootPath, withDebugInfo);
+	auto fileName = ::util::FilePath(shaderRootPath, relFileName).GetString();
 	auto fName = fileName;
 	std::string ext;
 	if(!ufile::get_extension(fileName, &ext)) {
 		auto stageExt = prosper::glsl::get_shader_file_extension(stage);
 		auto fullFileName = fileName + '.' + stageExt;
-		auto fNameSpv = "cache/" + fullFileName + ".spv";
-		auto bSpvExists = FileManager::Exists(fNameSpv);
+		auto fNameSpv = ::util::FilePath(spvCachePath, fullFileName + ".spv").GetString();
+		auto bSpvExists = filemanager::exists(fNameSpv);
 		if(bSpvExists == true) {
 			ext = "spv";
 			fName = fNameSpv;
 		}
 		if(bSpvExists == false || bReload == true) {
-			if(FileManager::Exists(fullFileName)) {
+			if(filemanager::exists(fullFileName)) {
 				ext = stageExt;
 				fName = fullFileName;
 			}
 		}
 	}
 	ustring::to_lower(ext);
-	if(!FileManager::Exists(fName)) {
+	if(!filemanager::exists(fName)) {
 		if(infoLog != nullptr)
 			*infoLog = std::string("File '") + fName + std::string("' not found!");
 		return false;
@@ -106,7 +115,7 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 	auto isGlslExt = prosper::glsl::is_glsl_file_extension(ext);
 	if(!isGlslExt && ext != "hlsl") // We'll assume it's a SPIR-V file
 	{
-		auto f = FileManager::OpenFile(fName.c_str(), "rb");
+		auto f = filemanager::open_file(fName, filemanager::FileMode::Read | filemanager::FileMode::Binary);
 		if(f == nullptr) {
 			if(infoLog != nullptr)
 				*infoLog = std::string("Unable to open file '") + fName + std::string("'!");
@@ -130,7 +139,7 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 		auto ext = ufile::remove_extension_from_filename(tmp, prosper::glsl::get_glsl_file_extensions());
 		assert(ext.has_value());
 		tmp += "_vk." + *ext;
-		if(FileManager::Exists(tmp)) {
+		if(filemanager::exists(tmp)) {
 			applyPreprocessing = false;
 			glslFileName = tmp;
 		}
@@ -145,31 +154,25 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 	unsigned int lineOffset = 0;
 	::util::Path fPath {glslFileName};
 	fPath.PopFront();
+
 	auto shaderCode = load_glsl(context, stage, fPath.GetString(), infoLog, debugInfoLog, includeLines, lineOffset, prefixCode, definitions, applyPreprocessing);
 	if(shaderCode.has_value() == false)
 		return false;
-	/*if(fileName.find("fs_pbr") != std::string::npos)
-	{
-		auto f = FileManager::OpenFile<VFilePtrReal>("shadertest.txt","w");
-		if(f)
-		{
-			f->WriteString(*shaderCode);
-			f = nullptr;
-		}
-	}*/
-	/*if(fileName.find("cs_forwardp_light_culling") != std::string::npos)
-	{
-		auto f = FileManager::OpenSystemFile("E:/projects/LunarGLASS/Standalone/build_winx64/RelWithDebInfo/output2.glsl","r");
-		if(f)
-			shaderCode = f->ReadString();
-		f = nullptr;
-	}*/
-	auto r = ::glsl_to_spv(context, stage, *shaderCode, spirv, infoLog, debugInfoLog, fName, includeLines, lineOffset, (ext == "hlsl") ? true : false);
+
+	auto glslCachePath = ::util::FilePath(fName);
+	if(glslCachePath.GetFront() == "shaders") {
+		glslCachePath.PopFront();
+		glslCachePath = ::util::FilePath("cache", "shaders", "preprocessed", glslCachePath);
+		filemanager::create_path(glslCachePath.GetPath());
+		filemanager::write_file(glslCachePath.GetString(), *shaderCode);
+	}
+
+	auto r = ::glsl_to_spv(context, stage, *shaderCode, spirv, infoLog, debugInfoLog, fName, includeLines, lineOffset, (ext == "hlsl") ? true : false, withDebugInfo);
 	if(r == false)
 		return r;
-	auto spirvName = "cache/" + fName + ".spv";
-	FileManager::CreatePath(ufile::get_path_from_filename(spirvName).c_str());
-	auto fOut = FileManager::OpenFile<VFilePtrReal>(spirvName.c_str(), "wb");
+	auto spirvName = ::util::FilePath(spvCachePath, fName + ".spv").GetString();
+	filemanager::create_path(ufile::get_path_from_filename(spirvName));
+	auto fOut = filemanager::open_file<VFilePtrReal>(spirvName, filemanager::FileMode::Write | filemanager::FileMode::Binary);
 	if(fOut == nullptr)
 		return r;
 	fOut->Write(spirv.data(), spirv.size() * sizeof(unsigned int));

@@ -682,6 +682,39 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	devExtConfig.extension_status["VK_NV_external_memory_win32"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["VK_NV_win32_keyed_mutex"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 
+	std::optional<size_t> pNextOffset {};
+	std::vector<std::shared_ptr<void>> extensions;
+	auto addExtension = [&extensions, &pNextOffset]<typename T>(VkStructureType type) -> T & {
+		auto ptr = std::make_shared<T>();
+		ptr->sType = type;
+		ptr->pNext = nullptr;
+		if(pNextOffset) {
+			auto &prev = extensions.back();
+			*reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(prev.get()) + *pNextOffset) = ptr.get();
+		}
+		else
+			pNextOffset = offsetof(T, pNext); // sNext offset is always the same
+		extensions.push_back(ptr);
+		return *ptr;
+	};
+
+	auto devInfo = util::get_vendor_device_info(*m_physicalDevicePtr);
+	if(devInfo.vendor == Vendor::Nvidia) {
+		// These are required for Nsight Aftermath (Only available on Nvidia GPUs)
+		auto &diagnosticsConfigInfo = addExtension.template operator()<VkDeviceDiagnosticsConfigCreateInfoNV>(VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV);
+		diagnosticsConfigInfo.flags = 0;
+		if(createInfo.enableDiagnostics) {
+			// These carry a performance hit, so only enable them in diagnostics mode
+			diagnosticsConfigInfo.flags |= VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_AUTOMATIC_CHECKPOINTS_BIT_NV;
+			devExtConfig.extension_status["NV_device_diagnostic_checkpoints"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+
+			diagnosticsConfigInfo.flags |= VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV;
+			diagnosticsConfigInfo.flags |= VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_ERROR_REPORTING_BIT_NV;
+		}
+		diagnosticsConfigInfo.flags |= VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV;
+		devExtConfig.extension_status["VK_NV_device_diagnostics_config"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	}
+
 	// OpenXr
 	devExtConfig.extension_status["XR_KHR_vulkan_enable2"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 
@@ -718,6 +751,7 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 
 	auto devCreateInfo = Anvil::DeviceCreateInfo::create_sgpu(m_physicalDevicePtr, true, /* in_enable_shader_module_cache */
 	  devExtConfig, createInfo.layers, Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT, ENABLE_ANVIL_THREAD_SAFETY);
+	devCreateInfo->pNext = !extensions.empty() ? extensions.front().get() : nullptr;
 	// devCreateInfo->set_pipeline_cache_ptr() // TODO
 	if(ShouldLog(::util::LogSeverity::Debug))
 		m_logHandler("Creating GPU device...", ::util::LogSeverity::Debug);
@@ -1365,8 +1399,9 @@ std::shared_ptr<prosper::ShaderStageProgram> prosper::VlkContext::CompileShader(
 	auto shaderLocation = prosper::Shader::GetRootShaderLocation();
 	if(shaderLocation.empty() == false)
 		shaderLocation += '\\';
+	auto withDebugInfo = IsDiagnosticsModeEnabled();
 	std::vector<unsigned int> spirvBlob {};
-	auto success = prosper::glsl_to_spv(*this, stage, shaderLocation + shaderPath, spirvBlob, &outInfoLog, &outDebugInfoLog, reload, prefixCode, definitions);
+	auto success = prosper::glsl_to_spv(*this, stage, shaderLocation, shaderPath, spirvBlob, &outInfoLog, &outDebugInfoLog, reload, prefixCode, definitions, withDebugInfo);
 	if(success == false)
 		return nullptr;
 	return std::make_shared<VlkShaderStageProgram>(std::move(spirvBlob));
