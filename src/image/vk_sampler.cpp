@@ -39,9 +39,13 @@ bool VlkSampler::DoUpdate()
 {
 	auto &createInfo = m_createInfo;
 	auto &dev = static_cast<VlkContext &>(GetContext()).GetDevice();
-	auto maxDeviceAnisotropy = dev.get_physical_device_properties().core_vk1_0_properties_ptr->limits.max_sampler_anisotropy;
+	auto &props = *dev.get_physical_device_properties().core_vk1_0_properties_ptr;
+	auto anisotropyEnabled = dev.get_physical_device_features().core_vk1_0_features_ptr->sampler_anisotropy;
+	auto maxDeviceAnisotropy = props.limits.max_sampler_anisotropy;
 	auto anisotropy = createInfo.maxAnisotropy;
-	if(anisotropy == std::numeric_limits<decltype(anisotropy)>::max() || anisotropy > maxDeviceAnisotropy)
+	if(!anisotropyEnabled)
+		anisotropy = 0.f;
+	else if(anisotropy == std::numeric_limits<decltype(anisotropy)>::max() || anisotropy > maxDeviceAnisotropy)
 		anisotropy = maxDeviceAnisotropy;
 	auto newSampler = Anvil::Sampler::create(Anvil::SamplerCreateInfo::create(&dev, static_cast<Anvil::Filter>(createInfo.magFilter), static_cast<Anvil::Filter>(createInfo.minFilter), static_cast<Anvil::SamplerMipmapMode>(createInfo.mipmapMode),
 	  static_cast<Anvil::SamplerAddressMode>(createInfo.addressModeU), static_cast<Anvil::SamplerAddressMode>(createInfo.addressModeV), static_cast<Anvil::SamplerAddressMode>(createInfo.addressModeW), createInfo.mipLodBias, anisotropy, createInfo.compareEnable,

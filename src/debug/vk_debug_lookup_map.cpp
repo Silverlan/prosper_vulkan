@@ -29,35 +29,45 @@
 #include "shader/prosper_shader.hpp"
 #include <sharedutils/util.h>
 #include <sharedutils/util_string.h>
+#include <sharedutils/util_debug.h>
+#include <sharedutils/util_log.hpp>
 #include <sstream>
 #include <mutex>
 
 #undef GetObject
 class DLLPROSPER_VK ObjectLookupHandler {
   public:
+	struct DebugObjectHistoryInfo {
+		std::string debugName;
+		std::string backTrace;
+		std::string destroyBackTrace;
+	};
 	void RegisterObject(void *vkPtr, prosper::ContextObject &obj, prosper::debug::ObjectType type)
 	{
+		auto backTrace = util::get_formatted_stack_backtrace_string();
 		std::scoped_lock lock {m_objectMutex};
-		m_lookupTable[vkPtr] = {&obj, type};
+		m_lookupTable[vkPtr] = {&obj, type, std::move(backTrace)};
 	}
 	void ClearObject(void *vkPtr)
 	{
 		std::scoped_lock lock {m_objectMutex};
 		auto it = m_lookupTable.find(vkPtr);
 		if(it != m_lookupTable.end()) {
-			m_nameHistory[vkPtr] = it->second.first->GetDebugName();
+			m_debugHistory[vkPtr] = {it->second.obj->GetDebugName(), it->second.backTrace, util::get_formatted_stack_backtrace_string()};
 			m_lookupTable.erase(it);
 		}
 	}
-	prosper::ContextObject *GetObject(void *vkPtr, prosper::debug::ObjectType *outType = nullptr) const
+	prosper::ContextObject *GetObject(void *vkPtr, prosper::debug::ObjectType *outType = nullptr, std::string *optOutBacktrace = nullptr) const
 	{
 		std::scoped_lock lock {m_objectMutex};
 		auto it = m_lookupTable.find(vkPtr);
 		if(it == m_lookupTable.end())
 			return nullptr;
 		if(outType != nullptr)
-			*outType = it->second.second;
-		return it->second.first;
+			*outType = it->second.type;
+		if(optOutBacktrace)
+			*optOutBacktrace = it->second.backTrace;
+		return it->second.obj;
 	}
 	template<class T>
 	T *GetObject(void *vkPtr) const
@@ -65,15 +75,20 @@ class DLLPROSPER_VK ObjectLookupHandler {
 		return static_cast<T *>(vkPtr);
 	}
 
-	const std::string *FindHistoryName(void *vkPtr) const
+	const DebugObjectHistoryInfo *FindHistoryInfo(void *vkPtr) const
 	{
-		auto it = m_nameHistory.find(vkPtr);
-		return (it != m_nameHistory.end()) ? &it->second : nullptr;
+		auto it = m_debugHistory.find(vkPtr);
+		return (it != m_debugHistory.end()) ? &it->second : nullptr;
 	}
   private:
-	std::unordered_map<void *, std::pair<prosper::ContextObject *, prosper::debug::ObjectType>> m_lookupTable = {};
+	struct DebugObjectInfo {
+		prosper::ContextObject *obj;
+		prosper::debug::ObjectType type;
+		std::string backTrace;
+	};
+	std::unordered_map<void *, DebugObjectInfo> m_lookupTable = {};
 	mutable std::mutex m_objectMutex;
-	std::unordered_map<void *, std::string> m_nameHistory;
+	std::unordered_map<void *, DebugObjectHistoryInfo> m_debugHistory;
 };
 
 static std::unique_ptr<ObjectLookupHandler> s_lookupHandler = nullptr;
@@ -106,11 +121,11 @@ void prosper::debug::deregister_debug_object(void *vkPtr)
 	s_lookupHandler->ClearObject(vkPtr);
 }
 
-void *prosper::debug::get_object(void *vkObj, ObjectType &type)
+void *prosper::debug::get_object(void *vkObj, ObjectType &type, std::string *optOutBacktrace)
 {
 	if(s_lookupHandler == nullptr)
 		return nullptr;
-	return s_lookupHandler->GetObject(vkObj, &type);
+	return s_lookupHandler->GetObject(vkObj, &type, optOutBacktrace);
 }
 prosper::VlkImage *prosper::debug::get_image(const vk::Image &vkImage) { return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkImage>(vkImage) : nullptr; }
 prosper::VlkImageView *prosper::debug::get_image_view(const vk::ImageView &vkImageView) { return (s_lookupHandler != nullptr) ? s_lookupHandler->GetObject<VlkImageView>(vkImageView) : nullptr; }
@@ -159,20 +174,34 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 	auto prevPos = 0ull;
 	auto pos = msgValidation.find("0x");
 	auto posEnd = msgValidation.find_first_not_of(hexDigits, pos + 2u);
+
 	prosper::VlkCommandBuffer *cmdBuffer = nullptr;
 	std::stringstream r;
+
+	struct DebugInfo {
+		std::string debugName;
+		std::string backTrace;
+		std::string destroyBackTrace;
+	};
+	std::unordered_map<void *, DebugInfo> debugInfoMap;
+
 	while(pos != std::string::npos && posEnd != std::string::npos) {
 		auto strHex = msgValidation.substr(pos, posEnd - pos);
 		auto hex = ::util::to_hex_number(strHex);
 		debug::ObjectType type;
-		auto *o = s_lookupHandler->GetObject(reinterpret_cast<void *>(hex), &type);
+		std::string backTrace;
+		std::string destroyBackTrace;
+		auto *o = s_lookupHandler->GetObject(reinterpret_cast<void *>(hex), &type, &backTrace);
 		r << msgValidation.substr(prevPos, posEnd - prevPos);
 		std::optional<std::string> debugName {};
 		prosper::ContextObject *contextObject = nullptr;
 		if(!o) {
-			auto *p = s_lookupHandler->FindHistoryName(reinterpret_cast<void *>(hex));
-			if(p)
-				debugName = *p;
+			auto *historyInfo = s_lookupHandler->FindHistoryInfo(reinterpret_cast<void *>(hex));
+			if(historyInfo) {
+				debugName = historyInfo->debugName;
+				backTrace = historyInfo->backTrace;
+				destroyBackTrace = historyInfo->destroyBackTrace;
+			}
 		}
 		else {
 			switch(type) {
@@ -212,19 +241,20 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 			default:
 				break;
 			}
+
+			if(contextObject != nullptr)
+				debugName = contextObject->GetDebugName();
 		}
 
-		if(debugName.has_value())
+		if(debugName || !backTrace.empty() || !destroyBackTrace.empty())
+			debugInfoMap[reinterpret_cast<void *>(hex)] = {debugName ? *debugName : std::string {}, backTrace, destroyBackTrace};
+
+		if(debugName.has_value() && !debugName->empty())
 			r << " (" << *debugName << ")";
 		else if(contextObject == nullptr)
 			r << " (Unknown)";
-		else {
-			auto &debugName = contextObject->GetDebugName();
-			if(debugName.empty() == false)
-				r << " (" << debugName << ")";
-			else
-				r << " (" << object_type_to_string(type) << ")";
-		}
+		else
+			r << " (" << object_type_to_string(type) << ")";
 		r << " prosper::ContextObject(0x" << o << ")";
 		auto *dbgO = dynamic_cast<VlkDebugObject *>(contextObject);
 		if(dbgO) {
@@ -239,6 +269,23 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 	}
 	r << msgValidation.substr(prevPos);
 	msgValidation = r.str();
+
+	for(auto &[o, info] : debugInfoMap) {
+		msgValidation += ::util::LOG_NL;
+		msgValidation += "Object 0x" + ::util::to_hex_string(reinterpret_cast<uint64_t>(o)) + ": ";
+		if(info.debugName.empty() == false)
+			msgValidation += "Debug name: " + info.debugName + ::util::LOG_NL;
+		if(info.backTrace.empty() == false) {
+			auto backtrace = "\t" + info.backTrace;
+			ustring::replace(backtrace, "\n", ::util::LOG_NL + "\t");
+			msgValidation += "Creation Backtrace:" + ::util::LOG_NL + backtrace + ::util::LOG_NL;
+		}
+		if(info.destroyBackTrace.empty() == false) {
+			auto backtrace = "\t" + info.destroyBackTrace;
+			ustring::replace(backtrace, "\n", ::util::LOG_NL + "\t");
+			msgValidation += "Destruction Backtrace:" + ::util::LOG_NL + backtrace + ::util::LOG_NL;
+		}
+	}
 
 	auto posPipeline = msgValidation.find("pipeline");
 	if(posPipeline == std::string::npos)
@@ -266,7 +313,7 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 	msgValidation += " Currently bound shaders/pipelines:";
 	for(auto &boundPipeline : boundPipelines)
 	{
-		msgValidation += "\n";
+		msgValidation += ::util::LOG_NL;
 		auto &cmd = *boundPipeline.first;
 		auto &dbgName = cmd.GetDebugName();
 		msgValidation += ((dbgName.empty() == false) ? dbgName : "Unknown") +": ";
