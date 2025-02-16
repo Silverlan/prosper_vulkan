@@ -175,8 +175,6 @@ void VlkContext::OnSwapchainResourcesCleared(uint32_t swapchainIdx)
 
 void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 {
-	ClearKeepAliveResources();
-
 	auto errCode = Anvil::SwapchainOperationErrorCode::SUCCESS;
 	uint64_t validWindows = 0;
 	std::string errMsg;
@@ -214,6 +212,13 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 			continue;
 		}
 
+		if(window.get() == &GetWindow()) {
+			// We'll clear the keep alive resources after acquiring the swapchain image (of the primary window) because at this point
+			// in time we can be sure that the resources are no longer in use by the previous frame.
+			// TODO: If the window is minimized, it could cause resources to accumulate in the keep alive resources list. In this case
+			// we should clear the resources immediately.
+			ClearKeepAliveResources();
+		}
 		auto result = static_cast<VlkWindow &>(*window).WaitForFence(errMsg);
 		window->SetState(result ? prosper::Window::State::Active : prosper::Window::State::Inactive);
 		if(result) {
