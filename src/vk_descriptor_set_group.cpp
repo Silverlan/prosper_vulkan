@@ -8,6 +8,7 @@
 #include "image/vk_image_view.hpp"
 #include "image/vk_sampler.hpp"
 #include "debug/vk_debug_lookup_map.hpp"
+#include <wrappers/descriptor_pool.h>
 
 using namespace prosper;
 
@@ -30,6 +31,12 @@ VlkDescriptorSetGroup::VlkDescriptorSetGroup(IPrContext &context, const Descript
 	if(prosper::debug::is_debug_mode_enabled()) {
 		for(auto i = decltype(numSets) {0}; i < numSets; ++i)
 			prosper::debug::register_debug_object(m_descriptorSetGroup->get_descriptor_set(i)->get_descriptor_set_vk(), *this, prosper::debug::ObjectType::DescriptorSet);
+		auto *pool = m_descriptorSetGroup->get_descriptor_pool();
+		if(pool) {
+			auto &vkPool = pool->get_descriptor_pool();
+			if(vkPool)
+				prosper::debug::register_debug_object(vkPool, *this, prosper::debug::ObjectType::DescriptorSet);
+		}
 	}
 	m_descriptorSets.resize(numSets);
 
@@ -46,6 +53,12 @@ VlkDescriptorSetGroup::~VlkDescriptorSetGroup()
 		auto numSets = m_descriptorSetGroup->get_n_descriptor_sets();
 		for(auto i = decltype(numSets) {0}; i < numSets; ++i)
 			prosper::debug::deregister_debug_object(m_descriptorSetGroup->get_descriptor_set(i)->get_descriptor_set_vk(false));
+		auto *pool = m_descriptorSetGroup->get_descriptor_pool();
+		if(pool) {
+			auto &vkPool = pool->get_descriptor_pool();
+			if(vkPool)
+				prosper::debug::deregister_debug_object(vkPool);
+		}
 	}
 }
 
@@ -60,7 +73,7 @@ VlkDescriptorSet::~VlkDescriptorSet()
 {
 	auto &dsg = GetDescriptorSetGroup();
 	if(dsg.GetContext().IsValidationEnabled())
-		VlkDebugObject::Clear(dsg.GetContext(), debug::ObjectType::DescriptorSet, GetVkDescriptorSet());
+		VlkDebugObject::Clear(dsg.GetContext(), debug::ObjectType::DescriptorSet, m_descSet.get_descriptor_set_vk(false));
 }
 
 VkDescriptorSet VlkDescriptorSet::GetVkDescriptorSet() const { return m_descSet.get_descriptor_set_vk(); }
