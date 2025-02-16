@@ -212,13 +212,6 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 			continue;
 		}
 
-		if(window.get() == &GetWindow()) {
-			// We'll clear the keep alive resources after acquiring the swapchain image (of the primary window) because at this point
-			// in time we can be sure that the resources are no longer in use by the previous frame.
-			// TODO: If the window is minimized, it could cause resources to accumulate in the keep alive resources list. In this case
-			// we should clear the resources immediately.
-			ClearKeepAliveResources();
-		}
 		auto result = static_cast<VlkWindow &>(*window).WaitForFence(errMsg);
 		window->SetState(result ? prosper::Window::State::Active : prosper::Window::State::Inactive);
 		if(result) {
@@ -254,8 +247,11 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 		}
 	};
 
-	//auto &keepAliveResources = m_keepAliveResources.at(m_n_swapchain_image);
-	//auto numKeepAliveResources = keepAliveResources.size(); // We can clear the resources from the previous render pass of this swapchain after we've waited for the semaphore (i.e. after the frame rendering is complete)
+	// We'll clear the keep alive resources after acquiring the swapchain image (of the primary window) because at this point
+	// in time we can be sure that the resources are no longer in use by the previous frame.
+	// TODO: If the window is minimized, it could cause resources to accumulate in the keep alive resources list. In this case
+	// we should clear the resources immediately.
+	ClearKeepAliveResources();
 
 	auto swapchainImgIdx = GetLastAcquiredPrimaryWindowSwapchainImageIndex();
 	if(swapchainImgIdx == UINT32_MAX) {
@@ -265,7 +261,8 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 	/* Start recording commands */
 	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer &>(*GetWindow().GetDrawCommandBuffer());
 	if(primCmd.IsRecording() == false)
-		return; // Something went wrong?
+		return; // Something either went wrong, or window is probably minimized
+
 	m_swapchainResourcesInUseMutex.lock();
 	m_swapchainResourcesInUse[swapchainImgIdx] = true;
 	m_swapchainResourcesInUseMutex.unlock();
