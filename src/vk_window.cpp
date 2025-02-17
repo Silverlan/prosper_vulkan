@@ -170,6 +170,8 @@ Anvil::Semaphore &prosper::VlkWindow::Submit(VlkPrimaryCommandBuffer &cmd, Anvil
 	  &signalSemaphore, optWaitSemaphore ? 2 : 1,                                                            /* n_semaphores_to_wait_on */
 	  waitSemaphores.data(), wait_stage_mask.data(), false,                                                  /* should_block  */
 	  m_cmdFences.at(swapchainImgIdx).get()));                                                               /* opt_fence_ptr */
+	if(res == VkResult::VK_SUCCESS)
+		context.SetDeviceBusy(true);
 	return *signalSemaphore;
 }
 

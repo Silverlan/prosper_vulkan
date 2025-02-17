@@ -267,7 +267,6 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 	m_swapchainResourcesInUse[swapchainImgIdx] = true;
 	m_swapchainResourcesInUseMutex.unlock();
 	umath::set_flag(m_stateFlags, StateFlags::IsRecording);
-	umath::set_flag(m_stateFlags, StateFlags::Idle, false);
 	while(m_scheduledBufferUpdates.empty() == false) {
 		auto &f = m_scheduledBufferUpdates.front();
 		f(primCmd);
@@ -306,7 +305,10 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 bool VlkContext::Submit(ICommandBuffer &cmdBuf, bool shouldBlock, IFence *optFence)
 {
 	auto &dev = GetDevice();
-	return dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(&cmdBuf.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, shouldBlock, optFence ? &dynamic_cast<VlkFence *>(optFence)->GetAnvilFence() : nullptr));
+	auto res = dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(&cmdBuf.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, shouldBlock, optFence ? &dynamic_cast<VlkFence *>(optFence)->GetAnvilFence() : nullptr));
+	if(res == VkResult::VK_SUCCESS)
+		SetDeviceBusy(true);
+	return res == VkResult::VK_SUCCESS;
 }
 
 bool VlkContext::GetSurfaceCapabilities(Anvil::SurfaceCapabilities &caps) const
@@ -380,6 +382,7 @@ void VlkContext::DoFlushCommandBuffer(ICommandBuffer &cmd)
 	auto res = static_cast<prosper::Result>(dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(&pcmd.GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, true)));
 	if(res != prosper::Result::Success)
 		throw std::runtime_error {"Failed to submit command buffer: " + util::to_string(res) + "!"};
+	SetDeviceBusy(true);
 }
 
 bool VlkContext::IsImageFormatSupported(prosper::Format format, prosper::ImageUsageFlags usageFlags, prosper::ImageType type, prosper::ImageTiling tiling) const
@@ -1262,16 +1265,19 @@ bool VlkContext::IsInstanceExtensionEnabled(const std::string &ext) const { retu
 
 void VlkContext::SubmitCommandBuffer(prosper::ICommandBuffer &cmd, prosper::QueueFamilyType queueFamilyType, bool shouldBlock, prosper::IFence *fence)
 {
+	auto res = VkResult::VK_SUCCESS;
 	switch(queueFamilyType) {
 	case prosper::QueueFamilyType::Universal:
-		m_devicePtr->get_universal_queue(0u)->submit(Anvil::SubmitInfo::create(&cmd.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, shouldBlock, fence ? &static_cast<VlkFence *>(fence)->GetAnvilFence() : nullptr));
+		res = m_devicePtr->get_universal_queue(0u)->submit(Anvil::SubmitInfo::create(&cmd.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, shouldBlock, fence ? &static_cast<VlkFence *>(fence)->GetAnvilFence() : nullptr));
 		break;
 	case prosper::QueueFamilyType::Compute:
-		m_devicePtr->get_compute_queue(0u)->submit(Anvil::SubmitInfo::create(&cmd.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, shouldBlock, fence ? &static_cast<VlkFence *>(fence)->GetAnvilFence() : nullptr));
+		res = m_devicePtr->get_compute_queue(0u)->submit(Anvil::SubmitInfo::create(&cmd.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, shouldBlock, fence ? &static_cast<VlkFence *>(fence)->GetAnvilFence() : nullptr));
 		break;
 	default:
 		throw std::invalid_argument("No device queue exists for queue family " + std::to_string(umath::to_integral(queueFamilyType)) + "!");
 	}
+	if(res == VkResult::VK_SUCCESS)
+		SetDeviceBusy(true);
 }
 
 bool VlkContext::GetUniversalQueueFamilyIndex(prosper::QueueFamilyType queueFamilyType, uint32_t &queueFamilyIndex) const
