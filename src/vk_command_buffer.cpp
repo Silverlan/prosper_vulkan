@@ -43,7 +43,7 @@ const Anvil::CommandBufferBase *prosper::VlkCommandBuffer::operator->() const { 
 bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(PipelineBindPoint bindPoint, prosper::Shader &shader, PipelineID pipelineIdx, uint32_t firstSet, const std::vector<prosper::IDescriptorSet *> &descSets, const std::vector<uint32_t> dynamicOffsets)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBindDescriptorSets");
 		r->AddArgument("bindPoint", bindPoint);
@@ -68,7 +68,7 @@ bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(PipelineBindPoint bindP
 bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(PipelineBindPoint bindPoint, const IShaderPipelineLayout &pipelineLayout, uint32_t firstSet, uint32_t numDescSets, const prosper::IDescriptorSet *const *descSets, uint32_t numDynamicOffsets, const uint32_t *dynamicOffsets)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBindDescriptorSets");
 		r->AddArgument("bindPoint", bindPoint);
@@ -94,7 +94,7 @@ bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(PipelineBindPoint bindP
 bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(PipelineBindPoint bindPoint, const IShaderPipelineLayout &pipelineLayout, uint32_t firstSet, const prosper::IDescriptorSet &descSet, uint32_t *optDynamicOffset)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBindDescriptorSets");
 		r->AddArgument("bindPoint", bindPoint);
@@ -113,7 +113,7 @@ bool prosper::VlkCommandBuffer::RecordBindDescriptorSets(PipelineBindPoint bindP
 bool prosper::VlkCommandBuffer::RecordPushConstants(const IShaderPipelineLayout &pipelineLayout, ShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void *data)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordPushConstants");
 		r->AddArgument("pipelineLayout", pipelineLayout);
@@ -130,7 +130,7 @@ bool prosper::VlkCommandBuffer::RecordPushConstants(const IShaderPipelineLayout 
 bool prosper::VlkCommandBuffer::RecordPushConstants(prosper::Shader &shader, PipelineID pipelineIdx, ShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void *data)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordPushConstants");
 		r->AddArgument("shader", shader);
@@ -147,7 +147,7 @@ bool prosper::VlkCommandBuffer::RecordPushConstants(prosper::Shader &shader, Pip
 bool prosper::VlkCommandBuffer::DoRecordBindShaderPipeline(prosper::Shader &shader, PipelineID shaderPipelineId, PipelineID pipelineId)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBindShaderPipeline");
 		r->AddArgument("shader", shader);
@@ -160,7 +160,7 @@ bool prosper::VlkCommandBuffer::DoRecordBindShaderPipeline(prosper::Shader &shad
 bool prosper::VlkCommandBuffer::RecordSetLineWidth(float lineWidth)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordSetLineWidth");
 		r->AddArgument("lineWidth", lineWidth);
@@ -173,7 +173,7 @@ bool prosper::VlkCommandBuffer::RecordSetLineWidth(float lineWidth)
 bool prosper::VlkCommandBuffer::RecordBindIndexBuffer(IBuffer &buf, IndexType indexType, DeviceSize offset)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBindIndexBuffer");
 		r->AddArgument("buf", buf);
@@ -188,7 +188,7 @@ bool prosper::VlkCommandBuffer::RecordBindIndexBuffer(IBuffer &buf, IndexType in
 bool prosper::VlkCommandBuffer::RecordBindVertexBuffer(const prosper::ShaderGraphics &shader, const IBuffer &buf, uint32_t startBinding, DeviceSize offset)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBindVertexBuffer");
 		r->AddArgument("shader", shader);
@@ -205,7 +205,7 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(const prosper::ShaderGra
 bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(const std::vector<IBuffer *> &buffers, uint32_t startBinding, const std::vector<DeviceSize> &offsets)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBindVertexBuffers");
 		r->AddArgument("buffers", buffers);
@@ -230,7 +230,7 @@ bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(const std::vector<IBuffe
 bool prosper::VlkCommandBuffer::RecordBindVertexBuffers(const std::vector<std::shared_ptr<IBuffer>> &buffers, uint32_t startBinding, const std::vector<DeviceSize> &offsets)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBindVertexBuffers");
 		r->AddArgument("buffers", buffers);
@@ -260,7 +260,7 @@ bool prosper::VlkCommandBuffer::RecordBindRenderBuffer(const IRenderBuffer &rend
 bool prosper::VlkCommandBuffer::RecordDispatchIndirect(prosper::IBuffer &buffer, DeviceSize size)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordDispatchIndirect");
 		r->AddArgument("buffer", buffer);
@@ -274,7 +274,7 @@ bool prosper::VlkCommandBuffer::RecordDispatchIndirect(prosper::IBuffer &buffer,
 bool prosper::VlkCommandBuffer::RecordDispatch(uint32_t x, uint32_t y, uint32_t z)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordDispatch");
 		r->AddArgument("x", x);
@@ -289,7 +289,7 @@ bool prosper::VlkCommandBuffer::RecordDispatch(uint32_t x, uint32_t y, uint32_t 
 bool prosper::VlkCommandBuffer::RecordDraw(uint32_t vertCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordDraw");
 		r->AddArgument("vertCount", vertCount);
@@ -305,7 +305,7 @@ bool prosper::VlkCommandBuffer::RecordDraw(uint32_t vertCount, uint32_t instance
 bool prosper::VlkCommandBuffer::RecordDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t firstInstance)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordDrawIndexed");
 		r->AddArgument("indexCount", indexCount);
@@ -321,7 +321,7 @@ bool prosper::VlkCommandBuffer::RecordDrawIndexed(uint32_t indexCount, uint32_t 
 bool prosper::VlkCommandBuffer::RecordDrawIndexedIndirect(IBuffer &buf, DeviceSize offset, uint32_t drawCount, uint32_t stride)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordDrawIndexedIndirect");
 		r->AddArgument("buf", buf);
@@ -337,7 +337,7 @@ bool prosper::VlkCommandBuffer::RecordDrawIndexedIndirect(IBuffer &buf, DeviceSi
 bool prosper::VlkCommandBuffer::RecordDrawIndirect(IBuffer &buf, DeviceSize offset, uint32_t count, uint32_t stride)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordDrawIndirect");
 		r->AddArgument("buf", buf);
@@ -353,7 +353,7 @@ bool prosper::VlkCommandBuffer::RecordDrawIndirect(IBuffer &buf, DeviceSize offs
 bool prosper::VlkCommandBuffer::RecordFillBuffer(IBuffer &buf, DeviceSize offset, DeviceSize size, uint32_t data)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordFillBuffer");
 		r->AddArgument("buf", buf);
@@ -369,7 +369,7 @@ bool prosper::VlkCommandBuffer::RecordFillBuffer(IBuffer &buf, DeviceSize offset
 bool prosper::VlkCommandBuffer::RecordSetBlendConstants(const std::array<float, 4> &blendConstants)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordSetBlendConstants");
 		r->AddArgument("blendConstants", blendConstants);
@@ -382,7 +382,7 @@ bool prosper::VlkCommandBuffer::RecordSetBlendConstants(const std::array<float, 
 bool prosper::VlkCommandBuffer::RecordSetDepthBounds(float minDepthBounds, float maxDepthBounds)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordSetDepthBounds");
 		r->AddArgument("minDepthBounds", minDepthBounds);
@@ -396,7 +396,7 @@ bool prosper::VlkCommandBuffer::RecordSetDepthBounds(float minDepthBounds, float
 bool prosper::VlkCommandBuffer::RecordSetStencilCompareMask(StencilFaceFlags faceMask, uint32_t stencilCompareMask)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordSetStencilCompareMask");
 		r->AddArgument("faceMask", faceMask);
@@ -410,7 +410,7 @@ bool prosper::VlkCommandBuffer::RecordSetStencilCompareMask(StencilFaceFlags fac
 bool prosper::VlkCommandBuffer::RecordSetStencilReference(StencilFaceFlags faceMask, uint32_t stencilReference)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordSetStencilReference");
 		r->AddArgument("faceMask", faceMask);
@@ -424,7 +424,7 @@ bool prosper::VlkCommandBuffer::RecordSetStencilReference(StencilFaceFlags faceM
 bool prosper::VlkCommandBuffer::RecordSetStencilWriteMask(StencilFaceFlags faceMask, uint32_t stencilWriteMask)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordSetStencilWriteMask");
 		r->AddArgument("faceMask", faceMask);
@@ -438,7 +438,7 @@ bool prosper::VlkCommandBuffer::RecordSetStencilWriteMask(StencilFaceFlags faceM
 bool prosper::VlkCommandBuffer::RecordBeginOcclusionQuery(const prosper::OcclusionQuery &query) const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBeginOcclusionQuery");
 		r->AddArgument("query", query);
@@ -457,7 +457,7 @@ bool prosper::VlkCommandBuffer::RecordBeginOcclusionQuery(const prosper::Occlusi
 bool prosper::VlkCommandBuffer::RecordEndOcclusionQuery(const prosper::OcclusionQuery &query) const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordEndOcclusionQuery");
 		r->AddArgument("query", query);
@@ -474,7 +474,7 @@ bool prosper::VlkCommandBuffer::RecordEndOcclusionQuery(const prosper::Occlusion
 bool prosper::VlkCommandBuffer::WriteTimestampQuery(const prosper::TimestampQuery &query) const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("WriteTimestampQuery");
 		r->AddArgument("query", query);
@@ -494,7 +494,7 @@ bool prosper::VlkCommandBuffer::WriteTimestampQuery(const prosper::TimestampQuer
 bool prosper::VlkCommandBuffer::ResetQuery(const Query &query) const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("ResetQuery");
 		r->AddArgument("query", query);
@@ -561,7 +561,7 @@ bool prosper::VlkCommandBuffer::RecordPresentImage(IImage &img, IImage &swapchai
 bool prosper::VlkCommandBuffer::RecordBeginPipelineStatisticsQuery(const PipelineStatisticsQuery &query) const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBeginPipelineStatisticsQuery");
 		r->AddArgument("query", query);
@@ -578,7 +578,7 @@ bool prosper::VlkCommandBuffer::RecordBeginPipelineStatisticsQuery(const Pipelin
 bool prosper::VlkCommandBuffer::RecordEndPipelineStatisticsQuery(const PipelineStatisticsQuery &query) const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordEndPipelineStatisticsQuery");
 		r->AddArgument("query", query);
@@ -603,7 +603,7 @@ static Anvil::ImageSubresourceRange to_anvil_subresource_range(const prosper::ut
 bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img, ImageLayout layout, const std::array<float, 4> &clearColor, const util::ClearImageInfo &clearImageInfo)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordClearImage");
 		r->AddArgument("img", img);
@@ -628,7 +628,7 @@ bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img, ImageLayout layout
 bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img, ImageLayout layout, std::optional<float> clearDepth, std::optional<uint32_t> clearStencil, const util::ClearImageInfo &clearImageInfo)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordClearImage");
 		r->AddArgument("img", img);
@@ -665,7 +665,7 @@ bool prosper::VlkCommandBuffer::RecordClearImage(IImage &img, ImageLayout layout
 bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrierInfo &barrierInfo)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordPipelineBarrier");
 		r->AddArgument("barrierInfo", barrierInfo);
@@ -766,7 +766,7 @@ bool prosper::VlkPrimaryCommandBuffer::StopRecording() const { return IPrimaryCo
 bool prosper::VlkPrimaryCommandBuffer::DoRecordEndRenderPass()
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordEndRenderPass");
 	}
@@ -816,7 +816,7 @@ bool prosper::VlkPrimaryCommandBuffer::DoRecordEndRenderPass()
 bool prosper::VlkPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::IImage &img, prosper::IRenderPass &rp, prosper::IFramebuffer &fb, uint32_t *layerId, const std::vector<prosper::ClearValue> &clearValues, RenderPassFlags renderPassFlags)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBeginRenderPass");
 		r->AddArgument("img", img);
@@ -904,7 +904,7 @@ prosper::VlkSecondaryCommandBuffer::VlkSecondaryCommandBuffer(IPrContext &contex
 bool prosper::VlkSecondaryCommandBuffer::StartRecording(bool oneTimeSubmit, bool simultaneousUseAllowed) const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("StartRecording");
 		r->AddArgument("oneTimeSubmit", oneTimeSubmit);
@@ -918,7 +918,7 @@ bool prosper::VlkSecondaryCommandBuffer::StartRecording(bool oneTimeSubmit, bool
 bool prosper::VlkSecondaryCommandBuffer::StartRecording(prosper::IRenderPass &rp, prosper::IFramebuffer &fb, bool oneTimeSubmit, bool simultaneousUseAllowed) const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("StartRecording");
 		r->AddArgument("rp", rp);
@@ -936,7 +936,7 @@ bool prosper::VlkSecondaryCommandBuffer::StartRecording(bool oneTimeSubmit, bool
   bool occlusionQueryUsedByPrimaryCommandBuffer, Anvil::QueryPipelineStatisticFlags statisticsFlags) const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("StartRecording");
 		r->AddArgument("oneTimeSubmit", oneTimeSubmit);
@@ -958,14 +958,14 @@ bool prosper::VlkSecondaryCommandBuffer::StartRecording(bool oneTimeSubmit, bool
 bool prosper::VlkSecondaryCommandBuffer::StopRecording() const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("StopRecording");
 	}
 #endif
 	auto res = ISecondaryCommandBuffer::StopRecording() && m_cmdBuffer->stop_recording();
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		adr.Clear();
 	}
@@ -989,7 +989,7 @@ prosper::VlkCommandBuffer::~VlkCommandBuffer() { prosper::debug::deregister_debu
 bool prosper::VlkCommandBuffer::Reset(bool shouldReleaseResources) const
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("Reset");
 		r->AddArgument("shouldReleaseResources", shouldReleaseResources);
@@ -1000,7 +1000,7 @@ bool prosper::VlkCommandBuffer::Reset(bool shouldReleaseResources) const
 bool prosper::VlkCommandBuffer::RecordSetDepthBias(float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordSetDepthBias");
 		r->AddArgument("depthBiasConstantFactor", depthBiasConstantFactor);
@@ -1013,7 +1013,7 @@ bool prosper::VlkCommandBuffer::RecordSetDepthBias(float depthBiasConstantFactor
 bool prosper::VlkCommandBuffer::RecordClearAttachment(IImage &img, const std::array<float, 4> &clearColor, uint32_t attId, uint32_t layerId, uint32_t layerCount)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordClearAttachment");
 		r->AddArgument("clearColor", clearColor);
@@ -1034,7 +1034,7 @@ bool prosper::VlkCommandBuffer::RecordClearAttachment(IImage &img, const std::ar
 bool prosper::VlkCommandBuffer::RecordClearAttachment(IImage &img, std::optional<float> clearDepth, std::optional<uint32_t> clearStencil, uint32_t layerId)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordClearAttachment");
 		r->AddArgument("img", img);
@@ -1069,7 +1069,7 @@ bool prosper::VlkCommandBuffer::RecordClearAttachment(IImage &img, std::optional
 bool prosper::VlkCommandBuffer::RecordSetViewport(uint32_t width, uint32_t height, uint32_t x, uint32_t y, float minDepth, float maxDepth)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordSetViewport");
 		r->AddArgument("width", width);
@@ -1086,7 +1086,7 @@ bool prosper::VlkCommandBuffer::RecordSetViewport(uint32_t width, uint32_t heigh
 bool prosper::VlkCommandBuffer::RecordSetScissor(uint32_t width, uint32_t height, uint32_t x, uint32_t y)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordSetScissor");
 		r->AddArgument("width", width);
@@ -1101,7 +1101,7 @@ bool prosper::VlkCommandBuffer::RecordSetScissor(uint32_t width, uint32_t height
 bool prosper::VlkCommandBuffer::DoRecordCopyBuffer(const util::BufferCopy &copyInfo, IBuffer &bufferSrc, IBuffer &bufferDst)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordCopyBuffer");
 		r->AddArgument("copyInfo", copyInfo);
@@ -1118,7 +1118,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBuffer(const util::BufferCopy &copyI
 bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImageCopyInfo &copyInfo, IBuffer &bufferSrc, IImage &imgDst)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordCopyBufferToImage");
 		r->AddArgument("copyInfo", copyInfo);
@@ -1170,7 +1170,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImag
 bool prosper::VlkCommandBuffer::DoRecordCopyImage(const util::CopyInfo &copyInfo, IImage &imgSrc, IImage &imgDst, uint32_t w, uint32_t h)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordCopyImage");
 		r->AddArgument("copyInfo", copyInfo);
@@ -1190,7 +1190,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImage(const util::CopyInfo &copyInfo
 bool prosper::VlkCommandBuffer::DoRecordCopyImageToBuffer(const util::BufferImageCopyInfo &copyInfo, IImage &imgSrc, ImageLayout srcImageLayout, IBuffer &bufferDst)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordCopyImageToBuffer");
 		r->AddArgument("copyInfo", copyInfo);
@@ -1230,7 +1230,7 @@ bool prosper::VlkCommandBuffer::DoRecordCopyImageToBuffer(const util::BufferImag
 bool prosper::VlkCommandBuffer::DoRecordBlitImage(const util::BlitInfo &blitInfo, IImage &imgSrc, IImage &imgDst, const std::array<Offset3D, 2> &srcOffsets, const std::array<Offset3D, 2> &dstOffsets, std::optional<prosper::ImageAspectFlags> aspectFlags)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordBlitImage");
 		r->AddArgument("blitInfo", blitInfo);
@@ -1259,7 +1259,7 @@ bool prosper::VlkCommandBuffer::DoRecordBlitImage(const util::BlitInfo &blitInfo
 bool prosper::VlkCommandBuffer::DoRecordResolveImage(IImage &imgSrc, IImage &imgDst, const util::ImageResolve &resolve)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordResolveImage");
 		r->AddArgument("imgSrc", imgSrc);
@@ -1273,7 +1273,7 @@ bool prosper::VlkCommandBuffer::DoRecordResolveImage(IImage &imgSrc, IImage &img
 bool prosper::VlkCommandBuffer::RecordUpdateBuffer(IBuffer &buffer, uint64_t offset, uint64_t size, const void *data)
 {
 #ifdef PR_DEBUG_API_DUMP
-	{
+	if(debug::is_api_dump_enabled()) {
 		auto &adr = GetApiDumpRecorder();
 		auto r = adr.AddRecord<bool>("RecordUpdateBuffer");
 		r->AddArgument("buffer", buffer);

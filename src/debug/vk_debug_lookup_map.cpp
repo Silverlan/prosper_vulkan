@@ -44,7 +44,7 @@ class DLLPROSPER_VK ObjectLookupHandler {
 	};
 	void RegisterObject(void *vkPtr, prosper::ContextObject &obj, prosper::debug::ObjectType type)
 	{
-		auto backTrace = util::get_formatted_stack_backtrace_string();
+		auto backTrace = util::debug::get_formatted_stack_backtrace_string();
 		std::scoped_lock lock {m_objectMutex};
 		m_lookupTable[vkPtr] = {&obj, type, std::move(backTrace)};
 	}
@@ -53,7 +53,7 @@ class DLLPROSPER_VK ObjectLookupHandler {
 		std::scoped_lock lock {m_objectMutex};
 		auto it = m_lookupTable.find(vkPtr);
 		if(it != m_lookupTable.end()) {
-			m_debugHistory[vkPtr] = {it->second.obj->GetDebugName(), it->second.backTrace, util::get_formatted_stack_backtrace_string()};
+			m_debugHistory[vkPtr] = {it->second.obj->GetDebugName(), it->second.backTrace, util::debug::get_formatted_stack_backtrace_string()};
 			m_lookupTable.erase(it);
 		}
 	}
