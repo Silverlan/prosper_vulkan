@@ -60,13 +60,14 @@
 #include <wrappers/query_pool.h>
 #include <wrappers/shader_module.h>
 #include <misc/image_view_create_info.h>
-#include <iglfw/glfw_window.h>
 #include <sharedutils/util.h>
 #include <sharedutils/util_path.hpp>
 #include <sharedutils/magic_enum.hpp>
 
 #include <string>
 #include <cmath>
+
+import pragma.platform;
 
 #define ENABLE_ANVIL_THREAD_SAFETY true
 

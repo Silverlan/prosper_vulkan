@@ -26,7 +26,6 @@
 #include <misc/window_factory.h>
 #include <misc/window.h>
 #include <misc/image_view_create_info.h>
-#include <iglfw/glfw_window.h>
 
 #ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -56,6 +55,8 @@
 #error Anvil has not been built with XCB window system support. The application can only be built in offscreen rendering mode.
 #endif
 #endif
+
+import pragma.platform;
 
 using namespace prosper;
 
@@ -210,13 +211,13 @@ void prosper::VlkWindow::InitWindow()
 	// TODO: Clean this up
 	try {
 		m_glfwWindow = nullptr;
-		GLFW::poll_events();
+		pragma::platform::poll_events();
 		auto settings = m_settings;
 		if(!settings.windowedMode && (settings.monitor.has_value() == false || settings.monitor->GetGLFWMonitor() == nullptr))
-			settings.monitor = GLFW::get_primary_monitor();
+			settings.monitor = pragma::platform::get_primary_monitor();
 		if(context.ShouldLog(::util::LogSeverity::Debug))
 			context.Log("Creating GLFW window...", ::util::LogSeverity::Debug);
-		m_glfwWindow = GLFW::Window::Create(settings); // TODO: Release
+		m_glfwWindow = pragma::platform::Window::Create(settings); // TODO: Release
 #ifdef _WIN32
 		auto hWindow = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
 #else
@@ -263,7 +264,7 @@ void prosper::VlkWindow::InitWindow()
 			exit(EXIT_FAILURE);
 		}
 
-		m_glfwWindow->SetResizeCallback([this](GLFW::Window &window, Vector2i size) { GetContext().Log("Resizing..."); });
+		m_glfwWindow->SetResizeCallback([this](pragma::platform::Window &window, Vector2i size) { GetContext().Log("Resizing..."); });
 	}
 	catch(const std::exception &e) {
 	}
