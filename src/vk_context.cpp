@@ -449,7 +449,7 @@ prosper::FeatureSupport VlkContext::AreFormatFeaturesSupported(Format format, Fo
 	  Anvil::FormatFeatureFlagBits::SAMPLED_IMAGE_BIT, Anvil::FormatFeatureFlagBits::STORAGE_TEXEL_BUFFER_BIT, Anvil::FormatFeatureFlagBits::UNIFORM_TEXEL_BUFFER_BIT, Anvil::FormatFeatureFlagBits::VERTEX_BUFFER_BIT};
 	Anvil::FormatFeatureFlags anvFeatures;
 	for(auto i = decltype(toAnvFlag.size()) {0u}; i < toAnvFlag.size(); ++i) {
-		if(!umath::is_flag_set(featureFlags, static_cast<FormatFeatureFlags>(i)))
+		if(!umath::is_flag_set(featureFlags, static_cast<FormatFeatureFlags>(toAnvFlag[i])))
 			continue;
 		anvFeatures |= toAnvFlag[i];
 	}
