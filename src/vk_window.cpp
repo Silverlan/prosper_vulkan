@@ -25,6 +25,7 @@
 #include <misc/rendering_surface_create_info.h>
 #include <misc/window_factory.h>
 #include <misc/window.h>
+#include <misc/window_generic.h>
 #include <misc/image_view_create_info.h>
 
 #ifdef _WIN32
@@ -218,18 +219,28 @@ void prosper::VlkWindow::InitWindow()
 		if(context.ShouldLog(::util::LogSeverity::Debug))
 			context.Log("Creating GLFW window...", ::util::LogSeverity::Debug);
 		m_glfwWindow = pragma::platform::Window::Create(settings); // TODO: Release
+
+		auto platform = pragma::platform::get_platform();
+		Anvil::WindowGeneric::Type type;
 #ifdef _WIN32
+		if(platform != pragma::platform::Platform::Win32)
+			throw std::runtime_error {"Platform mismatch"};
 		auto hWindow = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
+		type = Anvil::WindowGeneric::Type::Win32;
 #else
-#ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
-		  // This is a workaround since GLFW does not expose any functions
-		  // for retrieving XCB connection.
+		switch(platform) {
+		case pragma::platform::Platform::X11:
+			type = Anvil::WindowGeneric::Type::XCB;
+			break;
+		case pragma::platform::Platform::Wayland:
+			type = Anvil::WindowGeneric::Type::Wayland;
+			break;
+		default:
+			throw std::runtime_error {"Platform mismatch"};
+		}
 		auto hWindow = glfwGetX11Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
-		auto *pConnection = XGetXCBConnection(glfwGetX11Display());
-#else
-#error "Unable to retrieve xcb connection: GLFW does not expose required functions."
-		auto hWindow = glfwGetX11Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
-#endif
+
+		auto hWindow = glfwGetWaylandWindow(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
 #endif
 		const char *errDesc;
 		auto err = glfwGetError(&errDesc);
@@ -247,12 +258,7 @@ void prosper::VlkWindow::InitWindow()
 
 		if(context.ShouldLog(::util::LogSeverity::Debug))
 			context.Log("Creating Anvil window...", ::util::LogSeverity::Debug);
-		m_windowPtr = Anvil::WindowFactory::create_window(platform, hWindow
-#ifdef ENABLE_GLFW_ANVIL_COMPATIBILITY
-		  ,
-		  pConnection
-#endif
-		);
+		m_windowPtr = Anvil::WindowGeneric::create(type, hWindow, m_settings.width, m_settings.height, m_glfwWindow->IsVisible());
 
 		if(context.ShouldLog(::util::LogSeverity::Debug))
 			context.Log("Creating GLFW window surface...", ::util::LogSeverity::Debug);
