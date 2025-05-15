@@ -32,6 +32,8 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #else
 #define GLFW_EXPOSE_NATIVE_X11
+#define GLFW_EXPOSE_NATIVE_X11
+#define GLFW_EXPOSE_NATIVE_WAYLAND
 #endif
 
 #include <GLFW/glfw3.h>
@@ -222,25 +224,34 @@ void prosper::VlkWindow::InitWindow()
 
 		auto platform = pragma::platform::get_platform();
 		Anvil::WindowGeneric::Type type;
+		Anvil::WindowGeneric::Connection connection = nullptr;
+		Anvil::WindowGeneric::Display display = nullptr;
 #ifdef _WIN32
 		if(platform != pragma::platform::Platform::Win32)
 			throw std::runtime_error {"Platform mismatch"};
 		auto hWindow = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
 		type = Anvil::WindowGeneric::Type::Win32;
 #else
+		Anvil::WindowGeneric::Handle hWindow;
 		switch(platform) {
 		case pragma::platform::Platform::X11:
-			type = Anvil::WindowGeneric::Type::XCB;
+		{
+			type = Anvil::WindowGeneric::Type::Xcb;
+			hWindow.xcbWindow = glfwGetX11Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
+			auto *x11Display = glfwGetX11Display();
+			display = x11Display;
+			connection = XGetXCBConnection(x11Display);
 			break;
+		}
 		case pragma::platform::Platform::Wayland:
 			type = Anvil::WindowGeneric::Type::Wayland;
+			hWindow.waylandWindow = glfwGetWaylandWindow(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
+			display = glfwGetWaylandDisplay();
+			connection = display;
 			break;
 		default:
 			throw std::runtime_error {"Platform mismatch"};
 		}
-		auto hWindow = glfwGetX11Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
-
-		auto hWindow = glfwGetWaylandWindow(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
 #endif
 		const char *errDesc;
 		auto err = glfwGetError(&errDesc);
@@ -258,7 +269,7 @@ void prosper::VlkWindow::InitWindow()
 
 		if(context.ShouldLog(::util::LogSeverity::Debug))
 			context.Log("Creating Anvil window...", ::util::LogSeverity::Debug);
-		m_windowPtr = Anvil::WindowGeneric::create(type, hWindow, m_settings.width, m_settings.height, m_glfwWindow->IsVisible());
+		m_windowPtr = Anvil::WindowGeneric::create(type, hWindow, display, connection, m_settings.width, m_settings.height, m_glfwWindow->IsVisible());
 
 		if(context.ShouldLog(::util::LogSeverity::Debug))
 			context.Log("Creating GLFW window surface...", ::util::LogSeverity::Debug);
