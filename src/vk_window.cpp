@@ -229,20 +229,21 @@ void prosper::VlkWindow::InitWindow()
 #ifdef _WIN32
 		if(platform != pragma::platform::Platform::Win32)
 			throw std::runtime_error {"Platform mismatch"};
-		auto hWindow = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
+		Anvil::WindowGeneric::Handle hWindow;
+		hWindow.win32Window = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
 		type = Anvil::WindowGeneric::Type::Win32;
 #else
 		Anvil::WindowGeneric::Handle hWindow;
 		switch(platform) {
 		case pragma::platform::Platform::X11:
-		{
-			type = Anvil::WindowGeneric::Type::Xcb;
-			hWindow.xcbWindow = glfwGetX11Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
-			auto *x11Display = glfwGetX11Display();
-			display = x11Display;
-			connection = XGetXCBConnection(x11Display);
-			break;
-		}
+			{
+				type = Anvil::WindowGeneric::Type::Xcb;
+				hWindow.xcbWindow = glfwGetX11Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
+				auto *x11Display = glfwGetX11Display();
+				display = x11Display;
+				connection = XGetXCBConnection(x11Display);
+				break;
+			}
 		case pragma::platform::Platform::Wayland:
 			type = Anvil::WindowGeneric::Type::Wayland;
 			hWindow.waylandWindow = glfwGetWaylandWindow(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
