@@ -727,6 +727,9 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	// Raytracing
 	devExtConfig.extension_status["VK_KHR_acceleration_structure"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["VK_KHR_ray_tracing_pipeline"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
+	devExtConfig.extension_status["VK_KHR_spirv_1_4"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE; // Required by VK_KHR_ray_tracing_pipeline
+	devExtConfig.extension_status["VK_KHR_buffer_device_address"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE; // Required by VK_KHR_acceleration_structure
+	devExtConfig.extension_status["VK_KHR_deferred_host_operations"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE; // Required by VK_KHR_acceleration_structure
 	devExtConfig.extension_status["VK_KHR_ray_query"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["SPV_KHR_ray_tracing"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["SPV_KHR_ray_query"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
