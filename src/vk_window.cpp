@@ -254,6 +254,10 @@ void prosper::VlkWindow::InitWindow()
 			throw std::runtime_error {"Platform mismatch"};
 		}
 #endif
+
+		int fbWidth, fbHeight;
+		glfwGetFramebufferSize(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), &fbWidth, &fbHeight);
+
 		const char *errDesc;
 		auto err = glfwGetError(&errDesc);
 		if(err != GLFW_NO_ERROR) {
@@ -270,7 +274,7 @@ void prosper::VlkWindow::InitWindow()
 
 		if(context.ShouldLog(::util::LogSeverity::Debug))
 			context.Log("Creating Anvil window...", ::util::LogSeverity::Debug);
-		m_windowPtr = Anvil::WindowGeneric::create(type, hWindow, display, connection, m_settings.width, m_settings.height, m_glfwWindow->IsVisible());
+		m_windowPtr = Anvil::WindowGeneric::create(type, hWindow, display, connection, m_settings.width, m_settings.height, m_glfwWindow->IsVisible(), fbWidth, fbHeight);
 
 		if(context.ShouldLog(::util::LogSeverity::Debug))
 			context.Log("Creating GLFW window surface...", ::util::LogSeverity::Debug);
