@@ -226,14 +226,13 @@ void prosper::VlkWindow::InitWindow()
 		Anvil::WindowGeneric::Type type;
 		Anvil::WindowGeneric::Connection connection = nullptr;
 		Anvil::WindowGeneric::Display display = nullptr;
+		Anvil::WindowGeneric::Handle hWindow;
 #ifdef _WIN32
 		if(platform != pragma::platform::Platform::Win32)
 			throw std::runtime_error {"Platform mismatch"};
-		Anvil::WindowGeneric::Handle hWindow;
 		hWindow.win32Window = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
 		type = Anvil::WindowGeneric::Type::Win32;
 #else
-		Anvil::WindowGeneric::Handle hWindow;
 		switch(platform) {
 		case pragma::platform::Platform::X11:
 			{
