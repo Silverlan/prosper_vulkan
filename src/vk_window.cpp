@@ -378,6 +378,16 @@ void prosper::VlkWindow::DoInitSwapchain()
 		return;
 	if(context.ShouldLog(::util::LogSeverity::Debug))
 		context.Log("Updating surface extents...", ::util::LogSeverity::Debug);
+	if(m_windowPtr != nullptr) {
+		auto *genericWindow = static_cast<Anvil::WindowGeneric*>(m_windowPtr.get());
+		if(genericWindow->get_type() == Anvil::WindowGeneric::Type::Wayland) {
+			// For wayland we have to update the size ourself
+			auto actualWindowSize = m_glfwWindow->GetSize();
+			m_settings.width = actualWindowSize.x;
+			m_settings.height = actualWindowSize.y;
+			genericWindow->set_framebuffer_size(m_settings.width, m_settings.height);
+		}
+	}
 	m_renderingSurfacePtr->update_surface_extents();
 	if(m_renderingSurfacePtr->get_width() == 0 || m_renderingSurfacePtr->get_height() == 0)
 		return; // Minimized?
