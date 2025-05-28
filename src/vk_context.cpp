@@ -432,6 +432,34 @@ void VlkContext::BakeShaderPipeline(PipelineID pipelineId, prosper::PipelineBind
 		dev.get_compute_pipeline_manager()->get_pipeline(anvPipelineId);
 }
 
+static prosper::FormatFeatureFlags to_prosper_format_features(Anvil::FormatFeatureFlagBits features)
+{
+	switch(features) {
+	case Anvil::FormatFeatureFlagBits::BLIT_DST_BIT:
+		return prosper::FormatFeatureFlags::BlitDstBit;
+	case Anvil::FormatFeatureFlagBits::BLIT_SRC_BIT:
+		return prosper::FormatFeatureFlags::BlitSrcBit;
+	case Anvil::FormatFeatureFlagBits::COLOR_ATTACHMENT_BIT:
+		return prosper::FormatFeatureFlags::ColorAttachmentBit;
+	case Anvil::FormatFeatureFlagBits::DEPTH_STENCIL_ATTACHMENT_BIT:
+		return prosper::FormatFeatureFlags::DepthStencilAttachmentBit;
+	case Anvil::FormatFeatureFlagBits::SAMPLED_IMAGE_BIT:
+		return prosper::FormatFeatureFlags::SampledImageBit;
+	case Anvil::FormatFeatureFlagBits::STORAGE_TEXEL_BUFFER_BIT:
+		return prosper::FormatFeatureFlags::StorageTexelBufferBit;
+	case Anvil::FormatFeatureFlagBits::UNIFORM_TEXEL_BUFFER_BIT:
+		return prosper::FormatFeatureFlags::UniformTexelBufferBit;
+	case Anvil::FormatFeatureFlagBits::VERTEX_BUFFER_BIT:
+		return prosper::FormatFeatureFlags::VertexBufferBit;
+	default:
+		break;
+	}
+
+	static_assert(umath::to_integral(prosper::FormatFeatureFlags::Last) == 256, "Update these when new enum values are added!");
+	// Unreachable
+	return static_cast<prosper::FormatFeatureFlags>(0);
+}
+
 prosper::FeatureSupport VlkContext::AreFormatFeaturesSupported(Format format, FormatFeatureFlags featureFlags, std::optional<ImageTiling> tiling) const
 {
 	std::scoped_lock lock {m_formatPropertiesMutex};
@@ -449,7 +477,7 @@ prosper::FeatureSupport VlkContext::AreFormatFeaturesSupported(Format format, Fo
 	  Anvil::FormatFeatureFlagBits::SAMPLED_IMAGE_BIT, Anvil::FormatFeatureFlagBits::STORAGE_TEXEL_BUFFER_BIT, Anvil::FormatFeatureFlagBits::UNIFORM_TEXEL_BUFFER_BIT, Anvil::FormatFeatureFlagBits::VERTEX_BUFFER_BIT};
 	Anvil::FormatFeatureFlags anvFeatures;
 	for(auto i = decltype(toAnvFlag.size()) {0u}; i < toAnvFlag.size(); ++i) {
-		if(!umath::is_flag_set(featureFlags, static_cast<FormatFeatureFlags>(toAnvFlag[i])))
+		if(!umath::is_flag_set(featureFlags, to_prosper_format_features(toAnvFlag[i])))
 			continue;
 		anvFeatures |= toAnvFlag[i];
 	}
@@ -727,8 +755,8 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	// Raytracing
 	devExtConfig.extension_status["VK_KHR_acceleration_structure"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["VK_KHR_ray_tracing_pipeline"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
-	devExtConfig.extension_status["VK_KHR_spirv_1_4"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE; // Required by VK_KHR_ray_tracing_pipeline
-	devExtConfig.extension_status["VK_KHR_buffer_device_address"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE; // Required by VK_KHR_acceleration_structure
+	devExtConfig.extension_status["VK_KHR_spirv_1_4"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;                // Required by VK_KHR_ray_tracing_pipeline
+	devExtConfig.extension_status["VK_KHR_buffer_device_address"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;    // Required by VK_KHR_acceleration_structure
 	devExtConfig.extension_status["VK_KHR_deferred_host_operations"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE; // Required by VK_KHR_acceleration_structure
 	devExtConfig.extension_status["VK_KHR_ray_query"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
 	devExtConfig.extension_status["SPV_KHR_ray_tracing"] = Anvil::ExtensionAvailability::ENABLE_IF_AVAILABLE;
