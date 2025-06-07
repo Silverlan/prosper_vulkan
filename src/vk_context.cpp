@@ -63,6 +63,7 @@
 #include <sharedutils/util.h>
 #include <sharedutils/util_path.hpp>
 #include <sharedutils/magic_enum.hpp>
+#include <fsys/filesystem.h>
 
 #include <string>
 #include <cmath>
@@ -612,12 +613,18 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	for(auto &layerSetting : createInfo.layerSettings)
 		layerSettings.push_back(Anvil::LayerSetting {layerSetting.layerName.c_str(), layerSetting.settingName.c_str(), static_cast<Anvil::LayerSettingType>(layerSetting.type), layerSetting.valueCount, layerSetting.values.get()});
 
-	auto path = ::util::DirPath(::util::get_program_path(), "modules/graphics/vulkan/layers/");
 	auto addLayerPath = ::util::get_env_variable("VK_ADD_LAYER_PATH");
 	std::string newAddLayerPath;
 	if(addLayerPath)
-		newAddLayerPath = *addLayerPath + ";";
-	newAddLayerPath += path.GetString();
+		newAddLayerPath = *addLayerPath;
+	for(auto &path : filemanager::get_absolute_root_paths()) {
+		auto absPath = ::util::DirPath(path, "modules/graphics/vulkan/layers/");
+		if(!filemanager::exists_system(absPath.GetString()))
+			continue;
+		if(!newAddLayerPath.empty())
+			newAddLayerPath += ";";
+		newAddLayerPath += absPath.GetString();
+	}
 	::util::set_env_variable("VK_ADD_LAYER_PATH", newAddLayerPath);
 
 	/* Create a Vulkan instance */
