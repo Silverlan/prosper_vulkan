@@ -20,16 +20,16 @@ pr_add_compile_definitions(
 		-DSHPROSPER_VULKAN_DLL
 )
 
+find_package(vulkan REQUIRED)
+
 # Vulkan
 set(SPIRV_SKIP_EXECUTABLES ON CACHE BOOL "" FORCE)
 set(SPIRV_SKIP_TESTS ON CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
-if("${DEPENDENCY_SPIRV_TOOLS_DIR}" STREQUAL "")
-        add_subdirectory("${VULKAN_SDK}/spirv-tools" "third_party_libs/vulkan/spirv-tools")
-else()
-        add_subdirectory("${DEPENDENCY_SPIRV_TOOLS_DIR}" "third_party_libs/vulkan/spirv-tools")
-endif()
+set(SPIRV-Headers_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party_libs/SPIRV-Headers")
+add_subdirectory("third_party_libs/SPIRV-Tools")
+
 pr_set_target_folder(spirv-tools-pkg-config modules/rendering/vulkan)
 pr_set_target_folder(spirv-tools-shared-pkg-config modules/rendering/vulkan)
 
