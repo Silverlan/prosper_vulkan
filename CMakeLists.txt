@@ -41,8 +41,6 @@ pr_add_dependency(${PROJ_NAME} OGLCompiler TARGET)
 pr_add_dependency(${PROJ_NAME} SPVRemapper TARGET)
 pr_add_dependency(${PROJ_NAME} glslang TARGET)
 
-find_library(VULKAN_LIBRARY NAMES vulkan-1 vulkan PATHS "$ENV{VK_SDK_PATH}/Lib" "$ENV{VK_SDK_PATH}/Bin" "$ENV{VULKAN_SDK}/Lib" "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/lib")
-
 # Anvil
 set(ANVIL_LINK_STATICALLY_WITH_VULKAN_LIB ON CACHE BOOL "" FORCE)
 set(ANVIL_USE_BUILT_IN_VULKAN_HEADERS OFF CACHE BOOL "" FORCE)
