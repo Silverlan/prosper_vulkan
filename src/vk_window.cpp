@@ -221,6 +221,7 @@ void prosper::VlkWindow::InitWindow()
 			context.Log("Creating GLFW window...", ::util::LogSeverity::Debug);
 		m_glfwWindow = pragma::platform::Window::Create(settings); // TODO: Release
 
+		glfwGetError(nullptr); // Clear error
 		auto platform = pragma::platform::get_platform();
 		Anvil::WindowGeneric::Type type;
 		Anvil::WindowGeneric::Connection connection = nullptr;
