@@ -295,9 +295,9 @@ void prosper::VlkWindow::InitWindow()
 void prosper::VlkWindow::InitFrameBuffers()
 {
 	auto &context = static_cast<VlkContext &>(GetContext());
-	bool result;
 	auto n = GetSwapchainImageCount();
-	auto size = m_glfwWindow->GetSize();
+	auto w = m_swapchainPtr->get_width();
+	auto h = m_swapchainPtr->get_height();
 	for(uint32_t n_swapchain_image = 0; n_swapchain_image < n; ++n_swapchain_image) {
 		auto *anvImgView = m_swapchainPtr->get_image_view(n_swapchain_image);
 		prosper::util::ImageViewCreateInfo imgViewCreateInfo {};
@@ -306,7 +306,7 @@ void prosper::VlkWindow::InitFrameBuffers()
 		imgViewCreateInfo.format = static_cast<prosper::Format>(anvImgView->get_create_info_ptr()->get_format());
 		auto imgView = VlkImageView::Create(context, *m_swapchainImages[n_swapchain_image], imgViewCreateInfo, prosper::ImageViewType::e2D, prosper::ImageAspectFlags::ColorBit, Anvil::ImageViewUniquePtr {anvImgView, [](Anvil::ImageView *imgView) {}} /* deletion handled by Anvil */
 		);
-		auto framebuffer = context.CreateFramebuffer(size.x, size.y, 1u, {imgView.get()});
+		auto framebuffer = context.CreateFramebuffer(w, h, 1u, {imgView.get()});
 		framebuffer->SetDebugName("Swapchain framebuffer " + std::to_string(n_swapchain_image));
 		m_swapchainFramebuffers[n_swapchain_image] = framebuffer;
 	}
