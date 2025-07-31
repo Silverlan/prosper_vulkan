@@ -81,7 +81,8 @@ prosper::VlkWindow::~VlkWindow()
 	m_cmdFences.clear();
 	m_swapchainPtr = nullptr;
 
-	vkDestroySurfaceKHR(static_cast<VlkContext &>(GetContext()).GetAnvilInstance().get_instance_vk(), m_surface, nullptr);
+	if (m_surface)
+		vkDestroySurfaceKHR(static_cast<VlkContext &>(GetContext()).GetAnvilInstance().get_instance_vk(), m_surface, nullptr);
 	m_windowPtr = nullptr;
 	m_renderingSurfacePtr = nullptr;
 }
@@ -277,7 +278,19 @@ void prosper::VlkWindow::InitWindow()
 
 		if(context.ShouldLog(::util::LogSeverity::Debug))
 			context.Log("Creating GLFW window surface...", ::util::LogSeverity::Debug);
-		err = glfwCreateWindowSurface(context.GetAnvilInstance().get_instance_vk(), const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), nullptr, reinterpret_cast<VkSurfaceKHR *>(&m_surface));
+		if (!context.IsWindowless())
+			err = glfwCreateWindowSurface(context.GetAnvilInstance().get_instance_vk(), const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), nullptr, reinterpret_cast<VkSurfaceKHR *>(&m_surface));
+		else {
+			// We should create a headless surface, unfortunately that causes a crash when swiftshader
+			// is used on linux, so we'll just skip over the surface creation. (This should not cause issues.)
+			/*
+			VkHeadlessSurfaceCreateInfoEXT createInfo {};
+			createInfo.sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT;
+			createInfo.pNext = nullptr;
+			createInfo.flags = 0;
+			err = vkCreateHeadlessSurfaceEXT(context.GetAnvilInstance().get_instance_vk(), &createInfo, nullptr, &m_surface);
+			*/
+		}
 		if(err != GLFW_NO_ERROR) {
 			glfwGetError(&errDesc);
 			GetContext().Log("Error creating GLFW window surface: " + std::string {errDesc}, ::util::LogSeverity::Critical);
