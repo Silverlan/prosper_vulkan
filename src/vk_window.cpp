@@ -224,6 +224,8 @@ void prosper::VlkWindow::InitWindow()
 	Anvil::WindowGeneric::Display display = nullptr;
 	Anvil::WindowGeneric::Handle hWindow;
 #ifdef _WIN32
+	if (platform == pragma::platform::Platform::Windowless)
+		platform = pragma::platform::Platform::Win32; // We can just treat it as a Win32 window
 	if(platform != pragma::platform::Platform::Win32)
 		throw std::runtime_error {"Platform mismatch"};
 	hWindow.win32Window = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
