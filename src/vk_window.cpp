@@ -37,6 +37,7 @@
 
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
+#include <sharedutils/magic_enum.hpp>
 
 #ifdef __linux__
 #define ENABLE_GLFW_ANVIL_COMPATIBILITY
@@ -203,105 +204,98 @@ void prosper::VlkWindow::Present(Anvil::Semaphore *optWaitSemaphore)
 void prosper::VlkWindow::InitWindow()
 {
 	auto &context = static_cast<VlkContext &>(GetContext());
-#ifdef _WIN32
-	const Anvil::WindowPlatform platform = Anvil::WINDOW_PLATFORM_SYSTEM;
-#else
-	const Anvil::WindowPlatform platform = Anvil::WINDOW_PLATFORM_XCB;
-#endif
+
 	/* Create a window */
 	//m_windowPtr = Anvil::WindowFactory::create_window(platform,appName,width,height,true,std::bind(&Context::DrawFrame,this));
 
-	// TODO: Clean this up
-	try {
-		m_glfwWindow = nullptr;
-		pragma::platform::poll_events();
-		auto settings = m_settings;
-		if(!settings.windowedMode && (settings.monitor.has_value() == false || settings.monitor->GetGLFWMonitor() == nullptr))
-			settings.monitor = pragma::platform::get_primary_monitor();
-		if(context.ShouldLog(::util::LogSeverity::Debug))
-			context.Log("Creating GLFW window...", ::util::LogSeverity::Debug);
-		m_glfwWindow = pragma::platform::Window::Create(settings); // TODO: Release
+	m_glfwWindow = nullptr;
+	pragma::platform::poll_events();
+	auto settings = m_settings;
+	if(!settings.windowedMode && (settings.monitor.has_value() == false || settings.monitor->GetGLFWMonitor() == nullptr))
+		settings.monitor = pragma::platform::get_primary_monitor();
+	if(context.ShouldLog(::util::LogSeverity::Debug))
+		context.Log("Creating GLFW window...", ::util::LogSeverity::Debug);
+	m_glfwWindow = pragma::platform::Window::Create(settings); // TODO: Release
 
-		glfwGetError(nullptr); // Clear error
-		auto platform = pragma::platform::get_platform();
-		Anvil::WindowGeneric::Type type;
-		Anvil::WindowGeneric::Connection connection = nullptr;
-		Anvil::WindowGeneric::Display display = nullptr;
-		Anvil::WindowGeneric::Handle hWindow;
+	glfwGetError(nullptr); // Clear error
+	auto platform = pragma::platform::get_platform();
+	Anvil::WindowGeneric::Type type;
+	Anvil::WindowGeneric::Connection connection = nullptr;
+	Anvil::WindowGeneric::Display display = nullptr;
+	Anvil::WindowGeneric::Handle hWindow;
 #ifdef _WIN32
-		if(platform != pragma::platform::Platform::Win32)
-			throw std::runtime_error {"Platform mismatch"};
-		hWindow.win32Window = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
-		type = Anvil::WindowGeneric::Type::Win32;
+	if(platform != pragma::platform::Platform::Win32)
+		throw std::runtime_error {"Platform mismatch"};
+	hWindow.win32Window = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
+	type = Anvil::WindowGeneric::Type::Win32;
 #else
-		switch(platform) {
-		case pragma::platform::Platform::X11:
-			{
-				type = Anvil::WindowGeneric::Type::Xcb;
-				hWindow.xcbWindow = glfwGetX11Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
-				auto *x11Display = glfwGetX11Display();
-				display = x11Display;
-				connection = XGetXCBConnection(x11Display);
-				break;
-			}
-		case pragma::platform::Platform::Wayland:
-			type = Anvil::WindowGeneric::Type::Wayland;
-			hWindow.waylandWindow = glfwGetWaylandWindow(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
-			display = glfwGetWaylandDisplay();
-			connection = display;
+	switch(platform) {
+	case pragma::platform::Platform::X11:
+		{
+			type = Anvil::WindowGeneric::Type::Xcb;
+			hWindow.xcbWindow = glfwGetX11Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
+			auto *x11Display = glfwGetX11Display();
+			display = x11Display;
+			connection = XGetXCBConnection(x11Display);
 			break;
-		default:
-			throw std::runtime_error {"Platform mismatch"};
 		}
+	case pragma::platform::Platform::Wayland:
+		type = Anvil::WindowGeneric::Type::Wayland;
+		hWindow.waylandWindow = glfwGetWaylandWindow(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
+		display = glfwGetWaylandDisplay();
+		connection = display;
+		break;
+	case pragma::platform::Platform::Windowless:
+		type = Anvil::WindowGeneric::Type::Windowless;
+		break;
+	default:
+		throw std::runtime_error {"Unsupported platform " +std::string{magic_enum::enum_name(platform)}};
+	}
 #endif
 
-		int fbWidth, fbHeight;
-		glfwGetFramebufferSize(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), &fbWidth, &fbHeight);
+	int fbWidth, fbHeight;
+	glfwGetFramebufferSize(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), &fbWidth, &fbHeight);
 
-		const char *errDesc;
-		auto err = glfwGetError(&errDesc);
-		if(err != GLFW_NO_ERROR) {
-			GetContext().Log("Error retrieving GLFW window handle: " + std::string {errDesc}, ::util::LogSeverity::Critical);
-			std::this_thread::sleep_for(std::chrono::seconds(5));
-			exit(EXIT_FAILURE);
-		}
-
-		// GLFW does not guarantee to actually use the size which was specified,
-		// in some cases it may change, so we have to retrieve it again here
-		auto actualWindowSize = m_glfwWindow->GetSize();
-		m_settings.width = actualWindowSize.x;
-		m_settings.height = actualWindowSize.y;
-
-		if(context.ShouldLog(::util::LogSeverity::Debug))
-			context.Log("Creating Anvil window...", ::util::LogSeverity::Debug);
-		m_windowPtr = Anvil::WindowGeneric::create(type, hWindow, display, connection, m_settings.width, m_settings.height, m_glfwWindow->IsVisible(), fbWidth, fbHeight);
-
-		if(context.ShouldLog(::util::LogSeverity::Debug))
-			context.Log("Creating GLFW window surface...", ::util::LogSeverity::Debug);
-		if (!context.IsWindowless())
-			err = glfwCreateWindowSurface(context.GetAnvilInstance().get_instance_vk(), const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), nullptr, reinterpret_cast<VkSurfaceKHR *>(&m_surface));
-		else {
-			// We should create a headless surface, unfortunately that causes a crash when swiftshader
-			// is used on linux, so we'll just skip over the surface creation. (This should not cause issues.)
-			/*
-			VkHeadlessSurfaceCreateInfoEXT createInfo {};
-			createInfo.sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT;
-			createInfo.pNext = nullptr;
-			createInfo.flags = 0;
-			err = vkCreateHeadlessSurfaceEXT(context.GetAnvilInstance().get_instance_vk(), &createInfo, nullptr, &m_surface);
-			*/
-		}
-		if(err != GLFW_NO_ERROR) {
-			glfwGetError(&errDesc);
-			GetContext().Log("Error creating GLFW window surface: " + std::string {errDesc}, ::util::LogSeverity::Critical);
-			std::this_thread::sleep_for(std::chrono::seconds(5));
-			exit(EXIT_FAILURE);
-		}
-
-		m_glfwWindow->SetResizeCallback([this](pragma::platform::Window &window, Vector2i size) { GetContext().Log("Resizing..."); });
+	const char *errDesc;
+	auto err = glfwGetError(&errDesc);
+	if(err != GLFW_NO_ERROR) {
+		GetContext().Log("Error retrieving GLFW window handle: " + std::string {errDesc}, ::util::LogSeverity::Critical);
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+		exit(EXIT_FAILURE);
 	}
-	catch(const std::exception &e) {
+
+	// GLFW does not guarantee to actually use the size which was specified,
+	// in some cases it may change, so we have to retrieve it again here
+	auto actualWindowSize = m_glfwWindow->GetSize();
+	m_settings.width = actualWindowSize.x;
+	m_settings.height = actualWindowSize.y;
+
+	if(context.ShouldLog(::util::LogSeverity::Debug))
+		context.Log("Creating Anvil window...", ::util::LogSeverity::Debug);
+	m_windowPtr = Anvil::WindowGeneric::create(type, hWindow, display, connection, m_settings.width, m_settings.height, m_glfwWindow->IsVisible(), fbWidth, fbHeight);
+
+	if(context.ShouldLog(::util::LogSeverity::Debug))
+		context.Log("Creating GLFW window surface...", ::util::LogSeverity::Debug);
+	if (!context.IsWindowless())
+		err = glfwCreateWindowSurface(context.GetAnvilInstance().get_instance_vk(), const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), nullptr, reinterpret_cast<VkSurfaceKHR *>(&m_surface));
+	else {
+		// We should create a headless surface, unfortunately that causes a crash when swiftshader
+		// is used on linux, so we'll just skip over the surface creation. (This should not cause issues.)
+		/*
+		VkHeadlessSurfaceCreateInfoEXT createInfo {};
+		createInfo.sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT;
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+		err = vkCreateHeadlessSurfaceEXT(context.GetAnvilInstance().get_instance_vk(), &createInfo, nullptr, &m_surface);
+		*/
 	}
+	if(err != GLFW_NO_ERROR) {
+		glfwGetError(&errDesc);
+		GetContext().Log("Error creating GLFW window surface: " + std::string {errDesc}, ::util::LogSeverity::Critical);
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+		exit(EXIT_FAILURE);
+	}
+
 	OnWindowInitialized();
 }
 
