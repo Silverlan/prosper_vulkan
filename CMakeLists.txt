@@ -8,7 +8,6 @@ pr_add_library(${PROJ_NAME} SHARED)
 pr_add_dependency(${PROJ_NAME} prosper TARGET PUBLIC)
 
 pr_init_module(${PROJ_NAME})
-pr_add_headers(${PROJ_NAME} "include/")
 
 if(UNIX) # Required to create XCB Anvil compatibility
 	target_link_libraries(${PROJ_NAME} PRIVATE xcb X11-xcb)
