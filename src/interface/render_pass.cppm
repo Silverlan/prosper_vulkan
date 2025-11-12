@@ -3,7 +3,6 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/render_pass.h>
 
 export module pragma.prosper.vulkan:render_pass;
@@ -11,7 +10,7 @@ export module pragma.prosper.vulkan:render_pass;
 export import :debug.object;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkRenderPass : public IRenderPass, public VlkDebugObject {
+	class PR_EXPORT VlkRenderPass : public IRenderPass, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkRenderPass> Create(IPrContext &context, const util::RenderPassCreateInfo &createInfo, std::unique_ptr<Anvil::RenderPass, std::function<void(Anvil::RenderPass *)>> rp, const std::function<void(IRenderPass &)> &onDestroyedCallback = nullptr);
 		virtual ~VlkRenderPass() override;

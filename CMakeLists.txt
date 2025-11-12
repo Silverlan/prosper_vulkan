@@ -14,10 +14,7 @@ if(UNIX) # Required to create XCB Anvil compatibility
         target_compile_options(${PROJ_NAME} PRIVATE -Wno-comment)
 endif()
 
-pr_add_compile_definitions(
-	${PROJ_NAME}
-		-DSHPROSPER_VULKAN_DLL
-)
+pr_add_compile_definitions(${PROJ_NAME} -DENABLE_ANVIL_THREAD_SAFETY)
 
 find_package(vulkan REQUIRED)
 

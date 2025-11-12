@@ -3,9 +3,9 @@
 
 module;
 
+#include "vulkan_api.hpp"
 #include <wrappers/image.h>
 #include <wrappers/memory_block.h>
-#include <vulkan/vulkan.hpp>
 
 module pragma.prosper.vulkan;
 

@@ -3,16 +3,14 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/image.h>
-#include <optional>
 
 export module pragma.prosper.vulkan:image.image;
 
 export import :debug.object;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkImage : public IImage, public VlkDebugObject {
+	class PR_EXPORT VlkImage : public IImage, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkImage> Create(IPrContext &context, std::unique_ptr<Anvil::Image, std::function<void(Anvil::Image *)>> img, const util::ImageCreateInfo &createInfo, bool isSwapchainImage, const std::function<void(VlkImage &)> &onDestroyedCallback = nullptr);
 		virtual ~VlkImage() override;

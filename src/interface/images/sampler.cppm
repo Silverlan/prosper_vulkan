@@ -3,7 +3,6 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/sampler.h>
 
 export module pragma.prosper.vulkan:image.sampler;
@@ -11,7 +10,7 @@ export module pragma.prosper.vulkan:image.sampler;
 export import :debug.object;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkSampler : public ISampler, public VlkDebugObject {
+	class PR_EXPORT VlkSampler : public ISampler, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkSampler> Create(IPrContext &context, const util::SamplerCreateInfo &createInfo);
 		virtual ~VlkSampler() override;

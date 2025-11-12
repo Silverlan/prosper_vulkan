@@ -3,7 +3,6 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/event.h>
 
 export module pragma.prosper.vulkan:event;
@@ -11,7 +10,7 @@ export module pragma.prosper.vulkan:event;
 export import pragma.prosper;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkEvent : public IEvent {
+	class PR_EXPORT VlkEvent : public IEvent {
 	  public:
 		static std::shared_ptr<VlkEvent> Create(IPrContext &context, const std::function<void(IEvent &)> &onDestroyedCallback = nullptr);
 		virtual ~VlkEvent() override;

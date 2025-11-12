@@ -3,19 +3,16 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan.hpp>
+#include "vulkan_api.hpp"
 #include <wrappers/command_buffer.h>
 #include <misc/types_enums.h>
-#include <optional>
 
 export module pragma.prosper.vulkan:command_buffer;
 
 export import pragma.prosper;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkCommandBuffer : virtual public ICommandBuffer {
+	class PR_EXPORT VlkCommandBuffer : virtual public ICommandBuffer {
 	  public:
 		virtual ~VlkCommandBuffer() override;
 		Anvil::CommandBufferBase &GetAnvilCommandBuffer() const;
@@ -91,7 +88,7 @@ export namespace prosper {
 		VkCommandBuffer m_vkCommandBuffer = nullptr;
 	};
 
-	class DLLPROSPER_VK VlkCommandPool : public prosper::ICommandBufferPool {
+	class PR_EXPORT VlkCommandPool : public prosper::ICommandBufferPool {
 	  public:
 		static std::shared_ptr<VlkCommandPool> Create(prosper::IPrContext &context, prosper::QueueFamilyType queueFamilyType, Anvil::CommandPoolUniquePtr cmdPool);
 		std::shared_ptr<IPrimaryCommandBuffer> AllocatePrimaryCommandBuffer() const;
@@ -104,7 +101,7 @@ export namespace prosper {
 	///////////////////
 
 	class VlkContext;
-	class DLLPROSPER_VK VlkPrimaryCommandBuffer : public VlkCommandBuffer, public IPrimaryCommandBuffer {
+	class PR_EXPORT VlkPrimaryCommandBuffer : public VlkCommandBuffer, public IPrimaryCommandBuffer {
 	  public:
 		static std::shared_ptr<VlkPrimaryCommandBuffer> Create(IPrContext &context, std::unique_ptr<Anvil::PrimaryCommandBuffer, std::function<void(Anvil::PrimaryCommandBuffer *)>> cmdBuffer, prosper::QueueFamilyType queueFamilyType,
 		  const std::function<void(VlkCommandBuffer &)> &onDestroyedCallback = nullptr);
@@ -130,7 +127,7 @@ export namespace prosper {
 
 	///////////////////
 
-	class DLLPROSPER_VK VlkSecondaryCommandBuffer : public VlkCommandBuffer, public ISecondaryCommandBuffer {
+	class PR_EXPORT VlkSecondaryCommandBuffer : public VlkCommandBuffer, public ISecondaryCommandBuffer {
 	  public:
 		static std::shared_ptr<VlkSecondaryCommandBuffer> Create(IPrContext &context, std::unique_ptr<Anvil::SecondaryCommandBuffer, std::function<void(Anvil::SecondaryCommandBuffer *)>> cmdBuffer, prosper::QueueFamilyType queueFamilyType,
 		  const std::function<void(VlkCommandBuffer &)> &onDestroyedCallback = nullptr);

@@ -1,11 +1,6 @@
 // SPDX-FileCopyrightText: (c) 2024 Silverlan <opensource@pragma-engine.com>
 // SPDX-License-Identifier: MIT
 
-module;
-
-#include "prosper_vulkan_definitions.hpp"
-#include <limits>
-
 export module pragma.prosper.vulkan:debug.object;
 
 export import pragma.prosper;
@@ -13,7 +8,7 @@ export import pragma.prosper;
 import :debug.lookup_map;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkDebugObject {
+	class PR_EXPORT VlkDebugObject {
 	  public:
 		VlkDebugObject() = default;
 		size_t GetDebugIndex() const { return m_debugIndex; }

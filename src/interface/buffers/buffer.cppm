@@ -3,11 +3,7 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/buffer.h>
-#include <memory>
-#include <cinttypes>
-#include <functional>
 
 export module pragma.prosper.vulkan:buffer.buffer;
 
@@ -16,7 +12,7 @@ export import :debug.object;
 export namespace prosper {
 	class VkDynamicResizableBuffer;
 	class VkUniformResizableBuffer;
-	class DLLPROSPER_VK VlkBuffer : virtual public IBuffer, public VlkDebugObject {
+	class PR_EXPORT VlkBuffer : virtual public IBuffer, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkBuffer> Create(IPrContext &context, Anvil::BufferUniquePtr buf, const util::BufferCreateInfo &bufCreateInfo, DeviceSize startOffset, DeviceSize size, const std::function<void(IBuffer &)> &onDestroyedCallback = nullptr);
 

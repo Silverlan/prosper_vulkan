@@ -3,7 +3,6 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/image_view.h>
 
 export module pragma.prosper.vulkan:image.view;
@@ -11,7 +10,7 @@ export module pragma.prosper.vulkan:image.view;
 export import :debug.object;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkImageView : public IImageView, public VlkDebugObject {
+	class PR_EXPORT VlkImageView : public IImageView, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkImageView> Create(IPrContext &context, IImage &img, const util::ImageViewCreateInfo &createInfo, ImageViewType type, ImageAspectFlags aspectFlags, std::unique_ptr<Anvil::ImageView, std::function<void(Anvil::ImageView *)>> imgView,
 		  const std::function<void(IImageView &)> &onDestroyedCallback = nullptr);

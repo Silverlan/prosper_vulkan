@@ -3,8 +3,8 @@
 
 module;
 
+#include "vulkan_api.hpp"
 #include <wrappers/device.h>
-#include <vulkan/vulkan.hpp>
 
 module pragma.prosper.vulkan;
 

@@ -3,11 +3,7 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/memory_block.h>
-#include <vector>
-#include <memory>
-#include <mutex>
 
 export module pragma.prosper.vulkan:memory_tracker;
 
@@ -18,9 +14,9 @@ export import pragma.prosper;
 #pragma warning(push)
 #pragma warning(disable : 4251)
 export namespace prosper {
-	class DLLPROSPER_VK MemoryTracker {
+	class PR_EXPORT MemoryTracker {
 	  public:
-		struct DLLPROSPER_VK Resource {
+		struct PR_EXPORT Resource {
 			enum class TypeFlags : uint8_t {
 				None = 0u,
 				ImageBit = 1u,

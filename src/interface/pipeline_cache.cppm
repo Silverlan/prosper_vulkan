@@ -3,10 +3,7 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan.hpp>
-#include <misc/types.h>
+#include "vulkan_api.hpp"
 
 export module pragma.prosper.vulkan:pipeline_cache;
 
@@ -17,7 +14,7 @@ export import pragma.prosper;
 #pragma warning(push)
 #pragma warning(disable : 4251)
 export namespace prosper {
-	class DLLPROSPER_VK PipelineCache : public ContextObject, public std::enable_shared_from_this<PipelineCache> {
+	class PR_EXPORT PipelineCache : public ContextObject, public std::enable_shared_from_this<PipelineCache> {
 	  public:
 		PipelineCache() = delete;
 		PipelineCache(const PipelineCache &) = delete;

@@ -13,9 +13,7 @@ module;
 #include <wrappers/memory_block.h>
 #include <misc/descriptor_set_create_info.h>
 #include <misc/glsl_to_spirv.h>
-#include <sstream>
 #include <cassert>
-#include <iostream>
 
 module pragma.prosper.vulkan;
 

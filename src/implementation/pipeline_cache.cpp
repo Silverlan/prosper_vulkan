@@ -3,6 +3,7 @@
 
 module;
 
+#include "vulkan_api.hpp"
 #include <wrappers/pipeline_cache.h>
 #include <wrappers/device.h>
 

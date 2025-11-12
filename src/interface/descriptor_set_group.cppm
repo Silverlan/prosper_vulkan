@@ -3,16 +3,14 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/descriptor_set_group.h>
-#include <optional>
 
 export module pragma.prosper.vulkan:descriptor_set_group;
 
 export import :debug.object;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkDescriptorSetGroup : public IDescriptorSetGroup {
+	class PR_EXPORT VlkDescriptorSetGroup : public IDescriptorSetGroup {
 	  public:
 		static std::shared_ptr<VlkDescriptorSetGroup> Create(IPrContext &context, const DescriptorSetCreateInfo &createInfo, std::unique_ptr<Anvil::DescriptorSetGroup, std::function<void(Anvil::DescriptorSetGroup *)>> dsg,
 		  const std::function<void(IDescriptorSetGroup &)> &onDestroyedCallback = nullptr);
@@ -28,7 +26,7 @@ export namespace prosper {
 		std::unique_ptr<Anvil::DescriptorSetGroup, std::function<void(Anvil::DescriptorSetGroup *)>> m_descriptorSetGroup = nullptr;
 	};
 
-	class DLLPROSPER_VK VlkDescriptorSet : public IDescriptorSet, public VlkDebugObject {
+	class PR_EXPORT VlkDescriptorSet : public IDescriptorSet, public VlkDebugObject {
 	  public:
 		VlkDescriptorSet(VlkDescriptorSetGroup &dsg, Anvil::DescriptorSet &ds);
 		virtual ~VlkDescriptorSet() override;

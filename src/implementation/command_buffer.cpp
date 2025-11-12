@@ -3,6 +3,7 @@
 
 module;
 
+#include "vulkan_api.hpp"
 #include <wrappers/buffer.h>
 #include <wrappers/memory_block.h>
 #include <wrappers/command_buffer.h>
@@ -10,9 +11,6 @@ module;
 #include <wrappers/command_pool.h>
 #include <misc/render_pass_create_info.h>
 #include <misc/buffer_create_info.h>
-#include <vulkan/vulkan.hpp>
-#include <sstream>
-#include <iostream>
 
 module pragma.prosper.vulkan;
 

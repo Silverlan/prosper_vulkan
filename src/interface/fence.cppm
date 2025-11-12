@@ -3,7 +3,6 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/fence.h>
 
 export module pragma.prosper.vulkan:fence;
@@ -11,7 +10,7 @@ export module pragma.prosper.vulkan:fence;
 export import :debug.object;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkFence : public IFence, public VlkDebugObject {
+	class PR_EXPORT VlkFence : public IFence, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkFence> Create(IPrContext &context, bool createSignalled = false, const std::function<void(IFence &)> &onDestroyedCallback = nullptr);
 		virtual ~VlkFence() override;

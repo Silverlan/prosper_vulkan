@@ -3,9 +3,7 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan.hpp>
+#include "vulkan_api.hpp"
 #include <wrappers/device.h>
 #include <wrappers/physical_device.h>
 

@@ -3,11 +3,7 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan.hpp>
-#include <sstream>
-#include <mutex>
+#include "vulkan_api.hpp"
 
 module pragma.prosper.vulkan;
 
@@ -16,7 +12,7 @@ import :debug.lookup_map;
 #undef max
 #undef GetObject
 
-class DLLPROSPER_VK ObjectLookupHandler {
+class PR_EXPORT ObjectLookupHandler {
   public:
 	struct DebugObjectHistoryInfo {
 		std::string debugName;

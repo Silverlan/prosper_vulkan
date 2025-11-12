@@ -3,8 +3,7 @@
 
 module;
 
-#include <misc/types.h>
-#include <vulkan/vulkan.hpp>
+#include "vulkan_api.hpp"
 #include <wrappers/instance.h>
 #include <wrappers/swapchain.h>
 #include <wrappers/semaphore.h>
@@ -32,7 +31,6 @@ module;
 
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#include <sharedutils/magic_enum.hpp>
 
 #ifdef __linux__
 #define ENABLE_GLFW_ANVIL_COMPATIBILITY

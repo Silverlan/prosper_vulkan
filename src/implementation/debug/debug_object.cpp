@@ -1,11 +1,6 @@
 // SPDX-FileCopyrightText: (c) 2024 Silverlan <opensource@pragma-engine.com>
 // SPDX-License-Identifier: MIT
 
-module;
-
-#include <sharedutils/magic_enum.hpp>
-#include <ios>
-
 module pragma.prosper.vulkan;
 
 import :debug.object;

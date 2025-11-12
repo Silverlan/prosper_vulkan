@@ -3,16 +3,14 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
-#include <vulkan/vulkan.h>
-#include <memory>
+#include "vulkan_api.hpp"
 
 export module pragma.prosper.vulkan:raytracing.acceleration_structure;
 
 export import pragma.prosper;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkAccelerationStructure : public ContextObject, public std::enable_shared_from_this<VlkAccelerationStructure> {
+	class PR_EXPORT VlkAccelerationStructure : public ContextObject, public std::enable_shared_from_this<VlkAccelerationStructure> {
 	  public:
 		static std::shared_ptr<VlkAccelerationStructure> Create(IPrContext &context);
 

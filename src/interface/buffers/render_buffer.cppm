@@ -3,11 +3,7 @@
 
 module;
 
-#include <prosper_vulkan_definitions.hpp>
-#include <memory>
-#include <optional>
-#include <vector>
-#include <vulkan/vulkan.h>
+#include "vulkan_api.hpp"
 
 export module pragma.prosper.vulkan:buffer.render_buffer;
 
@@ -15,7 +11,7 @@ export import pragma.prosper;
 
 export namespace prosper {
 	class VlkContext;
-	class DLLPROSPER_VK VlkRenderBuffer : public prosper::IRenderBuffer {
+	class PR_EXPORT VlkRenderBuffer : public prosper::IRenderBuffer {
 	  public:
 		static std::shared_ptr<VlkRenderBuffer> Create(prosper::VlkContext &context, const prosper::GraphicsPipelineCreateInfo &pipelineCreateInfo, const std::vector<prosper::IBuffer *> &buffers, const std::vector<prosper::DeviceSize> &offsets = {},
 		  const std::optional<IndexBufferInfo> &indexBufferInfo = {});

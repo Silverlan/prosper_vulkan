@@ -3,10 +3,7 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
-#include <vulkan/vulkan.h>
-#include <misc/types.h>
-#include <optional>
+#include "vulkan_api.hpp"
 
 export module pragma.prosper.vulkan:context;
 
@@ -17,7 +14,7 @@ export import pragma.prosper;
 #undef max
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkShaderStageProgram : public prosper::ShaderStageProgram {
+	class PR_EXPORT VlkShaderStageProgram : public prosper::ShaderStageProgram {
 	  public:
 		VlkShaderStageProgram(std::vector<unsigned int> &&spirvBlob);
 		const std::vector<unsigned int> &GetSPIRVBlob() const;
@@ -25,7 +22,7 @@ export namespace prosper {
 		std::vector<unsigned int> m_spirvBlob;
 	};
 
-	class DLLPROSPER_VK VlkShaderPipelineLayout : public IShaderPipelineLayout {
+	class PR_EXPORT VlkShaderPipelineLayout : public IShaderPipelineLayout {
 	  public:
 		static std::unique_ptr<VlkShaderPipelineLayout> Create(const Shader &shader, uint32_t pipelineIdx);
 		VkPipelineLayout GetVkPipelineLayout() const { return m_pipelineLayout; }
@@ -36,14 +33,14 @@ export namespace prosper {
 		VkPipelineBindPoint m_pipelineBindPoint;
 	};
 
-	struct DLLPROSPER_VK VkRaytracingFunctions {
+	struct PR_EXPORT VkRaytracingFunctions {
 		PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR = nullptr;
 		PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR = nullptr;
 		void Initialize(VkDevice dev);
 		bool IsValid() const;
 	};
 
-	class DLLPROSPER_VK VlkContext : public IPrContext {
+	class PR_EXPORT VlkContext : public IPrContext {
 	  public:
 		static std::shared_ptr<VlkContext> Create(const std::string &appName, bool bEnableValidation);
 		static IPrContext &GetContext(Anvil::BaseDevice &dev);

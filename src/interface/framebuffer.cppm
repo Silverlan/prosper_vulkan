@@ -3,7 +3,6 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/framebuffer.h>
 
 export module pragma.prosper.vulkan:framebuffer;
@@ -11,7 +10,7 @@ export module pragma.prosper.vulkan:framebuffer;
 export import :debug.object;
 
 export namespace prosper {
-	class DLLPROSPER_VK VlkFramebuffer : public IFramebuffer, public VlkDebugObject {
+	class PR_EXPORT VlkFramebuffer : public IFramebuffer, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkFramebuffer> Create(IPrContext &context, const std::vector<IImageView *> &attachments, uint32_t width, uint32_t height, uint32_t depth, uint32_t layers, std::unique_ptr<Anvil::Framebuffer, std::function<void(Anvil::Framebuffer *)>> fb,
 		  const std::function<void(IFramebuffer &)> &onDestroyedCallback = nullptr);

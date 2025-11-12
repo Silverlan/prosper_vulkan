@@ -3,9 +3,7 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/query_pool.h>
-#include <queue>
 
 export module pragma.prosper.vulkan:query.pool;
 
@@ -13,7 +11,7 @@ export import pragma.prosper;
 
 export namespace prosper {
 	class VlkContext;
-	class DLLPROSPER_VK VlkQueryPool : public IQueryPool {
+	class PR_EXPORT VlkQueryPool : public IQueryPool {
 	  public:
 		virtual bool RequestQuery(uint32_t &queryId, QueryType type) override;
 		Anvil::QueryPool &GetAnvilQueryPool() const;

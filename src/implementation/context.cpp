@@ -3,7 +3,7 @@
 
 module;
 
-#include <misc/types.h>
+#include "vulkan_api.hpp"
 #include <misc/buffer_create_info.h>
 #include <misc/fence_create_info.h>
 #include <misc/semaphore_create_info.h>
@@ -33,11 +33,6 @@ module;
 #include <wrappers/query_pool.h>
 #include <wrappers/shader_module.h>
 #include <misc/image_view_create_info.h>
-#include <vulkan/vulkan.hpp>
-#include <sharedutils/magic_enum.hpp>
-
-#include <string>
-#include <cmath>
 
 module pragma.prosper.vulkan;
 
@@ -45,8 +40,6 @@ import :context;
 
 import pragma.platform;
 import pragma.filesystem;
-
-#define ENABLE_ANVIL_THREAD_SAFETY true
 
 #undef CreateEvent
 #undef CreateWindow

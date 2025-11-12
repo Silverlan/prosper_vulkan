@@ -7,7 +7,6 @@ module;
 #include <wrappers/memory_block.h>
 #include <misc/buffer_create_info.h>
 #if 0
-#include "vk_context.hpp"
 #include <wrappers/device.h>
 #include <wrappers/instance.h>
 static void interop_text(prosper::VlkContext &context,uint32_t w,uint32_t h)

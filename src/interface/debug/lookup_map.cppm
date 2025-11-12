@@ -3,11 +3,7 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vulkan/vulkan.hpp>
+#include "vulkan_api.hpp"
 
 export module pragma.prosper.vulkan:debug.lookup_map;
 
@@ -43,22 +39,22 @@ export {
 				Shader *shader = nullptr;
 				uint32_t pipelineIdx = std::numeric_limits<uint32_t>::max();
 			};
-			DLLPROSPER_VK void set_debug_mode_enabled(bool b);
-			DLLPROSPER_VK bool is_debug_mode_enabled();
-			DLLPROSPER_VK void register_debug_object(void *vkPtr, prosper::ContextObject &obj, ObjectType type);
-			DLLPROSPER_VK void register_debug_shader_pipeline(void *vkPtr, const ShaderPipelineInfo &pipelineInfo);
-			DLLPROSPER_VK void deregister_debug_object(void *vkPtr);
+			PR_EXPORT void set_debug_mode_enabled(bool b);
+			PR_EXPORT bool is_debug_mode_enabled();
+			PR_EXPORT void register_debug_object(void *vkPtr, prosper::ContextObject &obj, ObjectType type);
+			PR_EXPORT void register_debug_shader_pipeline(void *vkPtr, const ShaderPipelineInfo &pipelineInfo);
+			PR_EXPORT void deregister_debug_object(void *vkPtr);
 
-			DLLPROSPER_VK void *get_object(void *vkObj, ObjectType &type, std::string *optOutBacktrace = nullptr);
-			DLLPROSPER_VK VlkImage *get_image(const vk::Image &vkImage);
-			DLLPROSPER_VK VlkImageView *get_image_view(const vk::ImageView &vkImageView);
-			DLLPROSPER_VK VlkSampler *get_sampler(const vk::Sampler &vkSampler);
-			DLLPROSPER_VK VlkBuffer *get_buffer(const vk::Buffer &vkBuffer);
-			DLLPROSPER_VK VlkCommandBuffer *get_command_buffer(const vk::CommandBuffer &vkBuffer);
-			DLLPROSPER_VK VlkRenderPass *get_render_pass(const vk::RenderPass &vkBuffer);
-			DLLPROSPER_VK VlkFramebuffer *get_framebuffer(const vk::Framebuffer &vkBuffer);
-			DLLPROSPER_VK VlkDescriptorSetGroup *get_descriptor_set_group(const vk::DescriptorSet &vkBuffer);
-			DLLPROSPER_VK ShaderPipelineInfo *get_shader_pipeline(const vk::Pipeline &vkPipeline);
+			PR_EXPORT void *get_object(void *vkObj, ObjectType &type, std::string *optOutBacktrace = nullptr);
+			PR_EXPORT VlkImage *get_image(const vk::Image &vkImage);
+			PR_EXPORT VlkImageView *get_image_view(const vk::ImageView &vkImageView);
+			PR_EXPORT VlkSampler *get_sampler(const vk::Sampler &vkSampler);
+			PR_EXPORT VlkBuffer *get_buffer(const vk::Buffer &vkBuffer);
+			PR_EXPORT VlkCommandBuffer *get_command_buffer(const vk::CommandBuffer &vkBuffer);
+			PR_EXPORT VlkRenderPass *get_render_pass(const vk::RenderPass &vkBuffer);
+			PR_EXPORT VlkFramebuffer *get_framebuffer(const vk::Framebuffer &vkBuffer);
+			PR_EXPORT VlkDescriptorSetGroup *get_descriptor_set_group(const vk::DescriptorSet &vkBuffer);
+			PR_EXPORT ShaderPipelineInfo *get_shader_pipeline(const vk::Pipeline &vkPipeline);
 		};
 	};
 }

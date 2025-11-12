@@ -3,7 +3,6 @@
 
 module;
 
-#include "prosper_vulkan_definitions.hpp"
 #include <wrappers/event.h>
 
 export module pragma.prosper.vulkan:window;
@@ -13,7 +12,7 @@ export import pragma.prosper;
 export namespace prosper {
 	class VlkPrimaryCommandBuffer;
 	class VlkContext;
-	class DLLPROSPER_VK VlkWindow : public Window {
+	class PR_EXPORT VlkWindow : public Window {
 	  public:
 		static std::shared_ptr<VlkWindow> Create(const WindowSettings &windowCreationInfo, prosper::VlkContext &context);
 		virtual ~VlkWindow() override;
