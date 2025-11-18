@@ -13,8 +13,8 @@ import :buffer.uniform_resizable_buffer;
 using namespace prosper;
 
 prosper::VkUniformResizableBuffer::VkUniformResizableBuffer(IPrContext &context, IBuffer &buffer, uint64_t bufferInstanceSize, uint64_t alignedBufferBaseSize, uint64_t maxTotalSize, uint32_t alignment)
-    : IUniformResizableBuffer {context, buffer, bufferInstanceSize, alignedBufferBaseSize, maxTotalSize, alignment}, IBuffer {buffer.GetContext(), buffer.GetCreateInfo(), buffer.GetStartOffset(), buffer.GetSize()}, VlkBuffer {buffer.GetContext(), buffer.GetCreateInfo(),
-                                                                                                                                                                                                                         buffer.GetStartOffset(), buffer.GetSize(), nullptr}
+    : IUniformResizableBuffer {context, buffer, bufferInstanceSize, alignedBufferBaseSize, maxTotalSize, alignment}, IBuffer {buffer.GetContext(), buffer.GetCreateInfo(), buffer.GetStartOffset(), buffer.GetSize()},
+      VlkBuffer {buffer.GetContext(), buffer.GetCreateInfo(), buffer.GetStartOffset(), buffer.GetSize(), nullptr}
 {
 	VlkBuffer::m_buffer = std::move(buffer.GetAPITypeRef<VlkBuffer>().m_buffer);
 	VlkBuffer::m_vkBuffer = VlkBuffer::m_buffer->get_buffer();

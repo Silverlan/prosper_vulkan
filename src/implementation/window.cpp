@@ -81,7 +81,7 @@ prosper::VlkWindow::~VlkWindow()
 	m_cmdFences.clear();
 	m_swapchainPtr = nullptr;
 
-	if (m_surface)
+	if(m_surface)
 		vkDestroySurfaceKHR(static_cast<VlkContext &>(GetContext()).GetAnvilInstance().get_instance_vk(), m_surface, nullptr);
 	m_windowPtr = nullptr;
 	m_renderingSurfacePtr = nullptr;
@@ -223,7 +223,7 @@ void prosper::VlkWindow::InitWindow()
 	Anvil::WindowGeneric::Display display = nullptr;
 	Anvil::WindowGeneric::Handle hWindow;
 #ifdef _WIN32
-	if (platform == pragma::platform::Platform::Windowless)
+	if(platform == pragma::platform::Platform::Windowless)
 		platform = pragma::platform::Platform::Win32; // We can just treat it as a Win32 window
 	if(platform != pragma::platform::Platform::Win32)
 		throw std::runtime_error {"Platform mismatch"};
@@ -250,7 +250,7 @@ void prosper::VlkWindow::InitWindow()
 		type = Anvil::WindowGeneric::Type::Windowless;
 		break;
 	default:
-		throw std::runtime_error {"Unsupported platform " +std::string{magic_enum::enum_name(platform)}};
+		throw std::runtime_error {"Unsupported platform " + std::string {magic_enum::enum_name(platform)}};
 	}
 #endif
 
@@ -277,7 +277,7 @@ void prosper::VlkWindow::InitWindow()
 
 	if(context.ShouldLog(::util::LogSeverity::Debug))
 		context.Log("Creating GLFW window surface...", ::util::LogSeverity::Debug);
-	if (!context.IsWindowless())
+	if(!context.IsWindowless())
 		err = glfwCreateWindowSurface(context.GetAnvilInstance().get_instance_vk(), const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), nullptr, reinterpret_cast<VkSurfaceKHR *>(&m_surface));
 	else {
 		// We should create a headless surface, unfortunately that causes a crash when swiftshader
@@ -387,7 +387,7 @@ void prosper::VlkWindow::DoInitSwapchain()
 	if(context.ShouldLog(::util::LogSeverity::Debug))
 		context.Log("Updating surface extents...", ::util::LogSeverity::Debug);
 	if(m_windowPtr != nullptr) {
-		auto *genericWindow = static_cast<Anvil::WindowGeneric*>(m_windowPtr.get());
+		auto *genericWindow = static_cast<Anvil::WindowGeneric *>(m_windowPtr.get());
 		if(genericWindow->get_type() == Anvil::WindowGeneric::Type::Wayland) {
 			// For wayland we have to update the size ourself
 			auto actualWindowSize = m_glfwWindow->GetSize();
