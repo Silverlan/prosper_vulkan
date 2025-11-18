@@ -7,18 +7,14 @@ pr_add_library(${PROJ_NAME} SHARED)
 
 pr_add_dependency(${PROJ_NAME} prosper TARGET PUBLIC)
 
-pr_add_headers(${PROJ_NAME} "include/")
-pr_add_sources(${PROJ_NAME} "src/")
+pr_init_module(${PROJ_NAME})
 
 if(UNIX) # Required to create XCB Anvil compatibility
 	target_link_libraries(${PROJ_NAME} PRIVATE xcb X11-xcb)
         target_compile_options(${PROJ_NAME} PRIVATE -Wno-comment)
 endif()
 
-pr_add_compile_definitions(
-	${PROJ_NAME}
-		-DSHPROSPER_VULKAN_DLL
-)
+pr_add_compile_definitions(${PROJ_NAME} -DENABLE_ANVIL_THREAD_SAFETY)
 
 find_package(vulkan REQUIRED)
 
