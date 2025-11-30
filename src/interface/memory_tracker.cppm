@@ -3,6 +3,8 @@
 
 module;
 
+#include "util_enum_flags.hpp"
+
 #include <wrappers/memory_block.h>
 
 export module pragma.prosper.vulkan:memory_tracker;
@@ -51,9 +53,6 @@ export namespace prosper {
 	using namespace umath::scoped_enum::bitwise;
 };
 export {
-	namespace umath::scoped_enum::bitwise {
-		template<>
-		struct enable_bitwise_operators<prosper::MemoryTracker::Resource::TypeFlags> : std::true_type {};
-	}
+	REGISTER_ENUM_FLAGS(prosper::MemoryTracker::Resource::TypeFlags)
 }
 #pragma warning(pop)
