@@ -189,6 +189,19 @@ void prosper::VlkWindow::Present(Anvil::Semaphore *optWaitSemaphore)
 	auto bPresentSuccess = present_queue_ptr->present(m_swapchainPtr.get(), swapchainImgIdx, optWaitSemaphore ? 1 : 0, /* n_wait_semaphores */
 	  &optWaitSemaphore, &errCode);
 
+	if(m_windowPtr != nullptr) {
+		// Typically when the window was resized, present returns OUT_OF_DATE, however on Wayland that is not the case.
+		// To make sure the swapchain is reloaded properly on resize on Wayland, we'll just check it continuously.
+		auto *genericWindow = static_cast<Anvil::WindowGeneric *>(m_windowPtr.get());
+		if(genericWindow->get_type() == Anvil::WindowGeneric::Type::Wayland) {
+			auto actualWindowSize = m_glfwWindow->GetSize();
+			auto curWidth = genericWindow->get_framebuffer_width();
+			auto curHeight = genericWindow->get_framebuffer_height();
+			if (curWidth != actualWindowSize.x || curHeight != actualWindowSize.y)
+				errCode = Anvil::SwapchainOperationErrorCode::OUT_OF_DATE;
+		}
+	}
+
 	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS || bPresentSuccess == false) {
 		if(errCode == Anvil::SwapchainOperationErrorCode::OUT_OF_DATE) {
 			ResetSwapchain();
