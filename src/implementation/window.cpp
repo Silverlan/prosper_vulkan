@@ -127,8 +127,8 @@ void prosper::VlkWindow::InitCommandBuffers()
 void prosper::VlkWindow::DoReleaseSwapchain()
 {
 	auto &context = GetContext();
-	if(context.ShouldLog(::util::LogSeverity::Debug))
-		context.Log("Releasing swapchain resources...", ::util::LogSeverity::Debug);
+	if(context.ShouldLog(pragma::util::LogSeverity::Debug))
+		context.Log("Releasing swapchain resources...", pragma::util::LogSeverity::Debug);
 	for(auto &fbo : m_swapchainFramebuffers)
 		fbo.reset();
 	m_swapchainImages.clear();
@@ -225,8 +225,8 @@ void prosper::VlkWindow::InitWindow()
 	auto settings = m_settings;
 	if(!settings.windowedMode && (settings.monitor.has_value() == false || settings.monitor->GetGLFWMonitor() == nullptr))
 		settings.monitor = pragma::platform::get_primary_monitor();
-	if(context.ShouldLog(::util::LogSeverity::Debug))
-		context.Log("Creating GLFW window...", ::util::LogSeverity::Debug);
+	if(context.ShouldLog(pragma::util::LogSeverity::Debug))
+		context.Log("Creating GLFW window...", pragma::util::LogSeverity::Debug);
 	m_glfwWindow = pragma::platform::Window::Create(settings); // TODO: Release
 
 	glfwGetError(nullptr); // Clear error
@@ -273,7 +273,7 @@ void prosper::VlkWindow::InitWindow()
 	const char *errDesc;
 	auto err = glfwGetError(&errDesc);
 	if(err != GLFW_NO_ERROR) {
-		GetContext().Log("Error retrieving GLFW window handle: " + std::string {errDesc}, ::util::LogSeverity::Critical);
+		GetContext().Log("Error retrieving GLFW window handle: " + std::string {errDesc}, pragma::util::LogSeverity::Critical);
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 		exit(EXIT_FAILURE);
 	}
@@ -284,12 +284,12 @@ void prosper::VlkWindow::InitWindow()
 	m_settings.width = actualWindowSize.x;
 	m_settings.height = actualWindowSize.y;
 
-	if(context.ShouldLog(::util::LogSeverity::Debug))
-		context.Log("Creating Anvil window...", ::util::LogSeverity::Debug);
+	if(context.ShouldLog(pragma::util::LogSeverity::Debug))
+		context.Log("Creating Anvil window...", pragma::util::LogSeverity::Debug);
 	m_windowPtr = Anvil::WindowGeneric::create(type, hWindow, display, connection, m_settings.width, m_settings.height, m_glfwWindow->IsVisible(), fbWidth, fbHeight);
 
-	if(context.ShouldLog(::util::LogSeverity::Debug))
-		context.Log("Creating GLFW window surface...", ::util::LogSeverity::Debug);
+	if(context.ShouldLog(pragma::util::LogSeverity::Debug))
+		context.Log("Creating GLFW window surface...", pragma::util::LogSeverity::Debug);
 	if(!context.IsWindowless())
 		err = glfwCreateWindowSurface(context.GetAnvilInstance().get_instance_vk(), const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()), nullptr, reinterpret_cast<VkSurfaceKHR *>(&m_surface));
 	else {
@@ -305,7 +305,7 @@ void prosper::VlkWindow::InitWindow()
 	}
 	if(err != GLFW_NO_ERROR) {
 		glfwGetError(&errDesc);
-		GetContext().Log("Error creating GLFW window surface: " + std::string {errDesc}, ::util::LogSeverity::Critical);
+		GetContext().Log("Error creating GLFW window surface: " + std::string {errDesc}, pragma::util::LogSeverity::Critical);
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 		exit(EXIT_FAILURE);
 	}
@@ -386,19 +386,19 @@ void prosper::VlkWindow::ClearSwapchain()
 void prosper::VlkWindow::DoInitSwapchain()
 {
 	auto &context = static_cast<VlkContext &>(GetContext());
-	if(context.ShouldLog(::util::LogSeverity::Debug))
-		context.Log("Initializing swapchain...", ::util::LogSeverity::Debug);
+	if(context.ShouldLog(pragma::util::LogSeverity::Debug))
+		context.Log("Initializing swapchain...", pragma::util::LogSeverity::Debug);
 
 	if(m_renderingSurfacePtr == nullptr) {
-		if(context.ShouldLog(::util::LogSeverity::Debug))
-			context.Log("Creating Anvil rendering surface...", ::util::LogSeverity::Debug);
+		if(context.ShouldLog(pragma::util::LogSeverity::Debug))
+			context.Log("Creating Anvil rendering surface...", pragma::util::LogSeverity::Debug);
 		m_renderingSurfacePtr = Anvil::RenderingSurface::create(Anvil::RenderingSurfaceCreateInfo::create(&context.GetAnvilInstance(), &context.GetDevice(), m_windowPtr.get()));
 		m_renderingSurfacePtr->set_name("Main rendering surface");
 	}
 	if(!m_renderingSurfacePtr)
 		return;
-	if(context.ShouldLog(::util::LogSeverity::Debug))
-		context.Log("Updating surface extents...", ::util::LogSeverity::Debug);
+	if(context.ShouldLog(pragma::util::LogSeverity::Debug))
+		context.Log("Updating surface extents...", pragma::util::LogSeverity::Debug);
 	if(m_windowPtr != nullptr) {
 		auto *genericWindow = static_cast<Anvil::WindowGeneric *>(m_windowPtr.get());
 		if(genericWindow->get_type() == Anvil::WindowGeneric::Type::Wayland) {
@@ -431,8 +431,8 @@ void prosper::VlkWindow::DoInitSwapchain()
 		numSwapchainImages = 1u;
 	}
 
-	if(context.ShouldLog(::util::LogSeverity::Debug))
-		context.Log("Creating new swapchain...", ::util::LogSeverity::Debug);
+	if(context.ShouldLog(pragma::util::LogSeverity::Debug))
+		context.Log("Creating new swapchain...", pragma::util::LogSeverity::Debug);
 	auto createInfo = Anvil::SwapchainCreateInfo::create(&context.GetDevice(), m_renderingSurfacePtr.get(), m_windowPtr.get(), Anvil::Format::B8G8R8A8_UNORM, Anvil::ColorSpaceKHR::SRGB_NONLINEAR_KHR, static_cast<Anvil::PresentModeKHR>(presentMode),
 	  Anvil::ImageUsageFlagBits::COLOR_ATTACHMENT_BIT | Anvil::ImageUsageFlagBits::TRANSFER_DST_BIT, numSwapchainImages);
 	createInfo->set_mt_safety(Anvil::MTSafety::ENABLED);

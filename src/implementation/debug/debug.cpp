@@ -282,14 +282,14 @@ void prosper::debug::dump_image_format_properties(IPrContext &context, std::stri
 		ss << "-";
 	else
 		ss << prosper::util::to_string(createFlags);
-	for(auto format = Anvil::Format::UNKNOWN; format != static_cast<decltype(format)>(umath::to_integral(Anvil::Format::ASTC_12x12_SRGB_BLOCK) + 1); format = static_cast<decltype(format)>(umath::to_integral(format) + 1)) {
+	for(auto format = Anvil::Format::UNKNOWN; format != static_cast<decltype(format)>(pragma::math::to_integral(Anvil::Format::ASTC_12x12_SRGB_BLOCK) + 1); format = static_cast<decltype(format)>(pragma::math::to_integral(format) + 1)) {
 		ss << "\n" << prosper::util::to_string(static_cast<prosper::Format>(format));
-		for(auto type = Anvil::ImageType::_1D; type != static_cast<decltype(type)>(umath::to_integral(Anvil::ImageType::_3D) + 1); type = static_cast<decltype(type)>(umath::to_integral(type) + 1)) {
+		for(auto type = Anvil::ImageType::_1D; type != static_cast<decltype(type)>(pragma::math::to_integral(Anvil::ImageType::_3D) + 1); type = static_cast<decltype(type)>(pragma::math::to_integral(type) + 1)) {
 			ss << "\n\t" << prosper::util::to_string(static_cast<prosper::ImageType>(type));
-			for(auto tiling = Anvil::ImageTiling::OPTIMAL; tiling != static_cast<decltype(tiling)>(umath::to_integral(Anvil::ImageTiling::LINEAR) + 1); tiling = static_cast<decltype(tiling)>(umath::to_integral(tiling) + 1)) {
+			for(auto tiling = Anvil::ImageTiling::OPTIMAL; tiling != static_cast<decltype(tiling)>(pragma::math::to_integral(Anvil::ImageTiling::LINEAR) + 1); tiling = static_cast<decltype(tiling)>(pragma::math::to_integral(tiling) + 1)) {
 				std::vector<FormatPropertyInfo> propertyList {};
 				ss << "\n\t\t" << prosper::util::to_string(static_cast<prosper::ImageTiling>(tiling));
-				for(auto usage = Anvil::ImageUsageFlagBits::TRANSFER_SRC_BIT; usage != static_cast<decltype(usage)>(umath::to_integral(Anvil::ImageUsageFlagBits::INPUT_ATTACHMENT_BIT) >> 1); usage = static_cast<decltype(usage)>(umath::to_integral(usage) << 1)) {
+				for(auto usage = Anvil::ImageUsageFlagBits::TRANSFER_SRC_BIT; usage != static_cast<decltype(usage)>(pragma::math::to_integral(Anvil::ImageUsageFlagBits::INPUT_ATTACHMENT_BIT) >> 1); usage = static_cast<decltype(usage)>(pragma::math::to_integral(usage) << 1)) {
 					try {
 						Anvil::ImageFormatProperties properties;
 						Anvil::ImageFormatPropertiesQuery query {format, type, tiling, usage, static_cast<Anvil::ImageCreateFlagBits>(createFlags)};
@@ -334,7 +334,7 @@ void prosper::debug::dump_image_format_properties(IPrContext &context, std::stri
 					ss << "\n" << t << "Max Mip Levels: " << properties.n_max_mip_levels;
 					ss << "\n" << t << "Max Resource Size: " << properties.max_resource_size;
 					ss << "\n" << t << "Sample Counts: ";
-					auto values = umath::get_power_of_2_values(static_cast<uint64_t>(static_cast<uint32_t>(properties.sample_counts.get_vk())));
+					auto values = pragma::math::get_power_of_2_values(static_cast<uint64_t>(static_cast<uint32_t>(properties.sample_counts.get_vk())));
 					if(values.empty())
 						ss << "-";
 					else {
@@ -376,7 +376,7 @@ void prosper::debug::dump_format_properties(IPrContext &context, std::stringstre
 
 void prosper::debug::dump_layers(IPrContext &context, const std::string &fileName)
 {
-	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(), "w");
+	auto f = pragma::fs::open_file<pragma::fs::VFilePtrReal>(fileName, pragma::fs::FileMode::Write);
 	if(f == nullptr)
 		return;
 	std::stringstream ss;
@@ -386,7 +386,7 @@ void prosper::debug::dump_layers(IPrContext &context, const std::string &fileNam
 }
 void prosper::debug::dump_extensions(IPrContext &context, const std::string &fileName)
 {
-	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(), "w");
+	auto f = pragma::fs::open_file<pragma::fs::VFilePtrReal>(fileName, pragma::fs::FileMode::Write);
 	if(f == nullptr)
 		return;
 	std::stringstream ss;
@@ -397,7 +397,7 @@ void prosper::debug::dump_extensions(IPrContext &context, const std::string &fil
 
 void prosper::debug::dump_limits(IPrContext &context, const std::string &fileName)
 {
-	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(), "w");
+	auto f = pragma::fs::open_file<pragma::fs::VFilePtrReal>(fileName, pragma::fs::FileMode::Write);
 	if(f == nullptr)
 		return;
 	std::stringstream ss;
@@ -408,7 +408,7 @@ void prosper::debug::dump_limits(IPrContext &context, const std::string &fileNam
 
 void prosper::debug::dump_features(IPrContext &context, const std::string &fileName)
 {
-	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(), "w");
+	auto f = pragma::fs::open_file<pragma::fs::VFilePtrReal>(fileName, pragma::fs::FileMode::Write);
 	if(f == nullptr)
 		return;
 	std::stringstream ss;
@@ -419,7 +419,7 @@ void prosper::debug::dump_features(IPrContext &context, const std::string &fileN
 
 void prosper::debug::dump_image_format_properties(IPrContext &context, const std::string &fileName, prosper::ImageCreateFlags createFlags)
 {
-	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(), "w");
+	auto f = pragma::fs::open_file<pragma::fs::VFilePtrReal>(fileName, pragma::fs::FileMode::Write);
 	if(f == nullptr)
 		return;
 	std::stringstream ss;
@@ -430,7 +430,7 @@ void prosper::debug::dump_image_format_properties(IPrContext &context, const std
 
 void prosper::debug::dump_format_properties(IPrContext &context, const std::string &fileName)
 {
-	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(), "w");
+	auto f = pragma::fs::open_file<pragma::fs::VFilePtrReal>(fileName, pragma::fs::FileMode::Write);
 	if(f == nullptr)
 		return;
 	std::stringstream ss;

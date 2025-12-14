@@ -21,7 +21,7 @@ class PR_EXPORT ObjectLookupHandler {
 	};
 	void RegisterObject(void *vkPtr, prosper::ContextObject &obj, prosper::debug::ObjectType type)
 	{
-		auto backTrace = util::debug::get_formatted_stack_backtrace_string();
+		auto backTrace = pragma::debug::get_formatted_stack_backtrace_string();
 		std::scoped_lock lock {m_objectMutex};
 		m_lookupTable[vkPtr] = {&obj, type, std::move(backTrace)};
 	}
@@ -30,7 +30,7 @@ class PR_EXPORT ObjectLookupHandler {
 		std::scoped_lock lock {m_objectMutex};
 		auto it = m_lookupTable.find(vkPtr);
 		if(it != m_lookupTable.end()) {
-			m_debugHistory[vkPtr] = {it->second.obj->GetDebugName(), it->second.backTrace, util::debug::get_formatted_stack_backtrace_string()};
+			m_debugHistory[vkPtr] = {it->second.obj->GetDebugName(), it->second.backTrace, pragma::debug::get_formatted_stack_backtrace_string()};
 			m_lookupTable.erase(it);
 		}
 	}
@@ -164,7 +164,7 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 
 	while(pos != std::string::npos && posEnd != std::string::npos) {
 		auto strHex = msgValidation.substr(pos, posEnd - pos);
-		auto hex = ::umath::to_hex_number(strHex);
+		auto hex = ::pragma::math::to_hex_number(strHex);
 		debug::ObjectType type;
 		std::string backTrace;
 		std::string destroyBackTrace;
@@ -248,19 +248,19 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 	msgValidation = r.str();
 
 	for(auto &[o, info] : debugInfoMap) {
-		msgValidation += ::util::LOG_NL;
-		msgValidation += "Object 0x" + ::umath::to_hex_string(reinterpret_cast<uint64_t>(o)) + ": ";
+		msgValidation += pragma::util::LOG_NL;
+		msgValidation += "Object 0x" + ::pragma::math::to_hex_string(reinterpret_cast<uint64_t>(o)) + ": ";
 		if(info.debugName.empty() == false)
-			msgValidation += "Debug name: " + info.debugName + ::util::LOG_NL;
+			msgValidation += "Debug name: " + info.debugName + pragma::util::LOG_NL;
 		if(info.backTrace.empty() == false) {
 			auto backtrace = "\t" + info.backTrace;
-			ustring::replace(backtrace, "\n", ::util::LOG_NL + "\t");
-			msgValidation += "Creation Backtrace:" + ::util::LOG_NL + backtrace + ::util::LOG_NL;
+			pragma::string::replace(backtrace, "\n", pragma::util::LOG_NL + "\t");
+			msgValidation += "Creation Backtrace:" + pragma::util::LOG_NL + backtrace + pragma::util::LOG_NL;
 		}
 		if(info.destroyBackTrace.empty() == false) {
 			auto backtrace = "\t" + info.destroyBackTrace;
-			ustring::replace(backtrace, "\n", ::util::LOG_NL + "\t");
-			msgValidation += "Destruction Backtrace:" + ::util::LOG_NL + backtrace + ::util::LOG_NL;
+			pragma::string::replace(backtrace, "\n", pragma::util::LOG_NL + "\t");
+			msgValidation += "Destruction Backtrace:" + pragma::util::LOG_NL + backtrace + pragma::util::LOG_NL;
 		}
 	}
 
@@ -290,7 +290,7 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 	msgValidation += " Currently bound shaders/pipelines:";
 	for(auto &boundPipeline : boundPipelines)
 	{
-		msgValidation += ::util::LOG_NL;
+		msgValidation += pragma::util::LOG_NL;
 		auto &cmd = *boundPipeline.first;
 		auto &dbgName = cmd.GetDebugName();
 		msgValidation += ((dbgName.empty() == false) ? dbgName : "Unknown") +": ";

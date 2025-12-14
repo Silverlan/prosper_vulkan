@@ -7,12 +7,12 @@ import :debug.object;
 
 using namespace prosper;
 
-static std::array<size_t, umath::to_integral(prosper::debug::ObjectType::Count)> g_objIndex {};
+static std::array<size_t, pragma::math::to_integral(prosper::debug::ObjectType::Count)> g_objIndex {};
 void VlkDebugObject::Init(IPrContext &context, debug::ObjectType type, const void *vkPtr)
 {
 	if(context.IsValidationEnabled()) {
 		if(vkPtr) {
-			auto &idx = g_objIndex[umath::to_integral(type)];
+			auto &idx = g_objIndex[pragma::math::to_integral(type)];
 			std::stringstream ss;
 			ss << "Created Vulkan object " << magic_enum::enum_name(type) << " 0x" << std::hex << reinterpret_cast<std::uintptr_t>(vkPtr) << " with global index " << std::dec << idx;
 			context.Log(ss.str());

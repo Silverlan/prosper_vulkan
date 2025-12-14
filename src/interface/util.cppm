@@ -12,7 +12,7 @@ export import pragma.prosper;
 
 export namespace prosper {
 	namespace util {
-		PR_EXPORT void initialize_image(Anvil::BaseDevice &dev, const uimg::ImageBuffer &imgSrc, IImage &img);
+		PR_EXPORT void initialize_image(Anvil::BaseDevice &dev, const pragma::image::ImageBuffer &imgSrc, IImage &img);
 		PR_EXPORT util::VendorDeviceInfo get_vendor_device_info(const Anvil::PhysicalDevice &dev);
 		PR_EXPORT util::VendorDeviceInfo get_vendor_device_info(const IPrContext &context);
 		PR_EXPORT std::vector<util::VendorDeviceInfo> get_available_vendor_devices(const IPrContext &context);

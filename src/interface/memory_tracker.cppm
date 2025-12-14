@@ -50,7 +50,7 @@ export namespace prosper {
 		std::vector<Resource> m_resources = {};
 		mutable std::mutex m_resourceMutex;
 	};
-	using namespace umath::scoped_enum::bitwise;
+	using namespace pragma::math::scoped_enum::bitwise;
 };
 export {
 	REGISTER_ENUM_FLAGS(prosper::MemoryTracker::Resource::TypeFlags)

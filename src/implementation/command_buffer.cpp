@@ -675,7 +675,7 @@ bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrie
 						continue;
 					if(layout != imgBarrier.oldLayout && imgBarrier.oldLayout != ImageLayout::Undefined) {
 						debug::exec_debug_validation_callback(GetContext(), prosper::DebugReportObjectTypeEXT::Image,
-						  "Record pipeline barrier: Image 0x" + ::umath::to_hex_string(reinterpret_cast<uint64_t>(imgBarrier.image)) + " at array layer " + std::to_string(i) + ", mipmap " + std::to_string(j) + " has current layout " + vk::to_string(static_cast<vk::ImageLayout>(layout))
+						  "Record pipeline barrier: Image 0x" + ::pragma::math::to_hex_string(reinterpret_cast<uint64_t>(imgBarrier.image)) + " at array layer " + std::to_string(i) + ", mipmap " + std::to_string(j) + " has current layout " + vk::to_string(static_cast<vk::ImageLayout>(layout))
 						    + ", but should have " + vk::to_string(static_cast<vk::ImageLayout>(imgBarrier.oldLayout)) + " according to barrier info!");
 					}
 				}
@@ -792,7 +792,7 @@ bool prosper::VlkPrimaryCommandBuffer::DoRecordEndRenderPass()
 					}
 					if(bValid == false)
 						continue;
-					auto layerCount = umath::min(imgView->GetLayerCount(), fb->GetLayerCount());
+					auto layerCount = pragma::math::min(imgView->GetLayerCount(), fb->GetLayerCount());
 					auto baseLayer = imgView->GetBaseLayer();
 					prosper::debug::set_last_recorded_image_layout(*this, img, static_cast<prosper::ImageLayout>(finalLayout), baseLayer, layerCount);
 				}
@@ -853,7 +853,7 @@ bool prosper::VlkPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::IImage &
 				continue;
 			if(imgLayout != static_cast<prosper::ImageLayout>(initialLayout)) {
 				prosper::debug::exec_debug_validation_callback(context, prosper::DebugReportObjectTypeEXT::Image,
-				  "Begin render pass: Image 0x" + ::umath::to_hex_string(reinterpret_cast<uint64_t>(static_cast<prosper::VlkImage &>(img).GetAnvilImage().get_image())) + " has to be in layout " + vk::to_string(static_cast<vk::ImageLayout>(initialLayout)) + ", but is in layout "
+				  "Begin render pass: Image 0x" + ::pragma::math::to_hex_string(reinterpret_cast<uint64_t>(static_cast<prosper::VlkImage &>(img).GetAnvilImage().get_image())) + " has to be in layout " + vk::to_string(static_cast<vk::ImageLayout>(initialLayout)) + ", but is in layout "
 				    + vk::to_string(static_cast<vk::ImageLayout>(imgLayout)) + "!");
 			}
 		}
@@ -862,7 +862,7 @@ bool prosper::VlkPrimaryCommandBuffer::DoRecordBeginRenderPass(prosper::IImage &
 	auto renderArea = vk::Rect2D(vk::Offset2D(), reinterpret_cast<vk::Extent2D &>(extents));
 	return static_cast<prosper::VlkPrimaryCommandBuffer &>(*this)->record_begin_render_pass(clearValues.size(), reinterpret_cast<const VkClearValue *>(clearValues.data()), &static_cast<prosper::VlkFramebuffer &>(fb).GetAnvilFramebuffer(), static_cast<VkRect2D &>(renderArea),
 	  &static_cast<prosper::VlkRenderPass &>(rp).GetAnvilRenderPass(),
-	  umath::is_flag_set(renderPassFlags, RenderPassFlags::SecondaryCommandBuffers) ? Anvil::SubpassContents::SECONDARY_COMMAND_BUFFERS : Anvil::SubpassContents::INLINE); // && RecordSetViewport(extents.width,extents.height) && RecordSetScissor(extents.width,extents.height);
+	  pragma::math::is_flag_set(renderPassFlags, RenderPassFlags::SecondaryCommandBuffers) ? Anvil::SubpassContents::SECONDARY_COMMAND_BUFFERS : Anvil::SubpassContents::INLINE); // && RecordSetViewport(extents.width,extents.height) && RecordSetScissor(extents.width,extents.height);
 }
 
 ///////////////////
@@ -1146,8 +1146,8 @@ bool prosper::VlkCommandBuffer::DoRecordCopyBufferToImage(const util::BufferImag
 		bufferImageCopy.buffer_image_height = imgExtent.y;
 		if(isCompressedFormat) {
 			auto blockSize = prosper::util::get_block_size(imgDst.GetFormat());
-			bufferImageCopy.buffer_row_length = umath::max(bufferImageCopy.buffer_row_length, blockSize);
-			bufferImageCopy.buffer_image_height = umath::max(bufferImageCopy.buffer_image_height, blockSize);
+			bufferImageCopy.buffer_row_length = pragma::math::max(bufferImageCopy.buffer_row_length, blockSize);
+			bufferImageCopy.buffer_image_height = pragma::math::max(bufferImageCopy.buffer_image_height, blockSize);
 		}
 	}
 	bufferImageCopy.image_extent = static_cast<VkExtent3D>(vk::Extent3D(imgExtent.x, imgExtent.y, 1));

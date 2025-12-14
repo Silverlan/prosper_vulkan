@@ -40,7 +40,7 @@ static bool glsl_to_spv(prosper::IPrContext &context, prosper::ShaderStage stage
 	auto shaderPtr = Anvil::GLSLShaderToSPIRVGenerator::create(&dev, Anvil::GLSLShaderToSPIRVGenerator::MODE_USE_SPECIFIED_SOURCE, shaderCode, static_cast<Anvil::ShaderStage>(stage));
 	if(shaderPtr == nullptr)
 		return false;
-	auto relPath = ::util::FilePath(fileName);
+	auto relPath = pragma::util::FilePath(fileName);
 	if(relPath.GetFront() == "shaders")
 		relPath.PopFront();
 	shaderPtr->set_glsl_file_path(relPath.GetString());
@@ -75,33 +75,33 @@ static bool glsl_to_spv(prosper::IPrContext &context, prosper::ShaderStage stage
 	return true;
 }
 
-static std::string get_cache_path(const std::string &shaderRootPath, bool withDebugInfo) { return ::util::DirPath("cache", shaderRootPath, withDebugInfo ? "spirv_full" : "spirv").GetString(); }
+static std::string get_cache_path(const std::string &shaderRootPath, bool withDebugInfo) { return pragma::util::DirPath("cache", shaderRootPath, withDebugInfo ? "spirv_full" : "spirv").GetString(); }
 
 bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const std::string &shaderRootPath, const std::string &relFileName, std::vector<unsigned int> &spirv, std::string *infoLog, std::string *debugInfoLog, bool bReload, const std::string &prefixCode,
   const std::unordered_map<std::string, std::string> &definitions, bool withDebugInfo)
 {
 	auto spvCachePath = get_cache_path(shaderRootPath, withDebugInfo);
-	auto fileName = ::util::FilePath(shaderRootPath, relFileName).GetString();
+	auto fileName = pragma::util::FilePath(shaderRootPath, relFileName).GetString();
 	auto fName = fileName;
 	std::string ext;
 	if(!ufile::get_extension(fileName, &ext)) {
 		auto stageExt = prosper::glsl::get_shader_file_extension(stage);
 		auto fullFileName = fileName + '.' + stageExt;
-		auto fNameSpv = ::util::FilePath(spvCachePath, fullFileName + ".spv").GetString();
-		auto bSpvExists = filemanager::exists(fNameSpv);
+		auto fNameSpv = pragma::util::FilePath(spvCachePath, fullFileName + ".spv").GetString();
+		auto bSpvExists = pragma::fs::exists(fNameSpv);
 		if(bSpvExists == true) {
 			ext = "spv";
 			fName = fNameSpv;
 		}
 		if(bSpvExists == false || bReload == true) {
-			if(filemanager::exists(fullFileName)) {
+			if(pragma::fs::exists(fullFileName)) {
 				ext = stageExt;
 				fName = fullFileName;
 			}
 		}
 	}
-	ustring::to_lower(ext);
-	if(!filemanager::exists(fName)) {
+	pragma::string::to_lower(ext);
+	if(!pragma::fs::exists(fName)) {
 		if(infoLog != nullptr)
 			*infoLog = std::string("File '") + fName + std::string("' not found!");
 		return false;
@@ -110,7 +110,7 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 	auto isGlslExt = prosper::glsl::is_glsl_file_extension(ext);
 	if(!isGlslExt && ext != "hlsl") // We'll assume it's a SPIR-V file
 	{
-		auto f = filemanager::open_file(fName, filemanager::FileMode::Read | filemanager::FileMode::Binary);
+		auto f = pragma::fs::open_file(fName, pragma::fs::FileMode::Read | pragma::fs::FileMode::Binary);
 		if(f == nullptr) {
 			if(infoLog != nullptr)
 				*infoLog = std::string("Unable to open file '") + fName + std::string("'!");
@@ -134,7 +134,7 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 		auto ext = ufile::remove_extension_from_filename(tmp, prosper::glsl::get_glsl_file_extensions());
 		assert(ext.has_value());
 		tmp += "_vk." + *ext;
-		if(filemanager::exists(tmp)) {
+		if(pragma::fs::exists(tmp)) {
 			applyPreprocessing = false;
 			glslFileName = tmp;
 		}
@@ -147,27 +147,27 @@ bool prosper::glsl_to_spv(IPrContext &context, prosper::ShaderStage stage, const
 
 	std::vector<prosper::glsl::IncludeLine> includeLines;
 	unsigned int lineOffset = 0;
-	::util::Path fPath {glslFileName};
+	pragma::util::Path fPath {glslFileName};
 	fPath.PopFront();
 
 	auto shaderCode = load_glsl(context, stage, fPath.GetString(), infoLog, debugInfoLog, includeLines, lineOffset, prefixCode, definitions, applyPreprocessing);
 	if(shaderCode.has_value() == false)
 		return false;
 
-	auto glslCachePath = ::util::FilePath(fName);
+	auto glslCachePath = pragma::util::FilePath(fName);
 	if(glslCachePath.GetFront() == "shaders") {
 		glslCachePath.PopFront();
-		glslCachePath = ::util::FilePath("cache", "shaders", "preprocessed", glslCachePath);
-		filemanager::create_path(glslCachePath.GetPath());
-		filemanager::write_file(glslCachePath.GetString(), *shaderCode);
+		glslCachePath = pragma::util::FilePath("cache", "shaders", "preprocessed", glslCachePath);
+		pragma::fs::create_path(glslCachePath.GetPath());
+		pragma::fs::write_file(glslCachePath.GetString(), *shaderCode);
 	}
 
 	auto r = ::glsl_to_spv(context, stage, *shaderCode, spirv, infoLog, debugInfoLog, fName, includeLines, lineOffset, (ext == "hlsl") ? true : false, withDebugInfo);
 	if(r == false)
 		return r;
-	auto spirvName = ::util::FilePath(spvCachePath, fName + ".spv").GetString();
-	filemanager::create_path(ufile::get_path_from_filename(spirvName));
-	auto fOut = filemanager::open_file<VFilePtrReal>(spirvName, filemanager::FileMode::Write | filemanager::FileMode::Binary);
+	auto spirvName = pragma::util::FilePath(spvCachePath, fName + ".spv").GetString();
+	pragma::fs::create_path(ufile::get_path_from_filename(spirvName));
+	auto fOut = pragma::fs::open_file<pragma::fs::VFilePtrReal>(spirvName, pragma::fs::FileMode::Write | pragma::fs::FileMode::Binary);
 	if(fOut == nullptr)
 		return r;
 	fOut->Write(spirv.data(), spirv.size() * sizeof(unsigned int));
@@ -194,7 +194,7 @@ static void fix_optimized_shader(std::string &inOutShader, const std::vector<std
 			for(auto itBinding = dsInfo->bindingPoints.begin(); itBinding != dsInfo->bindingPoints.end(); ++itBinding) {
 				auto &binding = *itBinding;
 				auto it = std::find_if(binding.args.begin(), binding.args.end(),
-				  [&uniformName](const std::string &arg) { return ustring::compare(arg.c_str(), uniformName.c_str(), true, uniformName.length()) && (uniformName.length() == arg.length() || (arg.length() > uniformName.length() && arg[uniformName.length()] == '[')); });
+				  [&uniformName](const std::string &arg) { return pragma::string::compare(arg.c_str(), uniformName.c_str(), true, uniformName.length()) && (uniformName.length() == arg.length() || (arg.length() > uniformName.length() && arg[uniformName.length()] == '[')); });
 				if(it == binding.args.end())
 					continue;
 				auto &name = *it;
@@ -219,7 +219,7 @@ static void fix_optimized_shader(std::string &inOutShader, const std::vector<std
 			if(argEnd != std::string::npos) {
 				auto strArgs = inOutShader.substr(end + 1, argEnd - (end + 1));
 				std::vector<std::string> args;
-				ustring::explode_whitespace(strArgs, args);
+				pragma::string::explode_whitespace(strArgs, args);
 				if(args.empty() == false) {
 					auto &arg = args.back();
 					uint32_t setIndex, bindingIndex;
@@ -266,7 +266,7 @@ std::optional<std::unordered_map<prosper::ShaderStage, std::string>> prosper::op
 			stage = lunarglass::ShaderStage::Vertex;
 			break;
 		}
-		static_assert(umath::to_integral(ShaderStage::Count) == 6u);
+		static_assert(pragma::math::to_integral(ShaderStage::Count) == 6u);
 
 		auto path = pair.second;
 		std::string infoLog, debugInfoLog;
@@ -309,7 +309,7 @@ std::optional<std::unordered_map<prosper::ShaderStage, std::string>> prosper::op
 			stage = ShaderStage::Vertex;
 			break;
 		}
-		static_assert(umath::to_integral(ShaderStage::Count) == 6u);
+		static_assert(pragma::math::to_integral(ShaderStage::Count) == 6u);
 		result[stage] = pair.second;
 		fix_optimized_shader(result[stage], descSetInfos);
 	}
@@ -319,7 +319,7 @@ std::optional<std::unordered_map<prosper::ShaderStage, std::string>> prosper::op
 #endif
 }
 
-void prosper::util::initialize_image(Anvil::BaseDevice &dev, const uimg::ImageBuffer &imgSrc, IImage &img)
+void prosper::util::initialize_image(Anvil::BaseDevice &dev, const pragma::image::ImageBuffer &imgSrc, IImage &img)
 {
 	auto extents = img.GetExtents();
 	auto w = extents.width;
@@ -349,7 +349,7 @@ void prosper::util::initialize_image(Anvil::BaseDevice &dev, const uimg::ImageBu
 			px[1] = imgData[pos + 1];
 			px[2] = imgData[pos + 2];
 			switch(tgaFormat) {
-			case uimg::Format::RGBA8:
+			case pragma::image::Format::RGBA8:
 				{
 					pos += 4;
 					if(srcFormat == Format::R8G8B8A8_UNorm)

@@ -93,7 +93,7 @@ VlkContext::VlkContext(const std::string &appName, bool bEnableValidation) : IPr
 		std::stringstream ss;
 		ss << "Anvil assertion failed in file \"" << fileName << "\", line " << lineIdx << ": " << msg;
 
-		Log(ss.str(), ::util::LogSeverity::Error);
+		Log(ss.str(), pragma::util::LogSeverity::Error);
 	});
 }
 
@@ -242,7 +242,7 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 	m_swapchainResourcesInUseMutex.lock();
 	m_swapchainResourcesInUse[swapchainImgIdx] = true;
 	m_swapchainResourcesInUseMutex.unlock();
-	umath::set_flag(m_stateFlags, StateFlags::IsRecording);
+	pragma::math::set_flag(m_stateFlags, StateFlags::IsRecording);
 	while(m_scheduledBufferUpdates.empty() == false) {
 		auto &f = m_scheduledBufferUpdates.front();
 		f(primCmd);
@@ -250,7 +250,7 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 	}
 	drawFrame();
 	/* Close the recording process */
-	umath::set_flag(m_stateFlags, StateFlags::IsRecording, false);
+	pragma::math::set_flag(m_stateFlags, StateFlags::IsRecording, false);
 
 	if(!m_window) {
 		fCancelRecording();
@@ -430,7 +430,7 @@ static prosper::FormatFeatureFlags to_prosper_format_features(Anvil::FormatFeatu
 		break;
 	}
 
-	static_assert(umath::to_integral(prosper::FormatFeatureFlags::Last) == 256, "Update these when new enum values are added!");
+	static_assert(pragma::math::to_integral(prosper::FormatFeatureFlags::Last) == 256, "Update these when new enum values are added!");
 	// Unreachable
 	return static_cast<prosper::FormatFeatureFlags>(0);
 }
@@ -452,7 +452,7 @@ prosper::FeatureSupport VlkContext::AreFormatFeaturesSupported(Format format, Fo
 	  Anvil::FormatFeatureFlagBits::SAMPLED_IMAGE_BIT, Anvil::FormatFeatureFlagBits::STORAGE_TEXEL_BUFFER_BIT, Anvil::FormatFeatureFlagBits::UNIFORM_TEXEL_BUFFER_BIT, Anvil::FormatFeatureFlagBits::VERTEX_BUFFER_BIT};
 	Anvil::FormatFeatureFlags anvFeatures;
 	for(auto i = decltype(toAnvFlag.size()) {0u}; i < toAnvFlag.size(); ++i) {
-		if(!umath::is_flag_set(featureFlags, to_prosper_format_features(toAnvFlag[i])))
+		if(!pragma::math::is_flag_set(featureFlags, to_prosper_format_features(toAnvFlag[i])))
 			continue;
 		anvFeatures |= toAnvFlag[i];
 	}
@@ -524,17 +524,17 @@ void VlkContext::ReloadSwapchain()
 			OnPrimaryWindowSwapchainReloaded();
 	}
 
-	if(ShouldLog(::util::LogSeverity::Debug))
-		m_logHandler("Initializing main render pass...", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		m_logHandler("Initializing main render pass...", pragma::util::LogSeverity::Debug);
 	InitMainRenderPass();
-	if(ShouldLog(::util::LogSeverity::Debug))
-		m_logHandler("Initializing memory buffer for temporary memory allocations...", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		m_logHandler("Initializing memory buffer for temporary memory allocations...", pragma::util::LogSeverity::Debug);
 	InitTemporaryBuffer();
 	OnSwapchainInitialized();
 
 	if(m_shaderManager != nullptr) {
-		if(ShouldLog(::util::LogSeverity::Debug))
-			Log("Reloading shader pipelines...", ::util::LogSeverity::Debug);
+		if(ShouldLog(pragma::util::LogSeverity::Debug))
+			Log("Reloading shader pipelines...", pragma::util::LogSeverity::Debug);
 		auto &shaderManager = *m_shaderManager;
 		for(auto &pshader : shaderManager.GetShaders()) {
 			if(pshader->IsGraphicsShader() == false)
@@ -587,19 +587,19 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	for(auto &layerSetting : createInfo.layerSettings)
 		layerSettings.push_back(Anvil::LayerSetting {layerSetting.layerName.c_str(), layerSetting.settingName.c_str(), static_cast<Anvil::LayerSettingType>(layerSetting.type), layerSetting.valueCount, layerSetting.values.get()});
 
-	auto addLayerPath = ::util::get_env_variable("VK_ADD_LAYER_PATH");
+	auto addLayerPath = pragma::util::get_env_variable("VK_ADD_LAYER_PATH");
 	std::string newAddLayerPath;
 	if(addLayerPath)
 		newAddLayerPath = *addLayerPath;
-	for(auto &path : filemanager::get_absolute_root_paths()) {
-		auto absPath = ::util::DirPath(path, "modules/graphics/vulkan/layers/");
-		if(!filemanager::exists_system(absPath.GetString()))
+	for(auto &path : pragma::fs::get_absolute_root_paths()) {
+		auto absPath = pragma::util::DirPath(path, "modules/graphics/vulkan/layers/");
+		if(!pragma::fs::exists_system(absPath.GetString()))
 			continue;
 		if(!newAddLayerPath.empty())
 			newAddLayerPath += ";";
 		newAddLayerPath += absPath.GetString();
 	}
-	::util::set_env_variable("VK_ADD_LAYER_PATH", newAddLayerPath);
+	pragma::util::set_env_variable("VK_ADD_LAYER_PATH", newAddLayerPath);
 
 	/* Create a Vulkan instance */
 	m_instancePtr = Anvil::Instance::create(Anvil::InstanceCreateInfo::create(
@@ -607,7 +607,7 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 		appName, /* engine_name */
 		std::move(layers),
 		std::move(layerSettings),
-		(umath::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled) == true) ? [this](
+		(pragma::math::is_flag_set(m_stateFlags,StateFlags::ValidationEnabled) == true) ? [this](
 			Anvil::DebugMessageSeverityFlags severityFlags,
 			const char *message
 			) -> VkBool32 {
@@ -622,7 +622,7 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 			ENABLE_ANVIL_THREAD_SAFETY
 		));
 
-	if(umath::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled) == true) {
+	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::ValidationEnabled) == true) {
 		prosper::debug::set_debug_mode_enabled(true);
 		// m_customValidationEnabled = true;
 	}
@@ -632,18 +632,18 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 		auto numDevices = m_instancePtr->get_n_physical_devices();
 		if(ShouldLog()) {
 			std::stringstream ss;
-			ss << "Available GPU devices:" << ::util::LOG_NL;
+			ss << "Available GPU devices:" << pragma::util::LOG_NL;
 			auto devices = util::get_available_vendor_devices(*this);
 			for(auto &info : devices) {
-				ss << info.deviceName << ::util::LOG_NL;
-				ss << "apiVersion: " << info.apiVersion << ::util::LOG_NL;
-				ss << "deviceType: " << magic_enum::enum_name(info.deviceType) << ::util::LOG_NL;
-				ss << "deviceId: " << info.deviceId << ::util::LOG_NL;
-				ss << "driverVersion: " << info.driverVersion << ::util::LOG_NL;
-				ss << "vendor: " << umath::to_integral(info.vendor) << ::util::LOG_NL;
+				ss << info.deviceName << pragma::util::LOG_NL;
+				ss << "apiVersion: " << info.apiVersion << pragma::util::LOG_NL;
+				ss << "deviceType: " << magic_enum::enum_name(info.deviceType) << pragma::util::LOG_NL;
+				ss << "deviceId: " << info.deviceId << pragma::util::LOG_NL;
+				ss << "driverVersion: " << info.driverVersion << pragma::util::LOG_NL;
+				ss << "vendor: " << pragma::math::to_integral(info.vendor) << pragma::util::LOG_NL;
 			}
-			ss << ::util::LOG_NL;
-			m_logHandler(ss.str(), ::util::LogSeverity::Info);
+			ss << pragma::util::LOG_NL;
+			m_logHandler(ss.str(), pragma::util::LogSeverity::Info);
 		}
 		const std::unordered_map<Vendor, int32_t> vendorPriorities {{Vendor::Nvidia, 2}, {Vendor::AMD, 1}, {Vendor::Intel, 0}, {Vendor::Unknown, -1}};
 		struct DeviceCandidate {
@@ -677,15 +677,15 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 			if(ShouldLog()) {
 				auto *props = (m_physicalDevicePtr != nullptr) ? m_physicalDevicePtr->get_device_properties().core_vk1_0_properties_ptr : nullptr;
 				if(props)
-					m_logHandler("Selected device: " + std::to_string(props->device_id), ::util::LogSeverity::Info);
+					m_logHandler("Selected device: " + std::to_string(props->device_id), pragma::util::LogSeverity::Info);
 			}
 		}
 	}
 	if(m_physicalDevicePtr == nullptr)
 		m_physicalDevicePtr = m_instancePtr->get_physical_device(0);
 
-	if(ShouldLog(::util::LogSeverity::Debug))
-		m_logHandler("Initializing shader manager...", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		m_logHandler("Initializing shader manager...", pragma::util::LogSeverity::Debug);
 	m_shaderManager = std::make_unique<ShaderManager>(*this);
 
 	/* Create a Vulkan device */
@@ -749,19 +749,19 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	for(auto &[ext, availability] : createInfo.extensions)
 		devExtConfig.extension_status[ext] = static_cast<Anvil::ExtensionAvailability>(availability);
 
-	if(ShouldLog(::util::LogSeverity::Debug)) {
+	if(ShouldLog(pragma::util::LogSeverity::Debug)) {
 		std::stringstream ss;
-		ss << "Extension availability:" << ::util::LOG_NL;
+		ss << "Extension availability:" << pragma::util::LOG_NL;
 		for(auto &[ext, availability] : devExtConfig.extension_status) {
-			ss << "[" << ext << "]: " << magic_enum::enum_name(availability) << ::util::LOG_NL;
+			ss << "[" << ext << "]: " << magic_enum::enum_name(availability) << pragma::util::LOG_NL;
 		}
-		ss << ::util::LOG_NL;
-		m_logHandler(ss.str(), ::util::LogSeverity::Debug);
+		ss << pragma::util::LOG_NL;
+		m_logHandler(ss.str(), pragma::util::LogSeverity::Debug);
 	}
 
 	if(m_preDeviceCreationCallback) {
-		if(ShouldLog(::util::LogSeverity::Debug))
-			m_logHandler("Running pre-device creation callback...", ::util::LogSeverity::Debug);
+		if(ShouldLog(pragma::util::LogSeverity::Debug))
+			m_logHandler("Running pre-device creation callback...", pragma::util::LogSeverity::Debug);
 
 		auto devInfo = util::get_vendor_device_info(*m_physicalDevicePtr);
 		m_preDeviceCreationCallback(devInfo);
@@ -771,15 +771,15 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 	  devExtConfig, createInfo.layers, Anvil::CommandPoolCreateFlagBits::CREATE_RESET_COMMAND_BUFFER_BIT, ENABLE_ANVIL_THREAD_SAFETY);
 	devCreateInfo->pNext = !extensions.empty() ? extensions.front().get() : nullptr;
 	// devCreateInfo->set_pipeline_cache_ptr() // TODO
-	if(ShouldLog(::util::LogSeverity::Debug))
-		m_logHandler("Creating GPU device...", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		m_logHandler("Creating GPU device...", pragma::util::LogSeverity::Debug);
 	m_devicePtr = Anvil::SGPUDevice::create(std::move(devCreateInfo));
 	if(m_useAllocator)
 		m_useReservedDeviceLocalImageBuffer = false; // VMA already handles the allocation of large buffers; We'll just let it do its thing for image allocation
 
 	if(m_useAllocator) {
-		if(ShouldLog(::util::LogSeverity::Debug))
-			m_logHandler("Creating VMA allocator...", ::util::LogSeverity::Debug);
+		if(ShouldLog(pragma::util::LogSeverity::Debug))
+			m_logHandler("Creating VMA allocator...", pragma::util::LogSeverity::Debug);
 		m_memAllocator = Anvil::MemoryAllocator::create_vma(m_devicePtr.get());
 	}
 
@@ -822,8 +822,8 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 			flags.push_back("MULTI_INSTANCE_BIT_KHR");
 		
 		std::cout<<"Heap: "<<heap.index<<std::endl;
-		std::cout<<"Budget: "<<::util::get_pretty_bytes(budget.heap_budget[i])<<" ("<<budget.heap_budget[i]<<")"<<std::endl;
-		std::cout<<"Usage: "<<::util::get_pretty_bytes(budget.heap_usage[i])<<" ("<<budget.heap_usage[i]<<")"<<std::endl;
+		std::cout<<"Budget: "<<pragma::util::get_pretty_bytes(budget.heap_budget[i])<<" ("<<budget.heap_budget[i]<<")"<<std::endl;
+		std::cout<<"Usage: "<<pragma::util::get_pretty_bytes(budget.heap_usage[i])<<" ("<<budget.heap_usage[i]<<")"<<std::endl;
 		std::cout<<"Flags: ";
 		auto first = true;
 		for(auto &flag : flags)
@@ -836,7 +836,7 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 		}
 		std::cout<<std::endl;
 
-		std::cout<<"Size: "<<::util::get_pretty_bytes(heap.size)<<" ("<<heap.size<<")"<<std::endl;
+		std::cout<<"Size: "<<pragma::util::get_pretty_bytes(heap.size)<<" ("<<heap.size<<")"<<std::endl;
 
 		auto types = memProps.types;
 		uint32_t typeIdx = 0;
@@ -891,10 +891,10 @@ std::optional<std::string> VlkContext::DumpMemoryBudget() const
 #endif
 
 	std::stringstream str {};
-	str << "Total block size: " << ::util::get_pretty_bytes(budget.blockBytes) << " (" << budget.blockBytes << ")\n";
-	str << "Total allocation size: " << ::util::get_pretty_bytes(budget.allocationBytes) << " (" << budget.allocationBytes << ")\n";
-	str << "Current memory usage " << ::util::get_pretty_bytes(budget.usage) << " (" << budget.usage << ")\n";
-	str << "Available memory: " << ::util::get_pretty_bytes(budget.budget) << " (" << budget.budget << ")\n";
+	str << "Total block size: " << pragma::util::get_pretty_bytes(budget.blockBytes) << " (" << budget.blockBytes << ")\n";
+	str << "Total allocation size: " << pragma::util::get_pretty_bytes(budget.allocationBytes) << " (" << budget.allocationBytes << ")\n";
+	str << "Current memory usage " << pragma::util::get_pretty_bytes(budget.usage) << " (" << budget.usage << ")\n";
+	str << "Available memory: " << pragma::util::get_pretty_bytes(budget.budget) << " (" << budget.budget << ")\n";
 	return str.str();
 }
 std::optional<std::string> VlkContext::DumpMemoryStats() const
@@ -977,7 +977,7 @@ uint64_t VlkContext::ClampDeviceMemorySize(uint64_t size, float percentageOfGPUM
 	if(r.first == nullptr || r.first->heap_ptr == nullptr)
 		throw std::runtime_error("Incompatible memory feature flags");
 	auto maxMem = floorl(r.first->heap_ptr->size * static_cast<long double>(percentageOfGPUMemory));
-	return umath::min(size, static_cast<uint64_t>(maxMem));
+	return pragma::math::min(size, static_cast<uint64_t>(maxMem));
 }
 DeviceSize VlkContext::CalcBufferAlignment(BufferUsageFlags usageFlags)
 {
@@ -986,7 +986,7 @@ DeviceSize VlkContext::CalcBufferAlignment(BufferUsageFlags usageFlags)
 	if((usageFlags & BufferUsageFlags::UniformBufferBit) != BufferUsageFlags::None)
 		alignment = dev.get_physical_device_properties().core_vk1_0_properties_ptr->limits.min_uniform_buffer_offset_alignment;
 	if((usageFlags & BufferUsageFlags::StorageBufferBit) != BufferUsageFlags::None) {
-		alignment = umath::get_least_common_multiple(static_cast<vk::DeviceSize>(alignment), dev.get_physical_device_properties().core_vk1_0_properties_ptr->limits.min_storage_buffer_offset_alignment);
+		alignment = pragma::math::get_least_common_multiple(static_cast<vk::DeviceSize>(alignment), dev.get_physical_device_properties().core_vk1_0_properties_ptr->limits.min_storage_buffer_offset_alignment);
 	}
 	return alignment;
 }
@@ -1071,7 +1071,7 @@ std::shared_ptr<prosper::IDynamicResizableBuffer> prosper::VlkContext::CreateDyn
 
 std::shared_ptr<prosper::IBuffer> VlkContext::CreateBuffer(const prosper::util::BufferCreateInfo &createInfo, const void *data)
 {
-	if(ShouldLog(::util::LogSeverity::Debug)) {
+	if(ShouldLog(pragma::util::LogSeverity::Debug)) {
 		std::stringstream ss;
 		ss << "CreateBuffer:";
 		util::to_string(createInfo, ss);
@@ -1132,7 +1132,7 @@ static Anvil::ImageCreateInfoUniquePtr create_anvil_create_info(prosper::IPrCont
 	constexpr auto flags = MemoryFeatureFlags::HostCached | MemoryFeatureFlags::DeviceLocal;
 	if((createInfo.memoryFeatures & flags) == flags) {
 		context.ValidationCallback(DebugMessageSeverityFlags::ErrorBit, "Attempted to create image with both HostCached and DeviceLocal flags, which is poorly supported. Removing DeviceLocal flag...");
-		umath::remove_flag(createInfo.memoryFeatures, MemoryFeatureFlags::DeviceLocal);
+		pragma::math::remove_flag(createInfo.memoryFeatures, MemoryFeatureFlags::DeviceLocal);
 	}
 	auto &layers = createInfo.layers;
 	auto imageCreateFlags = Anvil::ImageCreateFlags {};
@@ -1153,12 +1153,12 @@ static Anvil::ImageCreateInfoUniquePtr create_anvil_create_info(prosper::IPrCont
 		sharingMode = Anvil::SharingMode::CONCURRENT;
 
 	auto &useDiscreteMemory = outUseDiscreteMemory;
-	useDiscreteMemory = umath::is_flag_set(createInfo.flags, prosper::util::ImageCreateInfo::Flags::AllocateDiscreteMemory);
+	useDiscreteMemory = pragma::math::is_flag_set(createInfo.flags, prosper::util::ImageCreateInfo::Flags::AllocateDiscreteMemory);
 	if(useDiscreteMemory == false && ((createInfo.memoryFeatures & prosper::MemoryFeatureFlags::HostAccessable) != prosper::MemoryFeatureFlags::None || (createInfo.memoryFeatures & prosper::MemoryFeatureFlags::DeviceLocal) == prosper::MemoryFeatureFlags::None))
 		useDiscreteMemory = true; // Pre-allocated memory currently only supported for device local memory
 
 	auto sparse = (createInfo.flags & prosper::util::ImageCreateInfo::Flags::Sparse) != prosper::util::ImageCreateInfo::Flags::None;
-	auto dontAllocateMemory = umath::is_flag_set(createInfo.flags, prosper::util::ImageCreateInfo::Flags::DontAllocateMemory);
+	auto dontAllocateMemory = pragma::math::is_flag_set(createInfo.flags, prosper::util::ImageCreateInfo::Flags::DontAllocateMemory);
 
 	auto bUseFullMipmapChain = (createInfo.flags & prosper::util::ImageCreateInfo::Flags::FullMipmapChain) != prosper::util::ImageCreateInfo::Flags::None;
 	if(useDiscreteMemory == false || sparse || dontAllocateMemory) {
@@ -1183,7 +1183,7 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, cons
 	auto useDiscreteMemory = false;
 	auto anvCreateInfo = create_anvil_create_info(context, createInfo, useDiscreteMemory, data);
 	auto sparse = (createInfo.flags & prosper::util::ImageCreateInfo::Flags::Sparse) != prosper::util::ImageCreateInfo::Flags::None;
-	auto dontAllocateMemory = umath::is_flag_set(createInfo.flags, prosper::util::ImageCreateInfo::Flags::DontAllocateMemory);
+	auto dontAllocateMemory = pragma::math::is_flag_set(createInfo.flags, prosper::util::ImageCreateInfo::Flags::DontAllocateMemory);
 	if(useDiscreteMemory == false || sparse || dontAllocateMemory) {
 		auto anvImg = Anvil::Image::create(std::move(anvCreateInfo));
 		auto *memAllocator = static_cast<prosper::VlkContext &>(context).GetMemoryAllocator();
@@ -1204,7 +1204,7 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, cons
 
 std::shared_ptr<IImage> prosper::VlkContext::CreateImage(const util::ImageCreateInfo &createInfo, const std::function<const uint8_t *(uint32_t layer, uint32_t mipmap, uint32_t &dataSize, uint32_t &rowSize)> &getImageData)
 {
-	if(ShouldLog(::util::LogSeverity::Debug)) {
+	if(ShouldLog(pragma::util::LogSeverity::Debug)) {
 		std::stringstream ss;
 		ss << "CreateImage:";
 		util::to_string(createInfo, ss);
@@ -1212,7 +1212,7 @@ std::shared_ptr<IImage> prosper::VlkContext::CreateImage(const util::ImageCreate
 	auto byteSize = util::get_pixel_size(createInfo.format);
 	std::vector<Anvil::MipmapRawData> anvMipmapData {};
 	if(getImageData) {
-		auto numMipmaps = umath::is_flag_set(createInfo.flags, util::ImageCreateInfo::Flags::FullMipmapChain) ? util::calculate_mipmap_count(createInfo.width, createInfo.height) : 1u;
+		auto numMipmaps = pragma::math::is_flag_set(createInfo.flags, util::ImageCreateInfo::Flags::FullMipmapChain) ? util::calculate_mipmap_count(createInfo.width, createInfo.height) : 1u;
 		anvMipmapData.reserve(createInfo.layers * numMipmaps);
 		for(auto iLayer = decltype(createInfo.layers) {0u}; iLayer < createInfo.layers; ++iLayer) {
 			for(auto iMipmap = decltype(numMipmaps) {0u}; iMipmap < numMipmaps; ++iMipmap) {
@@ -1233,7 +1233,7 @@ std::shared_ptr<IImage> prosper::VlkContext::CreateImage(const util::ImageCreate
 std::pair<const Anvil::MemoryType *, prosper::MemoryFeatureFlags> VlkContext::FindCompatibleMemoryType(MemoryFeatureFlags featureFlags) const
 {
 	auto r = std::pair<const Anvil::MemoryType *, prosper::MemoryFeatureFlags> {nullptr, featureFlags};
-	if(umath::to_integral(featureFlags) == 0u)
+	if(pragma::math::to_integral(featureFlags) == 0u)
 		return r;
 	prosper::MemoryFeatureFlags requiredFeatures {};
 
@@ -1287,7 +1287,7 @@ void VlkContext::SubmitCommandBuffer(prosper::ICommandBuffer &cmd, prosper::Queu
 		res = m_devicePtr->get_compute_queue(0u)->submit(Anvil::SubmitInfo::create(&cmd.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, shouldBlock, fence ? &static_cast<VlkFence *>(fence)->GetAnvilFence() : nullptr));
 		break;
 	default:
-		throw std::invalid_argument("No device queue exists for queue family " + std::to_string(umath::to_integral(queueFamilyType)) + "!");
+		throw std::invalid_argument("No device queue exists for queue family " + std::to_string(pragma::math::to_integral(queueFamilyType)) + "!");
 	}
 	if(res == VkResult::VK_SUCCESS)
 		SetDeviceBusy(true);
@@ -1309,8 +1309,8 @@ void VlkContext::InitAPI(const CreateInfo &createInfo)
 	CheckDeviceLimits();
 	InitWindow();
 	ReloadSwapchain();
-	if(ShouldLog(::util::LogSeverity::Debug))
-		Log("Core API initialization is complete!", ::util::LogSeverity::Debug);
+	if(ShouldLog(pragma::util::LogSeverity::Debug))
+		Log("Core API initialization is complete!", pragma::util::LogSeverity::Debug);
 }
 
 void VlkContext::InitMainRenderPass()
@@ -1376,7 +1376,7 @@ static Anvil::ShaderModuleStageEntryPoint to_anv_entrypoint(Anvil::BaseDevice &d
 static void init_base_pipeline_create_info(const prosper::BasePipelineCreateInfo &pipelineCreateInfo, Anvil::BasePipelineCreateInfo &anvPipelineCreateInfo, bool computePipeline)
 {
 	anvPipelineCreateInfo.set_name(pipelineCreateInfo.GetName());
-	for(auto i = decltype(umath::to_integral(prosper::ShaderStage::Count)) {0u}; i < umath::to_integral(prosper::ShaderStage::Count); ++i) {
+	for(auto i = decltype(pragma::math::to_integral(prosper::ShaderStage::Count)) {0u}; i < pragma::math::to_integral(prosper::ShaderStage::Count); ++i) {
 		auto stage = static_cast<prosper::ShaderStage>(i);
 		const std::vector<prosper::SpecializationConstant> *specializationConstants;
 		const uint8_t *dataBuffer;
@@ -1689,7 +1689,7 @@ std::optional<prosper::PipelineID> prosper::VlkContext::AddPipeline(prosper::Sha
 	return pipelineId;
 }
 
-std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, const prosper::util::ImageCreateInfo &pImgCreateInfo, const std::vector<std::shared_ptr<uimg::ImageBuffer>> &imgBuffers, bool cubemap)
+std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, const prosper::util::ImageCreateInfo &pImgCreateInfo, const std::vector<std::shared_ptr<pragma::image::ImageBuffer>> &imgBuffers, bool cubemap)
 {
 	if(imgBuffers.empty() || imgBuffers.size() != (cubemap ? 6 : 1))
 		return nullptr;
@@ -1702,22 +1702,22 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, cons
 			return nullptr;
 	}
 	auto imgCreateInfo = pImgCreateInfo;
-	std::optional<uimg::Format> conversionFormatRequired = {};
+	std::optional<pragma::image::Format> conversionFormatRequired = {};
 	auto &imgBuf = imgBuffers.front();
 	switch(imgBuf->GetFormat()) {
-	case uimg::Format::RGB8:
-		conversionFormatRequired = uimg::Format::RGBA8;
+	case pragma::image::Format::RGB8:
+		conversionFormatRequired = pragma::image::Format::RGBA8;
 		imgCreateInfo.format = prosper::Format::R8G8B8A8_UNorm;
 		break;
-	case uimg::Format::RGB16:
-		conversionFormatRequired = uimg::Format::RGBA16;
+	case pragma::image::Format::RGB16:
+		conversionFormatRequired = pragma::image::Format::RGBA16;
 		imgCreateInfo.format = prosper::Format::R16G16B16A16_SFloat;
 		break;
 	}
 
-	static_assert(umath::to_integral(uimg::Format::Count) == 13);
+	static_assert(pragma::math::to_integral(pragma::image::Format::Count) == 13);
 	if(conversionFormatRequired.has_value()) {
-		std::vector<std::shared_ptr<uimg::ImageBuffer>> converted {};
+		std::vector<std::shared_ptr<pragma::image::ImageBuffer>> converted {};
 		converted.reserve(imgBuffers.size());
 		for(auto &img : imgBuffers) {
 			auto copy = img->Copy(*conversionFormatRequired);
@@ -1811,7 +1811,7 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescrip
 	for(auto i = decltype(numBindings) {0u}; i < numBindings; ++i) {
 		prosper::PrDescriptorSetBindingFlags prFlags;
 		if(descSetCreateInfo.GetBindingPropertiesByBindingIndex(i, nullptr, nullptr, nullptr, nullptr, nullptr, &prFlags)) {
-			if(umath::is_flag_set(prFlags, prosper::PrDescriptorSetBindingFlags::Cubemap))
+			if(pragma::math::is_flag_set(prFlags, prosper::PrDescriptorSetBindingFlags::Cubemap))
 				cubemapBindings[i] = true;
 		}
 	}
@@ -1883,20 +1883,20 @@ std::shared_ptr<prosper::IImageView> prosper::VlkContext::DoCreateImageView(cons
 	case ImageViewType::e2D:
 		return VlkImageView::Create(*this, img, createInfo, type, aspectMask,
 		  Anvil::ImageView::create(Anvil::ImageViewCreateInfo::create_2D(&static_cast<VlkContext &>(*this).GetDevice(), &static_cast<VlkImage &>(img).GetAnvilImage(), createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u, createInfo.baseMipmap,
-		    umath::min(createInfo.baseMipmap + createInfo.mipmapLevels, img.GetMipmapCount()) - createInfo.baseMipmap, static_cast<Anvil::ImageAspectFlagBits>(aspectMask), static_cast<Anvil::Format>(format), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleRed),
+		    pragma::math::min(createInfo.baseMipmap + createInfo.mipmapLevels, img.GetMipmapCount()) - createInfo.baseMipmap, static_cast<Anvil::ImageAspectFlagBits>(aspectMask), static_cast<Anvil::Format>(format), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleRed),
 		    static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleGreen), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleBlue), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleAlpha))));
 	case ImageViewType::Cube:
 		return VlkImageView::Create(*this, img, createInfo, type, aspectMask,
 		  Anvil::ImageView::create(Anvil::ImageViewCreateInfo::create_cube_map(&static_cast<VlkContext &>(*this).GetDevice(), &static_cast<VlkImage &>(img).GetAnvilImage(), createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u, createInfo.baseMipmap,
-		    umath::min(createInfo.baseMipmap + createInfo.mipmapLevels, img.GetMipmapCount()) - createInfo.baseMipmap, static_cast<Anvil::ImageAspectFlagBits>(aspectMask), static_cast<Anvil::Format>(format), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleRed),
+		    pragma::math::min(createInfo.baseMipmap + createInfo.mipmapLevels, img.GetMipmapCount()) - createInfo.baseMipmap, static_cast<Anvil::ImageAspectFlagBits>(aspectMask), static_cast<Anvil::Format>(format), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleRed),
 		    static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleGreen), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleBlue), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleAlpha))));
 	case ImageViewType::e2DArray:
 		return VlkImageView::Create(*this, img, createInfo, type, aspectMask,
 		  Anvil::ImageView::create(Anvil::ImageViewCreateInfo::create_2D_array(&static_cast<VlkContext &>(*this).GetDevice(), &static_cast<VlkImage &>(img).GetAnvilImage(), createInfo.baseLayer.has_value() ? *createInfo.baseLayer : 0u, numLayers, createInfo.baseMipmap,
-		    umath::min(createInfo.baseMipmap + createInfo.mipmapLevels, img.GetMipmapCount()) - createInfo.baseMipmap, static_cast<Anvil::ImageAspectFlagBits>(aspectMask), static_cast<Anvil::Format>(format), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleRed),
+		    pragma::math::min(createInfo.baseMipmap + createInfo.mipmapLevels, img.GetMipmapCount()) - createInfo.baseMipmap, static_cast<Anvil::ImageAspectFlagBits>(aspectMask), static_cast<Anvil::Format>(format), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleRed),
 		    static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleGreen), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleBlue), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleAlpha))));
 	default:
-		throw std::invalid_argument("Image view type " + std::to_string(umath::to_integral(type)) + " is currently unsupported!");
+		throw std::invalid_argument("Image view type " + std::to_string(pragma::math::to_integral(type)) + " is currently unsupported!");
 	}
 }
 std::shared_ptr<prosper::IRenderPass> prosper::VlkContext::CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo)

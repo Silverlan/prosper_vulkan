@@ -24,7 +24,7 @@ Anvil::PipelineCacheUniquePtr PipelineCache::Create(Anvil::BaseDevice &dev)
 
 Anvil::PipelineCacheUniquePtr PipelineCache::Load(Anvil::BaseDevice &dev, const std::string &fileName, LoadError &outErr)
 {
-	auto f = FileManager::OpenFile(fileName.c_str(), "rb");
+	auto f = pragma::fs::open_file(fileName.c_str(), pragma::fs::FileMode::Read | pragma::fs::FileMode::Binary);
 	if(f == nullptr) {
 		outErr = LoadError::FileNotFound;
 		return nullptr;
@@ -39,7 +39,7 @@ Anvil::PipelineCacheUniquePtr PipelineCache::Load(Anvil::BaseDevice &dev, const 
 	data.resize(szData);
 	f->Read(data.data(), data.size() * sizeof(data.front()));
 
-	// static_assert(umath::to_integral(vk::PipelineCacheHeaderVersion::eOne) == VkPipelineCacheHeaderVersion::VK_PIPELINE_CACHE_HEADER_VERSION_END_RANGE,"Unsupported pipeline cache header version, please update header information! (See https://vulkan.lunarg.com/doc/view/1.0.26.0/linux/vkspec.chunked/ch09s06.html , table 9.1)");
+	// static_assert(pragma::math::to_integral(vk::PipelineCacheHeaderVersion::eOne) == VkPipelineCacheHeaderVersion::VK_PIPELINE_CACHE_HEADER_VERSION_END_RANGE,"Unsupported pipeline cache header version, please update header information! (See https://vulkan.lunarg.com/doc/view/1.0.26.0/linux/vkspec.chunked/ch09s06.html , table 9.1)");
 	if(header.version != vk::PipelineCacheHeaderVersion::eOne) {
 		outErr = LoadError::UnsupportedCacheVersion;
 		return nullptr;
@@ -76,7 +76,7 @@ Anvil::PipelineCacheUniquePtr PipelineCache::Load(Anvil::BaseDevice &dev, const 
 
 bool PipelineCache::Save(Anvil::PipelineCache &cache, const std::string &fileName)
 {
-	auto f = FileManager::OpenFile<VFilePtrReal>(fileName.c_str(), "wb");
+	auto f = pragma::fs::open_file<pragma::fs::VFilePtrReal>(fileName, pragma::fs::FileMode::Write | pragma::fs::FileMode::Binary);
 	if(f == nullptr)
 		return false;
 	size_t cacheSize {0ull};
