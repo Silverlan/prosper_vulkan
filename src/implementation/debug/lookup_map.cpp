@@ -247,20 +247,21 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 	r << msgValidation.substr(prevPos);
 	msgValidation = r.str();
 
+	std::string nl {pragma::util::LOG_NL};
 	for(auto &[o, info] : debugInfoMap) {
-		msgValidation += pragma::util::LOG_NL;
+		msgValidation += nl;
 		msgValidation += "Object 0x" + ::pragma::math::to_hex_string(reinterpret_cast<uint64_t>(o)) + ": ";
 		if(info.debugName.empty() == false)
-			msgValidation += "Debug name: " + info.debugName + pragma::util::LOG_NL;
+			msgValidation += "Debug name: " + info.debugName + nl;
 		if(info.backTrace.empty() == false) {
 			auto backtrace = "\t" + info.backTrace;
-			pragma::string::replace(backtrace, "\n", pragma::util::LOG_NL + "\t");
-			msgValidation += "Creation Backtrace:" + pragma::util::LOG_NL + backtrace + pragma::util::LOG_NL;
+			pragma::string::replace(backtrace, "\n", nl + "\t");
+			msgValidation += "Creation Backtrace:" + nl + backtrace + nl;
 		}
 		if(info.destroyBackTrace.empty() == false) {
 			auto backtrace = "\t" + info.destroyBackTrace;
-			pragma::string::replace(backtrace, "\n", pragma::util::LOG_NL + "\t");
-			msgValidation += "Destruction Backtrace:" + pragma::util::LOG_NL + backtrace + pragma::util::LOG_NL;
+			pragma::string::replace(backtrace, "\n", nl + "\t");
+			msgValidation += "Destruction Backtrace:" + nl + backtrace + nl;
 		}
 	}
 
@@ -290,7 +291,7 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 	msgValidation += " Currently bound shaders/pipelines:";
 	for(auto &boundPipeline : boundPipelines)
 	{
-		msgValidation += pragma::util::LOG_NL;
+		msgValidation += std::string {pragma::util::LOG_NL};
 		auto &cmd = *boundPipeline.first;
 		auto &dbgName = cmd.GetDebugName();
 		msgValidation += ((dbgName.empty() == false) ? dbgName : "Unknown") +": ";
