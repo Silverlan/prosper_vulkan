@@ -880,7 +880,7 @@ std::optional<std::string> VlkContext::DumpMemoryBudget() const
 	if(!vmaHandle)
 		return {};
 	VmaBudget budget;
-	vmaGetBudget(vmaHandle, &budget);
+	vmaGetHeapBudgets(vmaHandle, &budget);
 
 #ifdef _WIN32
 	// For some reason without this call the destruction of 'budget' will cause a 'stack-based buffer overrun'.
@@ -891,10 +891,13 @@ std::optional<std::string> VlkContext::DumpMemoryBudget() const
 #endif
 
 	std::stringstream str {};
-	str << "Total block size: " << pragma::util::get_pretty_bytes(budget.blockBytes) << " (" << budget.blockBytes << ")\n";
-	str << "Total allocation size: " << pragma::util::get_pretty_bytes(budget.allocationBytes) << " (" << budget.allocationBytes << ")\n";
-	str << "Current memory usage " << pragma::util::get_pretty_bytes(budget.usage) << " (" << budget.usage << ")\n";
-	str << "Available memory: " << pragma::util::get_pretty_bytes(budget.budget) << " (" << budget.budget << ")\n";
+	str << "Budget: " << pragma::util::get_pretty_bytes(budget.budget) << " (Estimated amount of memory available to the program, in bytes.)\n";
+	str << "Usage: " << pragma::util::get_pretty_bytes(budget.usage) << " (Estimated current memory usage of the program, in bytes.)\n";
+
+	str << "Block Count: " << budget.statistics.blockCount << " (Number of `VkDeviceMemory` objects - Vulkan memory blocks allocated.)\n";
+	str << "Allocation Count: " << budget.statistics.allocationCount << " (Number of #VmaAllocation objects allocated.)\n";
+	str << "Block Bytes: " << pragma::util::get_pretty_bytes(budget.statistics.blockBytes) << " (Number of bytes allocated in `VkDeviceMemory` blocks.)\n";
+	str << "Allocation Bytes: " << pragma::util::get_pretty_bytes(budget.statistics.allocationBytes) << " (Total number of bytes occupied by all #VmaAllocation objects.)\n";
 	return str.str();
 }
 std::optional<std::string> VlkContext::DumpMemoryStats() const
@@ -1101,6 +1104,8 @@ std::shared_ptr<prosper::IBuffer> VlkContext::CreateBuffer(const prosper::util::
 			bufferCreateInfo->set_client_data(data);
 
 			auto buf = Anvil::Buffer::create(std::move(bufferCreateInfo));
+			if(!createInfo.debugName.empty())
+				buf->set_name(std::string {createInfo.debugName});
 			if(data) {
 				std::unique_ptr<uint8_t[]> dataPtr {new uint8_t[createInfo.size]};
 				memcpy(dataPtr.get(), data, createInfo.size);
@@ -1114,11 +1119,15 @@ std::shared_ptr<prosper::IBuffer> VlkContext::CreateBuffer(const prosper::util::
 		auto bufferCreateInfo = Anvil::BufferCreateInfo::create_alloc(&dev, static_cast<VkDeviceSize>(createInfo.size), queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask), sharingMode, createFlags, static_cast<Anvil::BufferUsageFlagBits>(createInfo.usageFlags),
 		  memory_feature_flags_to_anvil_flags(memoryFeatures));
 		bufferCreateInfo->set_client_data(data);
-		return VlkBuffer::Create(*this, Anvil::Buffer::create(std::move(bufferCreateInfo)), createInfo, 0ull, createInfo.size);
+		auto buf = Anvil::Buffer::create(std::move(bufferCreateInfo));
+		if(!createInfo.debugName.empty())
+			buf->set_name(std::string {createInfo.debugName});
+		return VlkBuffer::Create(*this, std::move(buf), createInfo, 0ull, createInfo.size);
 	}
-	return VlkBuffer::Create(*this,
-	  Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc(&dev, static_cast<VkDeviceSize>(createInfo.size), queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask), sharingMode, createFlags, static_cast<Anvil::BufferUsageFlagBits>(createInfo.usageFlags))),
-	  createInfo, 0ull, createInfo.size);
+	auto buf = Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc(&dev, static_cast<VkDeviceSize>(createInfo.size), queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask), sharingMode, createFlags, static_cast<Anvil::BufferUsageFlagBits>(createInfo.usageFlags)));
+	if(!createInfo.debugName.empty())
+		buf->set_name(std::string {createInfo.debugName});
+	return VlkBuffer::Create(*this, std::move(buf), createInfo, 0ull, createInfo.size);
 }
 
 static Anvil::ImageCreateInfoUniquePtr create_anvil_create_info(prosper::IPrContext &context, prosper::util::ImageCreateInfo &createInfo, bool &outUseDiscreteMemory, const std::vector<Anvil::MipmapRawData> *data = nullptr)
@@ -1186,6 +1195,8 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, cons
 	auto dontAllocateMemory = pragma::math::is_flag_set(createInfo.flags, prosper::util::ImageCreateInfo::Flags::DontAllocateMemory);
 	if(useDiscreteMemory == false || sparse || dontAllocateMemory) {
 		auto anvImg = Anvil::Image::create(std::move(anvCreateInfo));
+		if(!createInfo.debugName.empty())
+			anvImg->set_name(std::string {createInfo.debugName});
 		auto *memAllocator = static_cast<prosper::VlkContext &>(context).GetMemoryAllocator();
 		if(memAllocator) {
 			if(sparse == false && dontAllocateMemory == false) {
@@ -1198,8 +1209,10 @@ std::shared_ptr<prosper::IImage> create_image(prosper::IPrContext &context, cons
 			context.AllocateDeviceImageBuffer(*img);
 		return img;
 	}
-
-	return prosper::VlkImage::Create(context, Anvil::Image::create(std::move(anvCreateInfo)), createInfo, false);
+	auto anvImg = Anvil::Image::create(std::move(anvCreateInfo));
+	if(!createInfo.debugName.empty())
+		anvImg->set_name(std::string {createInfo.debugName});
+	return prosper::VlkImage::Create(context, std::move(anvImg), createInfo, false);
 }
 
 std::shared_ptr<IImage> prosper::VlkContext::CreateImage(const util::ImageCreateInfo &createInfo, const std::function<const uint8_t *(uint32_t layer, uint32_t mipmap, uint32_t &dataSize, uint32_t &rowSize)> &getImageData)
