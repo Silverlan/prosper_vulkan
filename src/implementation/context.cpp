@@ -1051,23 +1051,21 @@ static void find_compatible_memory_feature_flags(prosper::IPrContext &context, p
 	featureFlags = r.second;
 }
 
-std::shared_ptr<prosper::IUniformResizableBuffer> prosper::VlkContext::DoCreateUniformResizableBuffer(const util::BufferCreateInfo &createInfo, uint64_t bufferInstanceSize, uint64_t maxTotalSize, const void *data, prosper::DeviceSize bufferBaseSize, uint32_t alignment)
+std::shared_ptr<prosper::IUniformResizableBuffer> prosper::VlkContext::DoCreateUniformResizableBuffer(const util::BufferCreateInfo &createInfo, uint64_t bufferInstanceSize, const void *data, prosper::DeviceSize bufferBaseSize, uint32_t alignment)
 {
 	auto buf = CreateBuffer(createInfo, data);
 	if(buf == nullptr)
 		return nullptr;
-	auto r = std::shared_ptr<VkUniformResizableBuffer>(new VkUniformResizableBuffer {*this, *buf, bufferInstanceSize, bufferBaseSize, maxTotalSize, alignment});
+	auto r = std::shared_ptr<VkUniformResizableBuffer>(new VkUniformResizableBuffer {*this, *buf, bufferInstanceSize, bufferBaseSize, alignment});
 	r->Initialize();
 	return r;
 }
-std::shared_ptr<prosper::IDynamicResizableBuffer> prosper::VlkContext::CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, uint64_t maxTotalSize, float clampSizeToAvailableGPUMemoryPercentage, const void *data)
+std::shared_ptr<prosper::IDynamicResizableBuffer> prosper::VlkContext::CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, const void *data)
 {
-	createInfo.size = ClampDeviceMemorySize(createInfo.size, clampSizeToAvailableGPUMemoryPercentage, createInfo.memoryFeatures);
-	maxTotalSize = ClampDeviceMemorySize(maxTotalSize, clampSizeToAvailableGPUMemoryPercentage, createInfo.memoryFeatures);
 	auto buf = CreateBuffer(createInfo, data);
 	if(buf == nullptr)
 		return nullptr;
-	auto r = std::shared_ptr<VkDynamicResizableBuffer>(new VkDynamicResizableBuffer {*this, *buf, createInfo, maxTotalSize});
+	auto r = std::shared_ptr<VkDynamicResizableBuffer>(new VkDynamicResizableBuffer {*this, *buf, createInfo});
 	r->Initialize();
 	return r;
 }

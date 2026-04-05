@@ -127,7 +127,13 @@ bool prosper::VlkBuffer::DoMap(Offset offset, Size size, MapFlags mapFlags, void
 }
 bool prosper::VlkBuffer::DoUnmap() const { return m_buffer->get_memory_block(0u)->unmap(); }
 
-void prosper::VlkBuffer::RecreateInternalSubBuffer(IBuffer &newParentBuffer) { SetBuffer(Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&newParentBuffer.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(), GetStartOffset(), GetSize()))); }
+void prosper::VlkBuffer::RecreateInternalSubBuffer(IBuffer &newParentBuffer)
+{
+	auto &createInfo = *m_buffer->get_create_info_ptr();
+	auto startOffset = createInfo.get_start_offset();
+	auto size = createInfo.get_size();
+	SetBuffer(Anvil::Buffer::create(Anvil::BufferCreateInfo::create_no_alloc_child(&newParentBuffer.GetAPITypeRef<VlkBuffer>().GetAnvilBuffer(), startOffset, size)));
+}
 
 void prosper::VlkBuffer::SetBuffer(Anvil::BufferUniquePtr buf)
 {

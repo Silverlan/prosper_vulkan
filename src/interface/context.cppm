@@ -101,7 +101,7 @@ export namespace prosper {
 		using IPrContext::SubmitCommandBuffer;
 
 		virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo, const void *data = nullptr) override;
-		virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, uint64_t maxTotalSize, float clampSizeToAvailableGPUMemoryPercentage = 1.f, const void *data = nullptr) override;
+		virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, const void *data = nullptr) override;
 		virtual std::shared_ptr<IEvent> CreateEvent() override;
 		virtual std::shared_ptr<IFence> CreateFence(bool createSignalled = false) override;
 		virtual std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo) override;
@@ -170,7 +170,7 @@ export namespace prosper {
 		virtual void DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource) override;
 		virtual void DoWaitIdle() override;
 		virtual void DoFlushCommandBuffer(ICommandBuffer &cmd) override;
-		virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(const util::BufferCreateInfo &createInfo, uint64_t bufferInstanceSize, uint64_t maxTotalSize, const void *data, prosper::DeviceSize bufferBaseSize, uint32_t alignment) override;
+		virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(const util::BufferCreateInfo &createInfo, uint64_t bufferInstanceSize, const void *data, prosper::DeviceSize bufferBaseSize, uint32_t alignment) override;
 		void InitVulkan(const CreateInfo &createInfo);
 		void InitMainRenderPass();
 		virtual void ReloadSwapchain() override;

@@ -8,12 +8,13 @@ export import :buffer.buffer;
 export namespace prosper {
 	class VkDynamicResizableBuffer;
 	namespace util {
-		PR_EXPORT std::shared_ptr<VkDynamicResizableBuffer> create_dynamic_resizable_buffer(IPrContext &context, BufferCreateInfo createInfo, uint64_t maxTotalSize, float clampSizeToAvailableGPUMemoryPercentage = 1.f, const void *data = nullptr);
+		PR_EXPORT std::shared_ptr<VkDynamicResizableBuffer> create_dynamic_resizable_buffer(IPrContext &context, BufferCreateInfo createInfo, const void *data = nullptr);
 	};
 	class PR_EXPORT VkDynamicResizableBuffer : public IDynamicResizableBuffer, virtual public VlkBuffer {
 	  public:
-		VkDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const util::BufferCreateInfo &createInfo, uint64_t maxTotalSize);
+		VkDynamicResizableBuffer(IPrContext &context, IBuffer &buffer, const util::BufferCreateInfo &createInfo);
 	  protected:
-		virtual void MoveInternalBuffer(IBuffer &other) override;
+		void MoveInternalBuffer(IBuffer &other) override;
+		void ReleaseBufferSafely() override;
 	};
 };
