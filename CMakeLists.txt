@@ -33,8 +33,6 @@ pr_add_dependency(${PROJ_NAME} SPIRV TARGET)
 pr_add_dependency(${PROJ_NAME} SPIRV-Tools TARGET)
 pr_add_dependency(${PROJ_NAME} OSDependent TARGET)
 pr_add_dependency(${PROJ_NAME} SPIRV-Tools-opt TARGET)
-pr_add_dependency(${PROJ_NAME} OGLCompiler TARGET)
-pr_add_dependency(${PROJ_NAME} SPVRemapper TARGET)
 pr_add_dependency(${PROJ_NAME} glslang TARGET)
 
 # Anvil
