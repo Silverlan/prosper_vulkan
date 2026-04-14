@@ -294,12 +294,15 @@ bool VlkContext::GetSurfaceCapabilities(Anvil::SurfaceCapabilities &caps) const
 	return const_cast<VlkContext *>(this)->GetDevice().get_physical_device_surface_capabilities(&static_cast<VlkWindow &>(const_cast<Window &>(GetWindow())).GetRenderingSurface(), &caps);
 }
 
-void VlkContext::ReloadWindow()
+std::expected<void, std::string> VlkContext::ReloadWindow()
 {
 	WaitIdle();
 	m_renderPass.reset();
-	InitWindow();
+	auto res = InitWindow();
+	if(!res)
+		return std::unexpected {res.error()};
 	ReloadSwapchain();
+	return {};
 }
 
 const Anvil::Instance &VlkContext::GetAnvilInstance() const { return const_cast<VlkContext *>(this)->GetAnvilInstance(); }
@@ -568,11 +571,12 @@ void VlkContext::OnPrimaryWindowSwapchainReloaded()
 	m_swapchainResourcesInUse.assign(m_swapchainResourcesInUse.size(), false);
 }
 
-std::shared_ptr<Window> VlkContext::CreateWindow(const WindowSettings &windowCreationInfo)
+std::expected<std::shared_ptr<Window>, std::string> VlkContext::CreateWindow(const WindowSettings &windowCreationInfo)
 {
-	auto window = VlkWindow::Create(windowCreationInfo, *this);
-	if(!window)
-		return nullptr;
+	auto res = VlkWindow::Create(windowCreationInfo, *this);
+	if(!res)
+		return std::unexpected {res.error()};
+	auto &window = res.value();
 	window->ReloadSwapchain();
 	m_windows.push_back(window);
 	return window;
@@ -1314,14 +1318,17 @@ bool VlkContext::GetUniversalQueueFamilyIndex(prosper::QueueFamilyType queueFami
 	return true;
 }
 
-void VlkContext::InitAPI(const CreateInfo &createInfo)
+std::expected<void, std::string> VlkContext::InitAPI(const CreateInfo &createInfo)
 {
 	InitVulkan(createInfo);
 	CheckDeviceLimits();
-	InitWindow();
+	auto res = InitWindow();
+	if(!res)
+		return std::unexpected {res.error()};
 	ReloadSwapchain();
 	if(ShouldLog(pragma::util::LogSeverity::Debug))
 		Log("Core API initialization is complete!", pragma::util::LogSeverity::Debug);
+	return {};
 }
 
 void VlkContext::InitMainRenderPass()

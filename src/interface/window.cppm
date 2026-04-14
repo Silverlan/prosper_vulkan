@@ -14,7 +14,7 @@ export namespace prosper {
 	class VlkContext;
 	class PR_EXPORT VlkWindow : public Window {
 	  public:
-		static std::shared_ptr<VlkWindow> Create(const WindowSettings &windowCreationInfo, prosper::VlkContext &context);
+		static std::expected<std::shared_ptr<VlkWindow>, std::string> Create(const WindowSettings &windowCreationInfo, prosper::VlkContext &context);
 		virtual ~VlkWindow() override;
 
 		Anvil::Swapchain &GetSwapchain() { return *m_swapchainPtr; }
@@ -37,7 +37,7 @@ export namespace prosper {
 		using Window::Window;
 		void ClearSwapchain();
 		void ResetSwapchain();
-		virtual void InitWindow() override;
+		virtual std::expected<void, std::string> InitWindow() override;
 		virtual void ReleaseWindow() override;
 		virtual void DoInitSwapchain() override;
 		virtual void DoReleaseSwapchain() override;

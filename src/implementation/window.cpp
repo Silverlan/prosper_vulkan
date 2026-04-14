@@ -62,13 +62,15 @@ import pragma.platform;
 
 using namespace prosper;
 
-std::shared_ptr<VlkWindow> prosper::VlkWindow::Create(const WindowSettings &windowCreationInfo, prosper::VlkContext &context)
+std::expected<std::shared_ptr<VlkWindow>, std::string> VlkWindow::Create(const WindowSettings &windowCreationInfo, prosper::VlkContext &context)
 {
 	auto window = std::shared_ptr<VlkWindow> {new VlkWindow {context, windowCreationInfo}, [](VlkWindow *window) {
 		                                          window->Release();
 		                                          delete window;
 	                                          }};
-	window->InitWindow();
+	auto res = window->InitWindow();
+	if(!res)
+		return std::unexpected {res.error()};
 	return window;
 }
 prosper::VlkWindow::~VlkWindow()
@@ -197,7 +199,7 @@ void prosper::VlkWindow::Present(Anvil::Semaphore *optWaitSemaphore)
 			auto actualWindowSize = m_glfwWindow->GetSize();
 			auto curWidth = genericWindow->get_framebuffer_width();
 			auto curHeight = genericWindow->get_framebuffer_height();
-			if (curWidth != actualWindowSize.x || curHeight != actualWindowSize.y)
+			if(curWidth != actualWindowSize.x || curHeight != actualWindowSize.y)
 				errCode = Anvil::SwapchainOperationErrorCode::OUT_OF_DATE;
 		}
 	}
@@ -213,7 +215,7 @@ void prosper::VlkWindow::Present(Anvil::Semaphore *optWaitSemaphore)
 	//m_glfwWindow->SwapBuffers();
 }
 
-void prosper::VlkWindow::InitWindow()
+std::expected<void, std::string> prosper::VlkWindow::InitWindow()
 {
 	auto &context = static_cast<VlkContext &>(GetContext());
 
@@ -227,7 +229,10 @@ void prosper::VlkWindow::InitWindow()
 		settings.monitor = pragma::platform::get_primary_monitor();
 	if(context.ShouldLog(pragma::util::LogSeverity::Debug))
 		context.Log("Creating GLFW window...", pragma::util::LogSeverity::Debug);
-	m_glfwWindow = pragma::platform::Window::Create(settings); // TODO: Release
+	auto res = pragma::platform::Window::Create(settings); // TODO: Release
+	if(!res)
+		return std::unexpected {res.error()};
+	m_glfwWindow = std::move(res.value());
 
 	glfwGetError(nullptr); // Clear error
 	auto platform = pragma::platform::get_platform();
@@ -239,7 +244,7 @@ void prosper::VlkWindow::InitWindow()
 	if(platform == pragma::platform::Platform::Windowless)
 		platform = pragma::platform::Platform::Win32; // We can just treat it as a Win32 window
 	if(platform != pragma::platform::Platform::Win32)
-		throw std::runtime_error {"Platform mismatch"};
+		return std::unexpected {"Platform mismatch"};
 	hWindow.win32Window = glfwGetWin32Window(const_cast<GLFWwindow *>(m_glfwWindow->GetGLFWWindow()));
 	type = Anvil::WindowGeneric::Type::Win32;
 #else
@@ -263,7 +268,7 @@ void prosper::VlkWindow::InitWindow()
 		type = Anvil::WindowGeneric::Type::Windowless;
 		break;
 	default:
-		throw std::runtime_error {"Unsupported platform " + std::string {magic_enum::enum_name(platform)}};
+		return std::unexpected {"Unsupported platform " + std::string {magic_enum::enum_name(platform)}};
 	}
 #endif
 
@@ -272,11 +277,8 @@ void prosper::VlkWindow::InitWindow()
 
 	const char *errDesc;
 	auto err = glfwGetError(&errDesc);
-	if(err != GLFW_NO_ERROR) {
-		GetContext().Log("Error retrieving GLFW window handle: " + std::string {errDesc}, pragma::util::LogSeverity::Critical);
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-		exit(EXIT_FAILURE);
-	}
+	if(err != GLFW_NO_ERROR)
+		return std::unexpected {"Error retrieving GLFW window handle: " + std::string {errDesc}};
 
 	// GLFW does not guarantee to actually use the size which was specified,
 	// in some cases it may change, so we have to retrieve it again here
@@ -306,11 +308,11 @@ void prosper::VlkWindow::InitWindow()
 	if(err != GLFW_NO_ERROR) {
 		glfwGetError(&errDesc);
 		GetContext().Log("Error creating GLFW window surface: " + std::string {errDesc}, pragma::util::LogSeverity::Critical);
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-		exit(EXIT_FAILURE);
+		return std::unexpected {"Error creating GLFW window surface: " + std::string {errDesc}};
 	}
 
 	OnWindowInitialized();
+	return {};
 }
 
 void prosper::VlkWindow::InitFrameBuffers()

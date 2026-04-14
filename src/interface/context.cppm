@@ -61,7 +61,7 @@ export namespace prosper {
 		Anvil::Instance &GetAnvilInstance();
 
 		bool GetSurfaceCapabilities(Anvil::SurfaceCapabilities &caps) const;
-		virtual void ReloadWindow() override;
+		virtual std::expected<void, std::string> ReloadWindow() override;
 		virtual Vendor GetPhysicalDeviceVendor() const override;
 		virtual bool IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const override;
 		virtual MemoryRequirements GetMemoryRequirements(IImage &img) override;
@@ -78,7 +78,7 @@ export namespace prosper {
 		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo, std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
 		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) override;
 		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(Window &window, bool allowMt = true, const std::string &debugName = {}) override;
-		virtual std::shared_ptr<Window> CreateWindow(const WindowSettings &windowCreationInfo) override;
+		virtual std::expected<std::shared_ptr<Window>, std::string> CreateWindow(const WindowSettings &windowCreationInfo) override;
 
 		virtual bool IsImageFormatSupported(prosper::Format format, prosper::ImageUsageFlags usageFlags, prosper::ImageType type = prosper::ImageType::e2D, prosper::ImageTiling tiling = prosper::ImageTiling::Optimal) const override;
 		virtual uint32_t GetUniversalQueueFamilyIndex() const override;
@@ -174,7 +174,7 @@ export namespace prosper {
 		void InitVulkan(const CreateInfo &createInfo);
 		void InitMainRenderPass();
 		virtual void ReloadSwapchain() override;
-		virtual void InitAPI(const CreateInfo &createInfo) override;
+		virtual std::expected<void, std::string> InitAPI(const CreateInfo &createInfo) override;
 
 		bool m_loadShadersLazily = true;
 		bool m_useAllocator = true;
