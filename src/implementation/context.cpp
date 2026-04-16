@@ -886,14 +886,6 @@ std::optional<std::string> VlkContext::DumpMemoryBudget() const
 	VmaBudget budget;
 	vmaGetHeapBudgets(vmaHandle, &budget);
 
-#ifdef _WIN32
-	// For some reason without this call the destruction of 'budget' will cause a 'stack-based buffer overrun'.
-	// Reason unknown
-	VmaStats stats;
-	vmaCalculateStats(vmaHandle, &stats);
-	//
-#endif
-
 	std::stringstream str {};
 	str << "Budget: " << pragma::util::get_pretty_bytes(budget.budget) << " (Estimated amount of memory available to the program, in bytes.)\n";
 	str << "Usage: " << pragma::util::get_pretty_bytes(budget.usage) << " (Estimated current memory usage of the program, in bytes.)\n";
