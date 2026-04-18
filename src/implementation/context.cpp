@@ -681,7 +681,7 @@ void VlkContext::InitVulkan(const CreateInfo &createInfo)
 			if(ShouldLog()) {
 				auto *props = (m_physicalDevicePtr != nullptr) ? m_physicalDevicePtr->get_device_properties().core_vk1_0_properties_ptr : nullptr;
 				if(props)
-					m_logHandler("Selected device: " + std::to_string(props->device_id), pragma::util::LogSeverity::Info);
+					m_logHandler("Selected device: " + pragma::util::to_string(props->device_id), pragma::util::LogSeverity::Info);
 			}
 		}
 	}
@@ -1294,7 +1294,7 @@ void VlkContext::SubmitCommandBuffer(prosper::ICommandBuffer &cmd, prosper::Queu
 		res = m_devicePtr->get_compute_queue(0u)->submit(Anvil::SubmitInfo::create(&cmd.GetAPITypeRef<VlkCommandBuffer>().GetAnvilCommandBuffer(), 0u, nullptr, 0u, nullptr, nullptr, shouldBlock, fence ? &static_cast<VlkFence *>(fence)->GetAnvilFence() : nullptr));
 		break;
 	default:
-		throw std::invalid_argument("No device queue exists for queue family " + std::to_string(pragma::math::to_integral(queueFamilyType)) + "!");
+		throw std::invalid_argument("No device queue exists for queue family " + pragma::util::to_string(pragma::math::to_integral(queueFamilyType)) + "!");
 	}
 	if(res == VkResult::VK_SUCCESS)
 		SetDeviceBusy(true);
@@ -1906,7 +1906,7 @@ std::shared_ptr<prosper::IImageView> prosper::VlkContext::DoCreateImageView(cons
 		    pragma::math::min(createInfo.baseMipmap + createInfo.mipmapLevels, img.GetMipmapCount()) - createInfo.baseMipmap, static_cast<Anvil::ImageAspectFlagBits>(aspectMask), static_cast<Anvil::Format>(format), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleRed),
 		    static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleGreen), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleBlue), static_cast<Anvil::ComponentSwizzle>(createInfo.swizzleAlpha))));
 	default:
-		throw std::invalid_argument("Image view type " + std::to_string(pragma::math::to_integral(type)) + " is currently unsupported!");
+		throw std::invalid_argument("Image view type " + pragma::util::to_string(pragma::math::to_integral(type)) + " is currently unsupported!");
 	}
 }
 std::shared_ptr<prosper::IRenderPass> prosper::VlkContext::CreateRenderPass(const util::RenderPassCreateInfo &renderPassInfo)

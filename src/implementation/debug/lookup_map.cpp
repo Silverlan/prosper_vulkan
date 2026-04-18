@@ -274,7 +274,7 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 		auto pipelineIdx = 0u;
 		auto *shader = prosper::Shader::GetBoundPipeline(cmd, pipelineIdx);
 		if(shader != nullptr)
-			msgValidation += shader->GetIdentifier() + "; Pipeline: " + std::to_string(pipelineIdx) + ".";
+			msgValidation += shader->GetIdentifier() + "; Pipeline: " + pragma::util::to_string(pipelineIdx) + ".";
 		else
 			msgValidation += "Unknown.";
 	};

@@ -228,7 +228,7 @@ static void fix_optimized_shader(std::string &inOutShader, const std::vector<std
 					else {
 						auto bindingEnd = layout.find_first_of(",)", posBinding);
 						if(bindingEnd != std::string::npos)
-							fReplaceText(posLayout + posBinding, posLayout + bindingEnd, "set=" + std::to_string(setIndex) + ",binding=" + std::to_string(bindingIndex));
+							fReplaceText(posLayout + posBinding, posLayout + bindingEnd, "set=" + pragma::util::to_string(setIndex) + ",binding=" + pragma::util::to_string(bindingIndex));
 					}
 				}
 			}
@@ -381,19 +381,19 @@ static std::string decode_driver_version(prosper::Vendor vendor, uint32_t versio
 			auto minor = (versionEncoded >> 14) & 0x0ff;
 			auto revision = (versionEncoded >> 6) & 0x0ff;
 			auto misc = (versionEncoded) & 0x003f;
-			return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision) + "." + std::to_string(misc);
+			return pragma::util::to_string(major) + "." + pragma::util::to_string(minor) + "." + pragma::util::to_string(revision) + "." + pragma::util::to_string(misc);
 		}
 	case prosper::Vendor::Intel:
 		{
 			auto major = versionEncoded >> 14;
 			auto minor = versionEncoded & 0x3fff;
-			return std::to_string(major) + "." + std::to_string(minor);
+			return pragma::util::to_string(major) + "." + pragma::util::to_string(minor);
 		}
 	}
 	auto major = versionEncoded >> 22;
 	auto minor = (versionEncoded >> 12) & 0x3ff;
 	auto revision = versionEncoded & 0xfff;
-	return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision);
+	return pragma::util::to_string(major) + "." + pragma::util::to_string(minor) + "." + pragma::util::to_string(revision);
 }
 
 static std::optional<prosper::util::VendorDeviceInfo> get_vendor_device_info(const Anvil::PhysicalDevice &dev)
@@ -409,7 +409,7 @@ static std::optional<prosper::util::VendorDeviceInfo> get_vendor_device_info(con
 	auto major = (apiVersion >> 22) & 0x7FU;
 	auto minor = (apiVersion >> 12) & 0x3FFU;
 	auto patch = apiVersion & 0xFFFU;
-	deviceInfo.apiVersion = std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
+	deviceInfo.apiVersion = pragma::util::to_string(major) + "." + pragma::util::to_string(minor) + "." + pragma::util::to_string(patch);
 
 	deviceInfo.deviceType = static_cast<prosper::PhysicalDeviceType>(props->device_type);
 	deviceInfo.deviceName = props->device_name;

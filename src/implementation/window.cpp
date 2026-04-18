@@ -119,7 +119,7 @@ void prosper::VlkWindow::InitCommandBuffers()
 	m_commandBuffers.resize(GetSwapchainImageCount());
 	for(auto n_current_swapchain_image = 0u; n_current_swapchain_image < m_commandBuffers.size(); ++n_current_swapchain_image) {
 		auto cmd_buffer_ptr = prosper::VlkPrimaryCommandBuffer::Create(context, dev.get_command_pool_for_queue_family_index(universal_queue_family_indices[0])->alloc_primary_level_command_buffer(), prosper::QueueFamilyType::Universal);
-		cmd_buffer_ptr->SetDebugName("swapchain_cmd" + std::to_string(n_current_swapchain_image));
+		cmd_buffer_ptr->SetDebugName("swapchain_cmd" + pragma::util::to_string(n_current_swapchain_image));
 		//dev.get_command_pool(Anvil::QUEUE_FAMILY_TYPE_UNIVERSAL)->alloc_primary_level_command_buffer();
 
 		m_commandBuffers[n_current_swapchain_image] = cmd_buffer_ptr;
@@ -330,7 +330,7 @@ void prosper::VlkWindow::InitFrameBuffers()
 		auto imgView = VlkImageView::Create(context, *m_swapchainImages[n_swapchain_image], imgViewCreateInfo, prosper::ImageViewType::e2D, prosper::ImageAspectFlags::ColorBit, Anvil::ImageViewUniquePtr {anvImgView, [](Anvil::ImageView *imgView) {}} /* deletion handled by Anvil */
 		);
 		auto framebuffer = context.CreateFramebuffer(w, h, 1u, {imgView.get()});
-		framebuffer->SetDebugName("Swapchain framebuffer " + std::to_string(n_swapchain_image));
+		framebuffer->SetDebugName("Swapchain framebuffer " + pragma::util::to_string(n_swapchain_image));
 		m_swapchainFramebuffers[n_swapchain_image] = framebuffer;
 	}
 }

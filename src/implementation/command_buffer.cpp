@@ -675,7 +675,7 @@ bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrie
 						continue;
 					if(layout != imgBarrier.oldLayout && imgBarrier.oldLayout != ImageLayout::Undefined) {
 						debug::exec_debug_validation_callback(GetContext(), prosper::DebugReportObjectTypeEXT::Image,
-						  "Record pipeline barrier: Image 0x" + ::pragma::math::to_hex_string(reinterpret_cast<uint64_t>(imgBarrier.image)) + " at array layer " + std::to_string(i) + ", mipmap " + std::to_string(j) + " has current layout " + vk::to_string(static_cast<vk::ImageLayout>(layout))
+						  "Record pipeline barrier: Image 0x" + ::pragma::math::to_hex_string(reinterpret_cast<uint64_t>(imgBarrier.image)) + " at array layer " + pragma::util::to_string(i) + ", mipmap " + pragma::util::to_string(j) + " has current layout " + vk::to_string(static_cast<vk::ImageLayout>(layout))
 						    + ", but should have " + vk::to_string(static_cast<vk::ImageLayout>(imgBarrier.oldLayout)) + " according to barrier info!");
 					}
 				}
