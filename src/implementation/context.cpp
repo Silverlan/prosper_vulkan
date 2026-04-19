@@ -93,6 +93,10 @@ VlkContext::VlkContext(const std::string &appName, bool bEnableValidation) : IPr
 		std::stringstream ss;
 		ss << "Anvil assertion failed in file \"" << fileName << "\", line " << lineIdx << ": " << msg;
 
+		auto stackBacktrace = pragma::debug::get_formatted_stack_backtrace_string();
+		if(!stackBacktrace.empty())
+			ss << "\nStack Backtrace: \n" << stackBacktrace;
+
 		Log(ss.str(), pragma::util::LogSeverity::Error);
 	});
 }
