@@ -77,8 +77,8 @@ prosper::VlkWindow::~VlkWindow()
 {
 	m_commandBuffers.clear();
 
-	m_frameSignalSemaphores.clear();
-	m_frameWaitSemaphores.clear();
+	m_renderFinishedSemaphores.clear();
+	m_presentCompleteSemaphores.clear();
 
 	m_cmdFences.clear();
 	m_swapchainPtr = nullptr;
@@ -141,41 +141,38 @@ void prosper::VlkWindow::DoReleaseSwapchain()
 
 	m_swapchainFramebuffers.clear();
 	m_cmdFences.clear();
-	m_frameSignalSemaphores.clear();
-	m_frameWaitSemaphores.clear();
+	m_renderFinishedSemaphores.clear();
+	m_presentCompleteSemaphores.clear();
 }
 
 uint32_t prosper::VlkWindow::GetLastAcquiredSwapchainImageIndex() const { return m_swapchainPtr ? GetSwapchain().get_last_acquired_image_index() : 0u; }
 
 Anvil::SwapchainOperationErrorCode prosper::VlkWindow::AcquireImage()
 {
-	/* Determine the signal + wait semaphores to use for drawing this frame */
-	m_lastSemaporeUsed = (m_lastSemaporeUsed + 1) % GetSwapchainImageCount();
-
-	m_curFrameSignalSemaphore = m_frameSignalSemaphores[m_lastSemaporeUsed].get();
-	m_curFrameWaitSemaphore = m_frameWaitSemaphores[m_lastSemaporeUsed].get();
+	m_presentCompleteSemaphore = m_presentCompleteSemaphores[m_currentFrame].get();
 
 	uint32_t idx;
-	auto errCode = m_swapchainPtr->acquire_image(m_curFrameWaitSemaphore, &idx);
-	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS)
+	auto errCode = m_swapchainPtr->acquire_image(m_presentCompleteSemaphore, &idx);
+	if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS) {
 		ResetSwapchain();
+		return errCode;
+	}
+	m_curRenderFinishedSemaphore = m_renderFinishedSemaphores[idx].get();
 	return errCode;
 }
 
 Anvil::Semaphore &prosper::VlkWindow::Submit(VlkPrimaryCommandBuffer &cmd, Anvil::Semaphore *optWaitSemaphore)
 {
 	/* Submit work chunk and present */
-	auto *signalSemaphore = m_curFrameSignalSemaphore;
-	std::array<Anvil::Semaphore *, 2> waitSemaphores = {m_curFrameWaitSemaphore, optWaitSemaphore};
-	auto swapchainImgIdx = GetLastAcquiredSwapchainImageIndex();
+	auto *signalSemaphore = m_curRenderFinishedSemaphore;
+	std::array<Anvil::Semaphore *, 2> waitSemaphores = {m_presentCompleteSemaphore, optWaitSemaphore};
 	auto &context = static_cast<VlkContext &>(GetContext());
 	auto &dev = context.GetDevice();
-
 	const std::array<Anvil::PipelineStageFlags, 2> wait_stage_mask {Anvil::PipelineStageFlagBits::ALL_COMMANDS_BIT, Anvil::PipelineStageFlagBits::ALL_COMMANDS_BIT};
 	auto res = dev.get_universal_queue(0)->submit(Anvil::SubmitInfo::create(&cmd.GetAnvilCommandBuffer(), 1, /* n_semaphores_to_signal */
 	  &signalSemaphore, optWaitSemaphore ? 2 : 1,                                                            /* n_semaphores_to_wait_on */
 	  waitSemaphores.data(), wait_stage_mask.data(), false,                                                  /* should_block  */
-	  m_cmdFences.at(swapchainImgIdx).get()));                                                               /* opt_fence_ptr */
+	  m_cmdFences.at(m_currentFrame).get()));                                                                /* opt_fence_ptr */
 	if(res == VkResult::VK_SUCCESS)
 		context.SetDeviceBusy(true);
 	return *signalSemaphore;
@@ -190,6 +187,8 @@ void prosper::VlkWindow::Present(Anvil::Semaphore *optWaitSemaphore)
 	auto errCode = Anvil::SwapchainOperationErrorCode::SUCCESS;
 	auto bPresentSuccess = present_queue_ptr->present(m_swapchainPtr.get(), swapchainImgIdx, optWaitSemaphore ? 1 : 0, /* n_wait_semaphores */
 	  &optWaitSemaphore, &errCode);
+
+	m_currentFrame = (m_currentFrame + 1) % m_maxFramesInFlight;
 
 	if(m_windowPtr != nullptr) {
 		// Typically when the window was resized, present returns OUT_OF_DATE, however on Wayland that is not the case.
@@ -337,25 +336,26 @@ void prosper::VlkWindow::InitFrameBuffers()
 
 void prosper::VlkWindow::InitSemaphores()
 {
-	m_frameSignalSemaphores.clear();
-	m_frameWaitSemaphores.clear();
+	m_renderFinishedSemaphores.clear();
+	m_presentCompleteSemaphores.clear();
 
-	m_lastSemaporeUsed = 0;
-	m_curFrameSignalSemaphore = nullptr;
-	m_curFrameWaitSemaphore = nullptr;
+	m_curRenderFinishedSemaphore = nullptr;
+	m_presentCompleteSemaphore = nullptr;
 
 	auto &context = static_cast<VlkContext &>(GetContext());
 	auto &dev = context.GetDevice();
-	auto n = GetSwapchainImageCount();
+	auto n = m_maxFramesInFlight;
+	for(auto n_semaphore = 0u; n_semaphore < n; ++n_semaphore) {
+		auto new_wait_semaphore_ptr = Anvil::Semaphore::create(Anvil::SemaphoreCreateInfo::create(&dev));
+		new_wait_semaphore_ptr->set_name_formatted("Wait semaphore [%d]", n_semaphore);
+		m_presentCompleteSemaphores.push_back(std::move(new_wait_semaphore_ptr));
+	}
+
+	n = GetSwapchainImageCount();
 	for(auto n_semaphore = 0u; n_semaphore < n; ++n_semaphore) {
 		auto new_signal_semaphore_ptr = Anvil::Semaphore::create(Anvil::SemaphoreCreateInfo::create(&dev));
-		auto new_wait_semaphore_ptr = Anvil::Semaphore::create(Anvil::SemaphoreCreateInfo::create(&dev));
-
 		new_signal_semaphore_ptr->set_name_formatted("Signal semaphore [%d]", n_semaphore);
-		new_wait_semaphore_ptr->set_name_formatted("Wait semaphore [%d]", n_semaphore);
-
-		m_frameSignalSemaphores.push_back(std::move(new_signal_semaphore_ptr));
-		m_frameWaitSemaphores.push_back(std::move(new_wait_semaphore_ptr));
+		m_renderFinishedSemaphores.push_back(std::move(new_signal_semaphore_ptr));
 	}
 }
 
@@ -383,6 +383,7 @@ void prosper::VlkWindow::ClearSwapchain()
 	m_cmdFences.clear();
 	m_swapchainFramebuffers.clear();
 	m_swapchainPtr = nullptr;
+	m_currentFrame = 0;
 }
 
 void prosper::VlkWindow::DoInitSwapchain()
@@ -453,7 +454,6 @@ void prosper::VlkWindow::DoInitSwapchain()
 
 	// The actual swapchain may have a different number of images
 	numSwapchainImages = m_swapchainPtr->get_n_images();
-	m_cmdFences.resize(numSwapchainImages);
 	m_swapchainFramebuffers.resize(numSwapchainImages);
 
 	auto nSwapchainImages = m_swapchainPtr->get_n_images();
@@ -479,8 +479,11 @@ void prosper::VlkWindow::DoInitSwapchain()
 			    // Don't delete, image will be destroyed by Anvil
 		    }},
 		  createInfo, true);
-		m_cmdFences[i] = Anvil::Fence::create(Anvil::FenceCreateInfo::create(&context.GetDevice(), true));
 	}
+
+	m_cmdFences.resize(m_maxFramesInFlight);
+	for(auto &fence : m_cmdFences)
+		fence = Anvil::Fence::create(Anvil::FenceCreateInfo::create(&context.GetDevice(), true));
 
 	m_swapchainPtr->set_name("Main swapchain");
 
@@ -504,9 +507,7 @@ Anvil::Fence *prosper::VlkWindow::GetFence(uint32_t idx) { return (idx < m_cmdFe
 
 bool prosper::VlkWindow::WaitForFence(std::string &outErr)
 {
-	auto idx = GetLastAcquiredSwapchainImageIndex();
-	if(idx == UINT32_MAX)
-		return true; // Nothing to wait for
+	auto idx = m_currentFrame;
 	auto &context = static_cast<VlkContext &>(GetContext());
 	auto waitResult = static_cast<prosper::Result>(vkWaitForFences(context.GetDevice().get_device_vk(), 1, m_cmdFences[idx]->get_fence_ptr(), true, std::numeric_limits<uint64_t>::max()));
 	if(waitResult == prosper::Result::Success) {

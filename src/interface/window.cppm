@@ -22,9 +22,6 @@ export namespace prosper {
 		Anvil::RenderingSurface &GetRenderingSurface() { return *m_renderingSurfacePtr; }
 		const Anvil::RenderingSurface &GetRenderingSurface() const { return const_cast<VlkWindow *>(this)->GetRenderingSurface(); }
 
-		Anvil::Semaphore *GetCurrentFrameSignalSemaphore() { return m_curFrameSignalSemaphore; }
-		Anvil::Semaphore *GetCurrentFrameWaitSemaphore() { return m_curFrameWaitSemaphore; }
-
 		Anvil::Fence *GetFence(uint32_t idx);
 		bool WaitForFence(std::string &outErr);
 		bool IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const;
@@ -46,8 +43,6 @@ export namespace prosper {
 		void InitFrameBuffers();
 
 		bool m_initializeSwapchainWhenPossible = false;
-		Anvil::Semaphore *m_curFrameSignalSemaphore = nullptr;
-		Anvil::Semaphore *m_curFrameWaitSemaphore = nullptr;
 
 		std::shared_ptr<Anvil::RenderingSurface> m_renderingSurfacePtr;
 		Anvil::WindowUniquePtr m_windowPtr = nullptr;
@@ -57,7 +52,11 @@ export namespace prosper {
 		std::shared_ptr<Anvil::Swapchain> m_swapchainPtr;
 		std::vector<std::shared_ptr<Anvil::Fence>> m_cmdFences;
 
-		std::vector<Anvil::SemaphoreUniquePtr> m_frameSignalSemaphores;
-		std::vector<Anvil::SemaphoreUniquePtr> m_frameWaitSemaphores;
+		uint8_t m_currentFrame = 0;
+		size_t m_maxFramesInFlight = 2;
+		Anvil::Semaphore *m_curRenderFinishedSemaphore = nullptr;
+		Anvil::Semaphore *m_presentCompleteSemaphore = nullptr;
+		std::vector<Anvil::SemaphoreUniquePtr> m_renderFinishedSemaphores;
+		std::vector<Anvil::SemaphoreUniquePtr> m_presentCompleteSemaphores;
 	};
 };

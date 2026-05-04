@@ -179,6 +179,8 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 			window->SetState(prosper::Window::State::Inactive);
 			continue;
 		}
+		auto result = static_cast<VlkWindow &>(*window).WaitForFence(errMsg);
+
 		auto &vlkWindow = static_cast<VlkWindow &>(*window);
 		if(!vlkWindow.UpdateSwapchain()) {
 			++it;
@@ -192,7 +194,6 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 			continue;
 		}
 
-		auto result = static_cast<VlkWindow &>(*window).WaitForFence(errMsg);
 		window->SetState(result ? prosper::Window::State::Active : prosper::Window::State::Inactive);
 		if(result) {
 			auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer &>(*window->GetDrawCommandBuffer());
