@@ -659,12 +659,6 @@ bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrie
 		r->AddArgument("barrierInfo", barrierInfo);
 	}
 #endif
-	for(auto &imgBarrier : barrierInfo.imageBarriers) {
-		if(imgBarrier.image->GetDebugName().find("lua_rt_tex0_img") != std::string::npos) {
-			if(imgBarrier.oldLayout == prosper::ImageLayout::ShaderReadOnlyOptimal && imgBarrier.newLayout == prosper::ImageLayout::ColorAttachmentOptimal)
-				std::cout << "";
-		}
-	}
 	if(static_cast<VlkContext &>(GetContext()).IsCustomValidationEnabled()) {
 		for(auto &imgBarrier : barrierInfo.imageBarriers) {
 			auto &range = imgBarrier.subresourceRange;
