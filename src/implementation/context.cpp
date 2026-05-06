@@ -281,6 +281,8 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 		static_cast<VlkWindow &>(*window).Present(&sigSem);
 		++idx;
 	}
+
+	m_currentFrame = (m_currentFrame + 1) % m_maxFramesInFlight;
 }
 
 bool VlkContext::Submit(ICommandBuffer &cmdBuf, bool shouldBlock, IFence *optFence)
@@ -958,7 +960,7 @@ std::optional<std::string> VlkContext::DumpExtensions() const
 std::optional<prosper::util::VendorDeviceInfo> VlkContext::GetVendorDeviceInfo() const { return util::get_vendor_device_info(*this); }
 
 std::optional<std::vector<prosper::util::VendorDeviceInfo>> VlkContext::GetAvailableVendorDevices() const { return util::get_available_vendor_devices(*this); }
-std::optional<prosper::util::PhysicalDeviceMemoryProperties> VlkContext::GetPhysicslDeviceMemoryProperties() const { return util::get_physical_device_memory_properties(*this); }
+std::optional<prosper::util::PhysicalDeviceMemoryProperties> VlkContext::GetPhysicalDeviceMemoryProperties() const { return util::get_physical_device_memory_properties(*this); }
 
 Vendor VlkContext::GetPhysicalDeviceVendor() const { return static_cast<Vendor>(const_cast<VlkContext *>(this)->GetDevice().get_physical_device_properties().core_vk1_0_properties_ptr->vendor_id); }
 
@@ -1427,7 +1429,14 @@ static void init_base_pipeline_create_info(const prosper::BasePipelineCreateInfo
 	anvPipelineCreateInfo.set_descriptor_set_create_info(&anvDsInfos);
 }
 
-std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) { return static_cast<VlkContext *>(this)->CreateDescriptorSetGroup(descSetInfo, to_anv_descriptor_set_create_info(descSetInfo)); }
+std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::DoCreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo, size_t numDescSetGroups)
+{
+	std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> anvDescSetInfos;
+	anvDescSetInfos.reserve(numDescSetGroups);
+	for(size_t i = 0; i < numDescSetGroups; ++i)
+		anvDescSetInfos.push_back(to_anv_descriptor_set_create_info(descSetInfo));
+	return static_cast<VlkContext *>(this)->CreateDescriptorSetGroup(descSetInfo, anvDescSetInfos, numDescSetGroups);
+}
 
 std::shared_ptr<prosper::ShaderStageProgram> prosper::VlkContext::CompileShader(prosper::ShaderStage stage, const std::string &shaderPath, std::string &outInfoLog, std::string &outDebugInfoLog, bool reload, const std::string &prefixCode,
   const std::unordered_map<std::string, std::string> &definitions)
@@ -1818,7 +1827,7 @@ static void init_default_dsg_bindings(Anvil::BaseDevice &dev, Anvil::DescriptorS
 		}
 	}
 }
-std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo, std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo)
+std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo, std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> &descSetInfos, size_t numDescSetGroups)
 {
 	auto numBindings = descSetCreateInfo.GetBindingCount();
 	std::vector<bool> cubemapBindings;
@@ -1831,8 +1840,6 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescrip
 		}
 	}
 
-	std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> descSetInfos = {};
-	descSetInfos.push_back(std::move(descSetInfo));
 	auto dsg = Anvil::DescriptorSetGroup::create(&static_cast<VlkContext &>(*this).GetDevice(), descSetInfos, Anvil::DescriptorPoolCreateFlagBits::FREE_DESCRIPTOR_SET_BIT);
 	init_default_dsg_bindings(static_cast<VlkContext &>(*this).GetDevice(), *dsg, cubemapBindings);
 	return prosper::VlkDescriptorSetGroup::Create(*this, descSetCreateInfo, std::move(dsg));

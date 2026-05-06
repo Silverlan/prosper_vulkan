@@ -46,6 +46,7 @@ VlkDescriptorSetGroup::VlkDescriptorSetGroup(IPrContext &context, const Descript
 		                                                            }};
 	}
 }
+uint32_t VlkDescriptorSetGroup::GetDescriptorSetCount() const { return m_descriptorSetGroup->get_n_descriptor_sets(); }
 VlkDescriptorSetGroup::~VlkDescriptorSetGroup()
 {
 	if(prosper::debug::is_debug_mode_enabled()) {

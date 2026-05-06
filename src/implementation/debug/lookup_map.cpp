@@ -30,7 +30,9 @@ class PR_EXPORT ObjectLookupHandler {
 		std::scoped_lock lock {m_objectMutex};
 		auto it = m_lookupTable.find(vkPtr);
 		if(it != m_lookupTable.end()) {
-			m_debugHistory[vkPtr] = {it->second.obj->GetDebugName(), it->second.backTrace, pragma::debug::get_formatted_stack_backtrace_string()};
+			auto debugName = it->second.obj->GetDebugName();
+			auto backtrace = pragma::debug::get_formatted_stack_backtrace_string();
+			m_debugHistory[vkPtr] = {std::move(debugName), it->second.backTrace, backtrace};
 			m_lookupTable.erase(it);
 		}
 	}

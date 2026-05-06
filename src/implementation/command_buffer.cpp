@@ -578,7 +578,7 @@ bool prosper::VlkCommandBuffer::RecordEndPipelineStatisticsQuery(const PipelineS
 	auto *anvPool = &pQueryPool->GetAnvilQueryPool();
 	return const_cast<VlkCommandBuffer &>(*this)->record_end_query(anvPool, query.GetQueryId());
 }
-static Anvil::ImageSubresourceRange to_anvil_subresource_range(const prosper::util::ImageSubresourceRange &range, prosper::IImage &img, prosper::ImageAspectFlags aspectMask)
+static Anvil::ImageSubresourceRange to_anvil_subresource_range(const prosper::util::ImageSubresourceRange &range, const prosper::IImage &img, prosper::ImageAspectFlags aspectMask)
 {
 	Anvil::ImageSubresourceRange anvRange {};
 	anvRange.base_array_layer = range.baseArrayLayer;
@@ -692,7 +692,7 @@ bool prosper::VlkCommandBuffer::RecordPipelineBarrier(const util::PipelineBarrie
 	for(auto &barrier : barrierInfo.imageBarriers) {
 		anvImgBarriers.push_back(
 		  Anvil::ImageBarrier {static_cast<Anvil::AccessFlagBits>(barrier.srcAccessMask), static_cast<Anvil::AccessFlagBits>(barrier.dstAccessMask), static_cast<Anvil::ImageLayout>(barrier.oldLayout), static_cast<Anvil::ImageLayout>(barrier.newLayout), barrier.srcQueueFamilyIndex,
-		    barrier.dstQueueFamilyIndex, &static_cast<VlkImage *>(barrier.image)->GetAnvilImage(), to_anvil_subresource_range(barrier.subresourceRange, *barrier.image, barrier.aspectMask.has_value() ? *barrier.aspectMask : prosper::util::get_aspect_mask(*barrier.image))});
+		    barrier.dstQueueFamilyIndex, &static_cast<const VlkImage *>(barrier.image)->GetAnvilImage(), to_anvil_subresource_range(barrier.subresourceRange, *barrier.image, barrier.aspectMask.has_value() ? *barrier.aspectMask : prosper::util::get_aspect_mask(*barrier.image))});
 	}
 	if(anvBufBarriers.empty() && anvImgBarriers.empty())
 		return true;

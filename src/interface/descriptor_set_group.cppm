@@ -14,7 +14,8 @@ export namespace prosper {
 	  public:
 		static std::shared_ptr<VlkDescriptorSetGroup> Create(IPrContext &context, const DescriptorSetCreateInfo &createInfo, std::unique_ptr<Anvil::DescriptorSetGroup, std::function<void(Anvil::DescriptorSetGroup *)>> dsg,
 		  const std::function<void(IDescriptorSetGroup &)> &onDestroyedCallback = nullptr);
-		virtual ~VlkDescriptorSetGroup() override;
+		~VlkDescriptorSetGroup() override;
+		uint32_t GetDescriptorSetCount() const override;
 
 		Anvil::DescriptorSetGroup &GetAnvilDescriptorSetGroup() const;
 		Anvil::DescriptorSetGroup &operator*();

@@ -75,8 +75,7 @@ export namespace prosper {
 		using IPrContext::CreateRenderPass;
 		std::shared_ptr<IRenderPass> CreateRenderPass(const prosper::util::RenderPassCreateInfo &renderPassInfo, std::unique_ptr<Anvil::RenderPassCreateInfo> anvRenderPassInfo);
 		using IPrContext::CreateDescriptorSetGroup;
-		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo, std::unique_ptr<Anvil::DescriptorSetCreateInfo> descSetInfo);
-		virtual std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo) override;
+		std::shared_ptr<IDescriptorSetGroup> CreateDescriptorSetGroup(const DescriptorSetCreateInfo &descSetCreateInfo, std::vector<std::unique_ptr<Anvil::DescriptorSetCreateInfo>> &descSetInfos, size_t numDescSetGroups);
 		virtual std::shared_ptr<ISwapCommandBufferGroup> CreateSwapCommandBufferGroup(Window &window, bool allowMt = true, const std::string &debugName = {}) override;
 		virtual std::expected<std::shared_ptr<Window>, std::string> CreateWindow(const WindowSettings &windowCreationInfo) override;
 
@@ -141,7 +140,7 @@ export namespace prosper {
 		virtual std::optional<std::string> DumpExtensions() const override;
 		virtual std::optional<util::VendorDeviceInfo> GetVendorDeviceInfo() const override;
 		virtual std::optional<std::vector<util::VendorDeviceInfo>> GetAvailableVendorDevices() const override;
-		virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicslDeviceMemoryProperties() const override;
+		virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicalDeviceMemoryProperties() const override;
 
 		bool IsCustomValidationEnabled() const { return m_customValidationEnabled; }
 		Anvil::PipelineLayout *GetPipelineLayout(bool graphicsShader, PipelineID pipelineId);
@@ -171,6 +170,7 @@ export namespace prosper {
 		virtual void DoWaitIdle() override;
 		virtual void DoFlushCommandBuffer(ICommandBuffer &cmd) override;
 		virtual std::shared_ptr<IUniformResizableBuffer> DoCreateUniformResizableBuffer(const util::BufferCreateInfo &createInfo, uint64_t bufferInstanceSize, const void *data, prosper::DeviceSize bufferBaseSize, uint32_t alignment) override;
+		std::shared_ptr<IDescriptorSetGroup> DoCreateDescriptorSetGroup(DescriptorSetCreateInfo &descSetInfo, size_t numDescSetGroups) override;
 		void InitVulkan(const CreateInfo &createInfo);
 		void InitMainRenderPass();
 		virtual void ReloadSwapchain() override;
