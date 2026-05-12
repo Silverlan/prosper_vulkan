@@ -126,6 +126,7 @@ bool prosper::VlkBuffer::DoMap(Offset offset, Size size, MapFlags mapFlags, void
 	return m_buffer->get_memory_block(0u)->map(offset, size, optOutMappedPtr);
 }
 bool prosper::VlkBuffer::DoUnmap() const { return m_buffer->get_memory_block(0u)->unmap(); }
+void *prosper::VlkBuffer::GetMappedDataPointer() { return m_buffer->get_memory_block(0u)->get_gpu_data_ptr();}
 
 void prosper::VlkBuffer::RecreateInternalSubBuffer(IBuffer &newParentBuffer)
 {

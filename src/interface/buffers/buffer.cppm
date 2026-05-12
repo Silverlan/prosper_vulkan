@@ -34,6 +34,8 @@ export namespace prosper {
 		virtual const void *GetInternalHandle() const override { return GetVkBuffer(); }
 		VkBuffer GetVkBuffer() const { return m_vkBuffer; };
 		virtual void Initialize() override;
+
+		void *GetMappedDataPointer() override;
 	  protected:
 		friend IDynamicResizableBuffer;
 		friend VkDynamicResizableBuffer;
