@@ -1018,6 +1018,118 @@ void VlkContext::DoKeepResourceAliveUntilPresentationComplete(const std::shared_
 
 bool VlkContext::IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const { return m_window ? static_cast<const VlkWindow &>(GetWindow()).IsPresentationModeSupported(presentMode) : true; }
 
+static std::string get_buffer_type(const prosper::IBuffer &buf)
+{
+	if(dynamic_cast<const prosper::IUniformResizableBuffer *>(&buf))
+		return "UniformResizableBuffer";
+	if(dynamic_cast<const prosper::IDynamicResizableBuffer *>(&buf))
+		return "DynamicResizableBuffer";
+	if(dynamic_cast<const prosper::SwapBuffer *>(&buf))
+		return "SwapBuffer";
+	if(dynamic_cast<const prosper::FrameScopedBuffer *>(&buf))
+		return "FrameScopedBuffer";
+	return "Buffer";
+}
+
+std::optional<std::string> VlkContext::DumpBufferMemoryUsage() const
+{
+	auto getMemoryFeaturesString = [](uint32_t features) -> std::string {
+		std::vector<std::string> flags;
+
+		if(features & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+			flags.push_back("Device Local");
+		if(features & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+			flags.push_back("Host Visible");
+		if(features & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+			flags.push_back("Host Coherent");
+		if(features & VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
+			flags.push_back("Host Cached");
+		if(features & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)
+			flags.push_back("Lazily Allocated");
+		if(features & VK_MEMORY_PROPERTY_PROTECTED_BIT)
+			flags.push_back("Protected");
+
+		if(flags.empty())
+			return "None";
+
+		std::string result = flags[0];
+		for(size_t i = 1; i < flags.size(); ++i) {
+			result += " | " + flags[i];
+		}
+		return result;
+	};
+
+	auto buffers = debug::find_registered_objects_by_type(debug::ObjectType::Buffer);
+	std::sort(buffers.begin(), buffers.end(), [](const ContextObject *a, const ContextObject *b) { return a->GetDebugName() < b->GetDebugName(); });
+
+	std::vector<VlkBuffer *> rootBuffers;
+	std::unordered_map<VlkBuffer *, std::vector<VlkBuffer *>> childMap;
+
+	for(auto *o : buffers) {
+		auto *buf = dynamic_cast<VlkBuffer *>(o);
+		if(!buf)
+			continue;
+
+		auto parent = buf->GetParent();
+		if(parent)
+			childMap[parent.get()].push_back(buf);
+		else
+			rootBuffers.push_back(buf);
+	}
+
+	std::stringstream ss;
+	ss << "\n======================================================\n";
+	ss << "              Buffer Memory Usage Dump                \n";
+	ss << "======================================================\n";
+
+	auto printBufferTree = [&](VlkBuffer *buf, int depth) {
+		std::string indent(depth * 4, ' ');
+
+		auto &debugName = buf->GetDebugName();
+		ss << indent << "[" << get_buffer_type(*buf) << "] " << (debugName.empty() ? "<unnamed>" : debugName) << "\n";
+
+		if(depth == 0) {
+			ss << indent << "  -> Type: Root Buffer\n";
+			auto &anvBuf = buf->GetAnvilBuffer();
+			auto numBlocks = anvBuf.get_n_memory_blocks();
+			ss << indent << "  -> Memory Blocks: " << numBlocks << "\n";
+
+			for(size_t i = 0; i < numBlocks; ++i) {
+				auto *memBlock = anvBuf.get_memory_block(i);
+				auto *createInfo = memBlock ? memBlock->get_create_info_ptr() : nullptr;
+
+				if(!createInfo) {
+					ss << indent << "      [" << i << "] Invalid memory block or missing create info.\n";
+					continue;
+				}
+
+				auto memTypeIndex = createInfo->get_memory_type_index();
+				auto memFeatures = createInfo->get_memory_features();
+				auto size = createInfo->get_size();
+				ss << indent << "      [" << i << "] Type Index: " << memTypeIndex << "\n" << indent << "          Size:       " << size << " bytes\n" << indent << "          Features:   " << getMemoryFeaturesString(memFeatures.get_vk()) << "\n";
+			}
+		}
+		else {
+			ss << indent << "  -> Type: Child Buffer\n";
+			ss << indent << "  -> Memory: Inherited from parent buffer\n";
+		}
+
+		auto it = childMap.find(buf);
+		if(it != childMap.end()) {
+			for(auto *child : it->second)
+				printBufferTree(child, depth + 1);
+		}
+	};
+
+	for(auto *rootBuf : rootBuffers) {
+		printBufferTree(rootBuf, 0);
+		ss << "\n";
+	}
+
+	ss << "======================================================\n\n";
+	return ss.str();
+}
+
 static Anvil::QueueFamilyFlags queue_family_flags_to_anvil_queue_family(prosper::QueueFamilyFlags flags)
 {
 	Anvil::QueueFamilyFlags queueFamilies {};
@@ -1112,9 +1224,8 @@ std::shared_ptr<prosper::IBuffer> VlkContext::CreateBuffer(const prosper::util::
 				memcpy(dataPtr.get(), data, createInfo.size);
 				m_memAllocator->add_buffer_with_uchar8_data_ptr_based_post_fill(buf.get(), std::move(dataPtr), memory_feature_flags_to_anvil_flags(memoryFeatures));
 			}
-			else {
+			else
 				m_memAllocator->add_buffer(buf.get(), memory_feature_flags_to_anvil_flags(memoryFeatures));
-			}
 			return VlkBuffer::Create(*this, std::move(buf), createInfo, 0ull, createInfo.size);
 		}
 		auto bufferCreateInfo = Anvil::BufferCreateInfo::create_alloc(&dev, static_cast<VkDeviceSize>(createInfo.size), queue_family_flags_to_anvil_queue_family(createInfo.queueFamilyMask), sharingMode, createFlags, static_cast<Anvil::BufferUsageFlagBits>(createInfo.usageFlags),
@@ -1364,7 +1475,8 @@ static std::unique_ptr<Anvil::DescriptorSetCreateInfo> to_anv_descriptor_set_cre
 		prosper::ShaderStageFlags stageFlags;
 		bool immutableSamplersEnabled;
 		prosper::DescriptorBindingFlags flags;
-		auto result = descSetInfo.GetBindingPropertiesByIndexNumber(i, &bindingIndex, &descType, &descArraySize, &stageFlags, &immutableSamplersEnabled, &flags);
+		PrDescriptorSetBindingFlags prFlags;
+		auto result = descSetInfo.GetBindingPropertiesByIndexNumber(i, &bindingIndex, &descType, &descArraySize, &stageFlags, &immutableSamplersEnabled, &flags, &prFlags);
 		assert(result && !immutableSamplersEnabled);
 		dsInfo->add_binding(bindingIndex, static_cast<Anvil::DescriptorType>(descType), descArraySize, static_cast<Anvil::ShaderStageFlagBits>(stageFlags), static_cast<Anvil::DescriptorBindingFlagBits>(flags), nullptr);
 	}
@@ -1840,7 +1952,8 @@ std::shared_ptr<prosper::IDescriptorSetGroup> prosper::VlkContext::CreateDescrip
 		}
 	}
 
-	auto dsg = Anvil::DescriptorSetGroup::create(&static_cast<VlkContext &>(*this).GetDevice(), descSetInfos, Anvil::DescriptorPoolCreateFlagBits::FREE_DESCRIPTOR_SET_BIT);
+	Anvil::DescriptorPoolCreateFlags flags = Anvil::DescriptorPoolCreateFlagBits::FREE_DESCRIPTOR_SET_BIT;
+	auto dsg = Anvil::DescriptorSetGroup::create(&static_cast<VlkContext &>(*this).GetDevice(), descSetInfos, flags);
 	init_default_dsg_bindings(static_cast<VlkContext &>(*this).GetDevice(), *dsg, cubemapBindings);
 	return prosper::VlkDescriptorSetGroup::Create(*this, descSetCreateInfo, std::move(dsg));
 }

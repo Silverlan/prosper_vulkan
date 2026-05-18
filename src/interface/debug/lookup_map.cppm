@@ -22,19 +22,6 @@ export {
 		class VlkFramebuffer;
 		class VlkDescriptorSetGroup;
 		namespace debug {
-			enum class ObjectType : uint32_t {
-				Image = 0u,
-				ImageView,
-				Sampler,
-				Buffer,
-				CommandBuffer,
-				RenderPass,
-				Framebuffer,
-				DescriptorSet,
-				Pipeline,
-				Fence,
-				Count,
-			};
 			struct ShaderPipelineInfo {
 				Shader *shader = nullptr;
 				uint32_t pipelineIdx = std::numeric_limits<uint32_t>::max();
@@ -44,6 +31,7 @@ export {
 			PR_EXPORT void register_debug_object(void *vkPtr, prosper::ContextObject &obj, ObjectType type);
 			PR_EXPORT void register_debug_shader_pipeline(void *vkPtr, const ShaderPipelineInfo &pipelineInfo);
 			PR_EXPORT void deregister_debug_object(void *vkPtr);
+			PR_EXPORT std::optional<std::string> find_object_backtrace(const ContextObject &o);
 
 			PR_EXPORT void *get_object(void *vkObj, ObjectType &type, std::string *optOutBacktrace = nullptr);
 			PR_EXPORT VlkImage *get_image(const vk::Image &vkImage);

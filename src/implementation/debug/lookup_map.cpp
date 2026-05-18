@@ -36,6 +36,14 @@ class PR_EXPORT ObjectLookupHandler {
 			m_lookupTable.erase(it);
 		}
 	}
+	std::optional<std::string> FindBacktrace(const prosper::ContextObject &o) const
+	{
+		std::scoped_lock lock {m_objectMutex};
+		auto it = std::find_if(m_lookupTable.begin(), m_lookupTable.end(), [&o](const std::pair<void *, DebugObjectInfo> &pair) { return &o == pair.second.obj; });
+		if(it == m_lookupTable.end())
+			return {};
+		return it->second.backTrace;
+	}
 	prosper::ContextObject *GetObject(void *vkPtr, prosper::debug::ObjectType *outType = nullptr, std::string *optOutBacktrace = nullptr) const
 	{
 		std::scoped_lock lock {m_objectMutex};
@@ -98,6 +106,12 @@ void prosper::debug::deregister_debug_object(void *vkPtr)
 	if(s_lookupHandler == nullptr)
 		return;
 	s_lookupHandler->ClearObject(vkPtr);
+}
+std::optional<std::string> prosper::debug::find_object_backtrace(const prosper::ContextObject &o)
+{
+	if(s_lookupHandler == nullptr)
+		return {};
+	return s_lookupHandler->FindBacktrace(o);
 }
 
 void *prosper::debug::get_object(void *vkObj, ObjectType &type, std::string *optOutBacktrace)
@@ -232,8 +246,13 @@ void prosper::VlkContext::AddDebugObjectInformation(std::string &msgValidation)
 			r << " (" << *debugName << ")";
 		else if(contextObject == nullptr)
 			r << " (Unknown)";
-		else
-			r << " (" << object_type_to_string(type) << ")";
+		else {
+			r << " (" << object_type_to_string(type);
+			auto *dsg = dynamic_cast<prosper::VlkDescriptorSetGroup *>(o);
+			if(dsg)
+				r << " of DSG '" << dsg->GetDebugName() << "'";
+			r << ")";
+		}
 		r << " prosper::ContextObject(0x" << o << ")";
 		auto *dbgO = dynamic_cast<VlkDebugObject *>(contextObject);
 		if(dbgO) {

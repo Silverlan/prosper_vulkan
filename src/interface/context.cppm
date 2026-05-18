@@ -138,6 +138,7 @@ export namespace prosper {
 		virtual std::optional<std::string> DumpImageFormatProperties() const override;
 		virtual std::optional<std::string> DumpLayers() const override;
 		virtual std::optional<std::string> DumpExtensions() const override;
+		virtual std::optional<std::string> DumpBufferMemoryUsage() const override;
 		virtual std::optional<util::VendorDeviceInfo> GetVendorDeviceInfo() const override;
 		virtual std::optional<std::vector<util::VendorDeviceInfo>> GetAvailableVendorDevices() const override;
 		virtual std::optional<util::PhysicalDeviceMemoryProperties> GetPhysicalDeviceMemoryProperties() const override;
