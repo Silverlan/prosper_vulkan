@@ -1086,7 +1086,7 @@ std::optional<std::string> VlkContext::DumpBufferMemoryUsage() const
 	ss << "              Buffer Memory Usage Dump                \n";
 	ss << "======================================================\n";
 
-	auto printBufferTree = [&](VlkBuffer *buf, int depth) {
+	std::function<void(VlkBuffer *, int)> printBufferTree = [&](VlkBuffer *buf, int depth) {
 		std::string indent(depth * 4, ' ');
 
 		auto &debugName = buf->GetDebugName();
