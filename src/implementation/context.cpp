@@ -1006,13 +1006,17 @@ void VlkContext::GetGLSLDefinitions(glsl::Definitions &outDef) const
 
 void VlkContext::DoKeepResourceAliveUntilPresentationComplete(const std::shared_ptr<void> &resource)
 {
+	if(!m_window)
+		return;
 	auto swapchainImgIdx = GetLastAcquiredPrimaryWindowSwapchainImageIndex();
-	auto *fence = static_cast<VlkWindow &>(GetWindow()).GetFence(swapchainImgIdx);
+	if(swapchainImgIdx >= m_keepAliveResources.size())
+		return;
+	/*auto *fence = static_cast<VlkWindow &>(GetWindow()).GetFence(swapchainImgIdx);
 	if(!fence || fence->is_set())
 		return;
 	std::unique_lock lock {m_swapchainResourcesInUseMutex};
 	if(!m_swapchainResourcesInUse[swapchainImgIdx])
-		return;
+		return;*/
 	m_keepAliveResources.at(swapchainImgIdx).push_back(resource);
 }
 
