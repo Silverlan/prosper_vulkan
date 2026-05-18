@@ -101,6 +101,7 @@ export namespace prosper {
 
 		virtual std::shared_ptr<IBuffer> CreateBuffer(const util::BufferCreateInfo &createInfo, const void *data = nullptr) override;
 		virtual std::shared_ptr<IDynamicResizableBuffer> CreateDynamicResizableBuffer(util::BufferCreateInfo createInfo, const void *data = nullptr) override;
+		virtual std::shared_ptr<IResizableBuffer> CreateResizableBuffer(util::BufferCreateInfo createInfo, const void *data = nullptr) override;
 		virtual std::shared_ptr<IEvent> CreateEvent() override;
 		virtual std::shared_ptr<IFence> CreateFence(bool createSignalled = false) override;
 		virtual std::shared_ptr<ISampler> CreateSampler(const util::SamplerCreateInfo &createInfo) override;

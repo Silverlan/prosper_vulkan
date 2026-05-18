@@ -12,6 +12,7 @@ export import :debug.object;
 export namespace prosper {
 	class VkDynamicResizableBuffer;
 	class VkUniformResizableBuffer;
+	class VkResizableBuffer;
 	class PR_EXPORT VlkBuffer : virtual public IBuffer, public VlkDebugObject {
 	  public:
 		static std::shared_ptr<VlkBuffer> Create(IPrContext &context, Anvil::BufferUniquePtr buf, const util::BufferCreateInfo &bufCreateInfo, DeviceSize startOffset, DeviceSize size, const std::function<void(IBuffer &)> &onDestroyedCallback = nullptr);
@@ -41,6 +42,7 @@ export namespace prosper {
 		friend VkDynamicResizableBuffer;
 		friend IUniformResizableBuffer;
 		friend VkUniformResizableBuffer;
+		friend VkResizableBuffer;
 		VlkBuffer(IPrContext &context, const util::BufferCreateInfo &bufCreateInfo, DeviceSize startOffset, DeviceSize size, std::unique_ptr<Anvil::Buffer, std::function<void(Anvil::Buffer *)>> buf);
 		virtual void RecreateInternalSubBuffer(IBuffer &newParentBuffer) override;
 		virtual bool DoWrite(Offset offset, Size size, const void *data) const override;

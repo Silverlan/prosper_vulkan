@@ -7,4 +7,5 @@ export module pragma.prosper.vulkan:buffer;
 export import :buffer.buffer;
 export import :buffer.dynamic_resizable_buffer;
 export import :buffer.render_buffer;
+export import :buffer.resizable_buffer;
 export import :buffer.uniform_resizable_buffer;

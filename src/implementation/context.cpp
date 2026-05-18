@@ -1185,6 +1185,17 @@ std::shared_ptr<prosper::IDynamicResizableBuffer> prosper::VlkContext::CreateDyn
 	if(buf == nullptr)
 		return nullptr;
 	auto r = std::shared_ptr<VkDynamicResizableBuffer>(new VkDynamicResizableBuffer {*this, *buf, createInfo});
+	r->SetDebugName(std::format("drb_{}", createInfo.debugName));
+	r->Initialize();
+	return r;
+}
+std::shared_ptr<prosper::IResizableBuffer> prosper::VlkContext::CreateResizableBuffer(util::BufferCreateInfo createInfo, const void *data)
+{
+	auto buf = CreateBuffer(createInfo, data);
+	if(buf == nullptr)
+		return nullptr;
+	auto r = std::shared_ptr<VkResizableBuffer>(new VkResizableBuffer {*buf});
+	r->SetDebugName(std::format("rb_{}", createInfo.debugName));
 	r->Initialize();
 	return r;
 }
