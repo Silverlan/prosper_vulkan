@@ -153,8 +153,13 @@ void VlkContext::OnSwapchainResourcesCleared(uint32_t swapchainIdx)
 	m_swapchainResourcesInUse[swapchainIdx] = false;
 }
 
+bool VlkContext::SupportsMultiThreadedResourceAllocation() const { return !pragma::math::is_flag_set(m_stateFlags, StateFlags::ForceSingleThreadedMode); }
+
 void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 {
+	if(pragma::math::is_flag_set(m_stateFlags, StateFlags::WaitIdleBetweenFrames))
+		WaitIdle(true);
+
 	auto errCode = Anvil::SwapchainOperationErrorCode::SUCCESS;
 	uint64_t validWindows = 0;
 	std::string errMsg;
@@ -350,8 +355,10 @@ Anvil::Swapchain &VlkContext::GetSwapchain() { return static_cast<VlkWindow &>(G
 
 void VlkContext::DoWaitIdle()
 {
-	auto &dev = GetDevice();
-	dev.wait_idle();
+	if(m_pGpuDevice) {
+		auto &dev = GetDevice();
+		dev.wait_idle();
+	}
 
 	std::unique_lock lock {m_swapchainResourcesInUseMutex};
 	m_swapchainResourcesInUse.assign(m_swapchainResourcesInUse.size(), false);
@@ -2124,7 +2131,7 @@ std::shared_ptr<prosper::IRenderBuffer> prosper::VlkContext::CreateRenderBuffer(
 
 std::shared_ptr<prosper::ISwapCommandBufferGroup> prosper::VlkContext::CreateSwapCommandBufferGroup(Window &window, bool allowMt, const std::string &debugName)
 {
-	if(allowMt)
+	if(allowMt && !pragma::math::is_flag_set(m_stateFlags, StateFlags::ForceSingleThreadedMode))
 		return std::make_shared<MtSwapCommandBufferGroup>(window, debugName);
 	return std::make_shared<StSwapCommandBufferGroup>(window, debugName);
 }

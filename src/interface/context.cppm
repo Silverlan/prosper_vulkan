@@ -49,7 +49,7 @@ export namespace prosper {
 		virtual std::string GetAPIAbbreviation() const override { return "VK"; }
 		virtual bool WaitForCurrentSwapchainCommandBuffer(std::string &outErrMsg) override;
 
-		virtual bool SupportsMultiThreadedResourceAllocation() const override { return true; }
+		virtual bool SupportsMultiThreadedResourceAllocation() const override;
 
 		Anvil::SGPUDevice &GetDevice();
 		const Anvil::SGPUDevice &GetDevice() const;
