@@ -153,7 +153,15 @@ void prosper::VlkWindow::DoReleaseSwapchain()
 	m_presentCompleteSemaphores.clear();
 }
 
-uint32_t prosper::VlkWindow::GetLastAcquiredSwapchainImageIndex() const { return m_swapchainPtr ? GetSwapchain().get_last_acquired_image_index() : INVALID_SWAPCHAIN_IMAGE_INDEX; }
+std::optional<uint32_t> prosper::VlkWindow::GetLastAcquiredSwapchainImageIndex() const
+{
+	if (!m_swapchainPtr)
+		return {};
+	auto idx = GetSwapchain().get_last_acquired_image_index();
+	if (idx == UINT32_MAX)
+		return {};
+	return idx;
+}
 
 Anvil::SwapchainOperationErrorCode prosper::VlkWindow::AcquireImage()
 {
@@ -191,9 +199,11 @@ void prosper::VlkWindow::Present(Anvil::Semaphore *optWaitSemaphore)
 	auto &context = static_cast<VlkContext &>(GetContext());
 	auto &dev = context.GetDevice();
 	auto swapchainImgIdx = GetLastAcquiredSwapchainImageIndex();
+	if (!swapchainImgIdx)
+		return;
 	auto *present_queue_ptr = dev.get_universal_queue(0);
 	auto errCode = Anvil::SwapchainOperationErrorCode::SUCCESS;
-	auto bPresentSuccess = present_queue_ptr->present(m_swapchainPtr.get(), swapchainImgIdx, optWaitSemaphore ? 1 : 0, /* n_wait_semaphores */
+	auto bPresentSuccess = present_queue_ptr->present(m_swapchainPtr.get(), *swapchainImgIdx, optWaitSemaphore ? 1 : 0, /* n_wait_semaphores */
 	  &optWaitSemaphore, &errCode);
 
 	if(m_windowPtr != nullptr) {

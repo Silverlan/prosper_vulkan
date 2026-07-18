@@ -1034,7 +1034,7 @@ void VlkContext::DoKeepResourceAliveUntilPresentationComplete(const std::shared_
 	if(!m_window)
 		return;
 	auto swapchainImgIdx = GetLastAcquiredPrimaryWindowSwapchainImageIndex();
-	if(swapchainImgIdx >= m_keepAliveResources.size())
+	if(!swapchainImgIdx || *swapchainImgIdx >= m_keepAliveResources.size())
 		return;
 	/*auto *fence = static_cast<VlkWindow &>(GetWindow()).GetFence(swapchainImgIdx);
 	if(!fence || fence->is_set())
@@ -1042,7 +1042,7 @@ void VlkContext::DoKeepResourceAliveUntilPresentationComplete(const std::shared_
 	std::unique_lock lock {m_swapchainResourcesInUseMutex};
 	if(!m_swapchainResourcesInUse[swapchainImgIdx])
 		return;*/
-	m_keepAliveResources.at(swapchainImgIdx).push_back(resource);
+	m_keepAliveResources.at(*swapchainImgIdx).push_back(resource);
 }
 
 bool VlkContext::IsPresentationModeSupported(prosper::PresentModeKHR presentMode) const { return m_window ? static_cast<const VlkWindow &>(GetWindow()).IsPresentationModeSupported(presentMode) : true; }

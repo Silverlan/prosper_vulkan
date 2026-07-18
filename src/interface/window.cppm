@@ -25,7 +25,7 @@ export namespace prosper {
 		Anvil::Fence *GetFence(uint32_t idx);
 		bool WaitForFence(std::string &outErr);
 		bool IsPresentationModeSupported(PresentModeKHR presentMode) const;
-		uint32_t GetLastAcquiredSwapchainImageIndex() const override;
+		std::optional<uint32_t> GetLastAcquiredSwapchainImageIndex() const override;
 		Anvil::SwapchainOperationErrorCode AcquireImage();
 		Anvil::Semaphore &Submit(VlkPrimaryCommandBuffer &cmd, Anvil::Semaphore *optWaitSemaphore = nullptr);
 		void Present(Anvil::Semaphore *optWaitSemaphore = nullptr);
