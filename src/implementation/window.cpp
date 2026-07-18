@@ -73,8 +73,15 @@ std::expected<std::shared_ptr<VlkWindow>, std::string> VlkWindow::Create(const W
 		return std::unexpected {res.error()};
 	return window;
 }
+void prosper::VlkWindow::ClearCurrentDrawCmdBuffer() {
+	auto &context = GetContext();
+	if (context.GetCurrentPrimaryDrawCommandBufferWindow() != this)
+		return;
+	context.ResetCurrentDrawCommandBuffer();
+}
 prosper::VlkWindow::~VlkWindow()
 {
+	ClearCurrentDrawCmdBuffer();
 	m_commandBuffers.clear();
 
 	m_renderFinishedSemaphores.clear();
@@ -116,6 +123,7 @@ void prosper::VlkWindow::InitCommandBuffers()
 	dev.get_queue_family_indices_for_queue_family_type(Anvil::QueueFamilyType::UNIVERSAL, &n_universal_queue_family_indices, &universal_queue_family_indices);
 
 	/* Set up rendering command buffers. We need one per swap-chain image. */
+	ClearCurrentDrawCmdBuffer();
 	m_commandBuffers.resize(GetSwapchainImageCount());
 	for(auto n_current_swapchain_image = 0u; n_current_swapchain_image < m_commandBuffers.size(); ++n_current_swapchain_image) {
 		auto cmd_buffer_ptr = prosper::VlkPrimaryCommandBuffer::Create(context, dev.get_command_pool_for_queue_family_index(universal_queue_family_indices[0])->alloc_primary_level_command_buffer(), prosper::QueueFamilyType::Universal);
@@ -145,7 +153,7 @@ void prosper::VlkWindow::DoReleaseSwapchain()
 	m_presentCompleteSemaphores.clear();
 }
 
-uint32_t prosper::VlkWindow::GetLastAcquiredSwapchainImageIndex() const { return m_swapchainPtr ? GetSwapchain().get_last_acquired_image_index() : 0u; }
+uint32_t prosper::VlkWindow::GetLastAcquiredSwapchainImageIndex() const { return m_swapchainPtr ? GetSwapchain().get_last_acquired_image_index() : INVALID_SWAPCHAIN_IMAGE_INDEX; }
 
 Anvil::SwapchainOperationErrorCode prosper::VlkWindow::AcquireImage()
 {

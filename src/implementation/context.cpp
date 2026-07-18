@@ -184,14 +184,21 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 			window->SetState(prosper::Window::State::Inactive);
 			continue;
 		}
-		auto result = static_cast<VlkWindow &>(*window).WaitForFence(errMsg);
 
+		if (!(*window)->IsVisible() || (*window)->IsMinimized()) {
+			++it;
+			window->SetState(prosper::Window::State::Inactive);
+			continue;
+		}
+
+		auto result = static_cast<VlkWindow &>(*window).WaitForFence(errMsg);
 		auto &vlkWindow = static_cast<VlkWindow &>(*window);
 		if(!vlkWindow.UpdateSwapchain()) {
 			++it;
 			window->SetState(prosper::Window::State::Inactive);
 			continue;
 		}
+
 		errCode = vlkWindow.AcquireImage();
 		if(errCode != Anvil::SwapchainOperationErrorCode::SUCCESS) {
 			++it;
@@ -239,19 +246,30 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 	// we should clear the resources immediately.
 	ClearKeepAliveResources();
 
-	auto swapchainImgIdx = GetLastAcquiredPrimaryWindowSwapchainImageIndex();
-	if(swapchainImgIdx == UINT32_MAX) {
+	if(validWindows == 0) {
 		fCancelRecording();
 		return;
 	}
-	/* Start recording commands */
-	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer &>(*GetWindow().GetDrawCommandBuffer());
-	if(primCmd.IsRecording() == false)
-		return; // Something either went wrong, or window is probably minimized
 
-	m_swapchainResourcesInUseMutex.lock();
-	m_swapchainResourcesInUse[swapchainImgIdx] = true;
-	m_swapchainResourcesInUseMutex.unlock();
+	std::shared_ptr<Window> activeMainWindow = nullptr;
+	for(uint32_t idx = 0; auto &window : m_windows) {
+		if((validWindows & (1 << idx)) != 0) {
+			activeMainWindow = window;
+			break;
+		}
+		++idx;
+	}
+
+	SetCurrentDrawCommandBuffer(*activeMainWindow, activeMainWindow->GetDrawCommandBuffer());
+	auto &primCmd = static_cast<prosper::VlkPrimaryCommandBuffer &>(*m_currentDrawCmdBuffer);
+	if(primCmd.IsRecording() == false) {
+		fCancelRecording();
+		return;
+	}
+
+	// m_swapchainResourcesInUseMutex.lock();
+	// m_swapchainResourcesInUse[m_currentFrame] = true;
+	// m_swapchainResourcesInUseMutex.unlock();
 	pragma::math::set_flag(m_stateFlags, StateFlags::IsRecording);
 	while(m_scheduledBufferUpdates.empty() == false) {
 		auto &f = m_scheduledBufferUpdates.front();

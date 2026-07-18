@@ -34,6 +34,7 @@ export namespace prosper {
 		using Window::Window;
 		void ClearSwapchain();
 		void ResetSwapchain();
+		void ClearCurrentDrawCmdBuffer();
 		std::expected<void, std::string> InitWindow() override;
 		void ReleaseWindow() override;
 		void DoInitSwapchain() override;
