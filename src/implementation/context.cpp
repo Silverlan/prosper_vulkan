@@ -185,7 +185,7 @@ void VlkContext::DrawFrame(const std::function<void()> &drawFrame)
 			continue;
 		}
 
-		if (!(*window)->IsVisible() || (*window)->IsMinimized()) {
+		if (!(*window)->IsActive() || (*window)->IsMinimized()) {
 			++it;
 			window->SetState(prosper::Window::State::Inactive);
 			continue;
